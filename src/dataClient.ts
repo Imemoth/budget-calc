@@ -188,24 +188,45 @@ function mapSavingsToRow(s: SavingsBucket, householdId: string) {
 }
 
 // =========================
-// Helper: household lekérés userId alapján
+// Helper: household lekérés rugalmasan
+//  - elsőként household ID-ként próbálja (households.id)
+//  - ha nincs találat, akkor owner_user_id-ként (régi működés)
 // =========================
 
-async function getHouseholdForUser(userId: string): Promise<any> {
-  const { data, error } = await supabase
+async function getHouseholdForKey(householdIdOrUserId: string): Promise<any> {
+  // 1) Try as household id
+  const byId = await supabase
     .from("households")
     .select("*")
-    .eq("owner_user_id", userId)
+    .eq("id", householdIdOrUserId)
     .maybeSingle();
 
-  if (error) {
-    console.error("[dataClient] getHouseholdForUser error:", error);
-    throw new Error(`Failed to load household for user: ${error.message}`);
+  if (byId.error) {
+    console.error("[dataClient] getHouseholdForKey (by id) error:", byId.error);
+    throw new Error(`Failed to load household (by id): ${byId.error.message}`);
   }
-  if (!data) {
-    throw new Error("No household found for this user.");
+  if (byId.data) return byId.data;
+
+  // 2) Fallback: try as owner_user_id
+  const byOwner = await supabase
+    .from("households")
+    .select("*")
+    .eq("owner_user_id", householdIdOrUserId)
+    .maybeSingle();
+
+  if (byOwner.error) {
+    console.error(
+      "[dataClient] getHouseholdForKey (by owner_user_id) error:",
+      byOwner.error
+    );
+    throw new Error(
+      `Failed to load household (by owner_user_id): ${byOwner.error.message}`
+    );
   }
-  return data;
+  if (!byOwner.data) {
+    throw new Error("No household found for this key.");
+  }
+  return byOwner.data;
 }
 
 // =========================
@@ -213,11 +234,15 @@ async function getHouseholdForUser(userId: string): Promise<any> {
 // =========================
 
 /**
- * Betölti a teljes State-et az adott userhez tartozó householdból.
- * Feltételezi, hogy van 1 household owner_user_id = userId-vel.
+ * Betölti a teljes State-et az adott householdból.
+ *
+ * Kompatibilitás miatt a paraméter lehet householdId *vagy* userId is,
+ * de householdId használata javasolt (App provisioning után).
  */
-export async function loadFullStateForUser(userId: string): Promise<State> {
-  const household = await getHouseholdForUser(userId);
+export async function loadFullStateForUser(
+  householdIdOrUserId: string
+): Promise<State> {
+  const household = await getHouseholdForKey(householdIdOrUserId);
   const householdId: string = household.id;
 
   const settings: Settings = mapHouseholdRowToSettings(household);
@@ -300,10 +325,10 @@ export async function loadFullStateForUser(userId: string): Promise<State> {
  * vagy egy "full replace" stratégiára lesz szükség.
  */
 export async function saveStatePatch(
-  userId: string,
+  householdIdOrUserId: string,
   patch: Partial<State>
 ): Promise<void> {
-  const household = await getHouseholdForUser(userId);
+  const household = await getHouseholdForKey(householdIdOrUserId);
   const householdId: string = household.id;
 
   const tasks: Promise<any>[] = [];

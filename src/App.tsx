@@ -1,49 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { APP_VERSION, CHANGELOG } from "./lib/version";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  uid,
-  monthKey,
-  parseMonthKey,
-  addMonths,
-  monthsBetweenInclusive,
-  formatHUF,
-  fmtMoney,
-  clampDateToMonth,
-  percent,
-  roundTo,
-} from "./lib/utils";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  ResponsiveContainer,
-  Cell,
-} from "recharts";
-import {
-  Wallet,
-  BarChart3,
-  Repeat,
-  PiggyBank,
-  Users,
-  Settings2,
-  Plus,
-  Trash2,
-  Download,
-  Upload,
-  ChevronDown,
-  // ChevronUp,
-  Info,
-} from "lucide-react";
-
+import { uid, monthKey, parseMonthKey, addMonths, monthsBetweenInclusive, formatHUF, fmtMoney, clampDateToMonth, percent, roundTo,} from "./lib/utils";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, ResponsiveContainer, Cell,} from "recharts";
+import { Wallet, BarChart3, Repeat, PiggyBank, Users, Settings2, Plus, Trash2, Download, Upload, ChevronDown, Info,} from "lucide-react";
+import { supabase } from "./supabaseClient";
 import { useAuth } from "./auth";
 import { AuthScreen } from "./authscreen";
 import { loadFullStateForUser, saveStatePatch } from "./dataClient";
@@ -508,21 +469,105 @@ const SmallButton = ({
   );
 };
 
+// -------------------- Supabase helpers (household provisioning) --------------------
+
+/**
+ * RLS mellett a mentés/betöltés scope-ja a household.
+ * - ha van household_members rekord a usernek -> azt használjuk
+ * - különben: owner_user_id alapján keresünk / létrehozunk householdot
+ * - végül létrehozzuk a membership-et is
+ */
+async function ensureDefaultHousehold(userId: string): Promise<string> {
+  // 1) Van már membership?
+  const memberRes = await supabase
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", userId)
+    .limit(1)
+    .maybeSingle();
+
+  if (memberRes.error) throw memberRes.error;
+  if (memberRes.data?.household_id) return memberRes.data.household_id as string;
+
+  // 2) Van olyan household, ahol ő a tulaj?
+  const ownedRes = await supabase
+    .from("households")
+    .select("id")
+    .eq("owner_user_id", userId)
+    .limit(1)
+    .maybeSingle();
+
+  if (ownedRes.error) throw ownedRes.error;
+
+  let householdId = ownedRes.data?.id as string | undefined;
+
+  // 3) Ha nincs, létrehozunk egyet
+  if (!householdId) {
+    const createRes = await supabase
+      .from("households")
+      .insert({
+        owner_user_id: userId,
+        name: "Saját háztartás",
+        currency: "HUF",
+      })
+      .select("id")
+      .single();
+
+    if (createRes.error) throw createRes.error;
+    householdId = createRes.data.id as string;
+  }
+
+  // 4) Létrehozzuk a membership-et (role csak akkor, ha létezik az oszlop)
+  const basePayload: any = { household_id: householdId, user_id: userId };
+
+  const withRole = await supabase
+    .from("household_members")
+    .insert({ ...basePayload, role: "OWNER" });
+
+  if (withRole.error) {
+    const msg = (withRole.error.message || "").toLowerCase();
+    // ha a 'role' oszlop nem létezik, újrapróbáljuk role nélkül
+    if (msg.includes("role") && (msg.includes("column") || msg.includes("does not exist"))) {
+      const withoutRole = await supabase
+        .from("household_members")
+        .insert(basePayload);
+      if (withoutRole.error) throw withoutRole.error;
+    } else {
+      throw withRole.error;
+    }
+  }
+
+  return householdId!;
+}
+
 // -------------------- main app --------------------
 
 export default function App() {
   const { user, loading } = useAuth();
-  const [state, setState] = useUserLocalState(user?.id ?? null);
+
+  // -------------------- household provisioning (RLS scope) --------------------
+  // Bejelentkezés után megkeressük / létrehozzuk a user aktív householdját,
+  // és csak ezután fut a Supabase load/save (race condition ellen).
+  const [activeHouseholdId, setActiveHouseholdId] = useState<string | null>(null);
+  const [isProvisioning, setIsProvisioning] = useState(false);
+
+  // A localStorage kulcsot is household-szintre igazítjuk (fallback marad hibák esetén).
+  const localScopeId = activeHouseholdId ?? user?.id ?? null;
+  const [state, setState] = useUserLocalState(localScopeId);
+
   const [tab, setTab] = useState<TabKey>("dashboard");
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
 
   // Supabase sync státusz
-  const [savingStatus, setSavingStatus] = useState<
-    "idle" | "saving" | "error"
-  >("idle");
+  const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "error">(
+    "idle"
+  );
   const [saveError, setSaveError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
+
+  // jelzi, hogy a remote load már lefutott (akár sikerrel, akár hibával)
+  const [remoteReady, setRemoteReady] = useState(false);
 
   const { start, end } = useMemo(
     () => monthBoundsFromSettings(state.settings),
@@ -536,49 +581,85 @@ export default function App() {
   // Quick lookup maps
   const catById = useMemo(
     () =>
-      Object.fromEntries(
-        state.categories.map((c) => [c.id, c])
-      ) as Record<string, Category>,
+      Object.fromEntries(state.categories.map((c) => [c.id, c])) as Record<
+        string,
+        Category
+      >,
     [state.categories]
   );
   const personById = useMemo(
     () =>
-      Object.fromEntries(
-        state.people.map((p) => [p.id, p])
-      ) as Record<string, Person>,
+      Object.fromEntries(state.people.map((p) => [p.id, p])) as Record<
+        string,
+        Person
+      >,
     [state.people]
   );
 
-  // Supabase: load state on login
+  // 1) Provisioning: activeHouseholdId beállítása (RLS-hez szükséges scope)
   useEffect(() => {
     const userId = user?.id;
-    if (!userId) return;
+
+    // kijelentkezés / nincs session
+    if (!userId) {
+      setActiveHouseholdId(null);
+      setRemoteReady(false);
+      setSavingStatus("idle");
+      setSaveError(null);
+      return;
+    }
 
     let cancelled = false;
 
     (async () => {
       try {
-        const remote = await loadFullStateForUser(userId);
-        if (cancelled || !remote) return;
-        setState(remote);
+        setIsProvisioning(true);
+        const hid = await ensureDefaultHousehold(userId);
+        if (cancelled) return;
+        setActiveHouseholdId(hid);
       } catch (err) {
-        console.error(
-          "Nem sikerült betölteni az állapotot Supabase-ből:",
-          err
-        );
-        // localStorage-ből marad az állapot
+        console.error("Household provisioning hiba:", err);
+        if (cancelled) return;
+        setActiveHouseholdId(null);
+      } finally {
+        if (!cancelled) setIsProvisioning(false);
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [user?.id, setState]);
+  }, [user?.id]);
 
-  // Supabase: autosave (debounce)
+  // 2) Supabase: load state (csak ha már van activeHouseholdId)
   useEffect(() => {
-    const userId = user?.id;
-    if (!userId) return;
+    if (!activeHouseholdId) return;
+
+    let cancelled = false;
+    setRemoteReady(false); // új household -> új load
+
+    (async () => {
+      try {
+        const remote = await loadFullStateForUser(activeHouseholdId);
+        if (cancelled || !remote) return;
+        setState(remote);
+      } catch (err) {
+        console.error("Nem sikerült betölteni az állapotot Supabase-ből:", err);
+        // localStorage-ből marad az állapot
+      } finally {
+        if (!cancelled) setRemoteReady(true);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeHouseholdId, setState]);
+
+  // 3) Supabase: autosave (debounce) – csak ha van activeHouseholdId és a load már lefutott
+  useEffect(() => {
+    if (!activeHouseholdId) return;
+    if (!remoteReady) return; // ne írjunk rá a remote-ra load előtt
 
     if (saveTimerRef.current != null) {
       window.clearTimeout(saveTimerRef.current);
@@ -588,7 +669,8 @@ export default function App() {
       try {
         setSavingStatus("saving");
         setSaveError(null);
-        await saveStatePatch(userId, state); // egyszerű verzió: teljes state mentése
+        // Fontos: householdId-vel mentünk, nem userId-vel
+        await saveStatePatch(activeHouseholdId, state);
         setSavingStatus("idle");
       } catch (err) {
         console.error("Nem sikerült menteni Supabase-be:", err);
@@ -602,13 +684,15 @@ export default function App() {
         window.clearTimeout(saveTimerRef.current);
       }
     };
-  }, [state, user?.id]);
+  }, [state, activeHouseholdId, remoteReady]);
 
   // ha kijelentkezik a user, töröljük a státuszt
   useEffect(() => {
     if (!user) {
       setSavingStatus("idle");
       setSaveError(null);
+      setRemoteReady(false);
+      setActiveHouseholdId(null);
     }
   }, [user]);
 
@@ -1112,8 +1196,8 @@ export default function App() {
                     "Biztosan visszaállítod az alkalmazást alapértelmezett állapotra? Minden jelenlegi adat törlődik erről a háztartásról."
                   )
                 ) {
-                  const storageKey = user?.id
-                    ? `${STORAGE_KEY}-${user.id}`
+                  const storageKey = localScopeId
+                    ? `${STORAGE_KEY}-${localScopeId}`
                     : STORAGE_KEY;
                   try {
                     localStorage.removeItem(storageKey);
@@ -1342,14 +1426,31 @@ export default function App() {
 
           {user && (
             <div>
-              {savingStatus === "saving" && "Mentés Supabase-be..."}
-              {savingStatus === "idle" && !saveError && "Mentve Supabase-be."}
-              {savingStatus === "error" && (
-                <span className="text-rose-300">
-                  Nem sikerült menteni Supabase-be – az adataid most csak a
-                  böngészőben vannak elmentve.
-                </span>
-              )}
+              {isProvisioning && "Household előkészítés..."}
+              {!isProvisioning &&
+                activeHouseholdId &&
+                !remoteReady &&
+                "Betöltés Supabase-ből..."}
+              {!isProvisioning &&
+                activeHouseholdId &&
+                remoteReady &&
+                savingStatus === "saving" &&
+                "Mentés Supabase-be..."}
+              {!isProvisioning &&
+                activeHouseholdId &&
+                remoteReady &&
+                savingStatus === "idle" &&
+                !saveError &&
+                "Mentve Supabase-be."}
+              {!isProvisioning &&
+                activeHouseholdId &&
+                remoteReady &&
+                savingStatus === "error" && (
+                  <span className="text-rose-300">
+                    Nem sikerült menteni Supabase-be – az adataid most csak a
+                    böngészőben vannak elmentve.
+                  </span>
+                )}
             </div>
           )}
         </div>
