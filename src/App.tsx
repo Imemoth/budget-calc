@@ -3,7 +3,7 @@ import { APP_VERSION, CHANGELOG } from "./lib/version";
 import { AnimatePresence, motion } from "framer-motion";
 import { uid, monthKey, parseMonthKey, addMonths, monthsBetweenInclusive, formatHUF, fmtMoney, clampDateToMonth, percent, roundTo,} from "./lib/utils";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, PieChart, Pie, ResponsiveContainer, Cell,} from "recharts";
-import { Wallet, BarChart3, Repeat, PiggyBank, Users, Settings2, Plus, Trash2, Download, Upload, ChevronDown, Info,} from "lucide-react";
+import { Wallet, BarChart3, Repeat, PiggyBank, Users, Settings2, Plus, Trash2, Download, Upload, ChevronDown, Info, LogOut,} from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./auth";
 import { AuthScreen } from "./authscreen";
@@ -543,7 +543,20 @@ async function ensureDefaultHousehold(userId: string): Promise<string> {
 // -------------------- main app --------------------
 
 export default function App() {
-  const { user, loading } = useAuth();
+  const { user, loading, } = useAuth();
+
+const handleLogout = async () => {
+  try {
+    await supabase.auth.signOut();
+  } catch (e) {
+    console.error(e);
+  } finally {
+    setTab("dashboard");
+    setIsChangelogOpen(false);
+    setActiveHouseholdId(null);
+    setIsProvisioning(false);
+  }
+};
 
   // -------------------- household provisioning (RLS scope) --------------------
   // Bejelentkezés után megkeressük / létrehozzuk a user aktív householdját,
@@ -566,6 +579,27 @@ export default function App() {
   const [importError, setImportError] = useState<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
 
+   // admin email lista .env-ből (pl: VITE_ADMIN_EMAILS="a@b.com,c@d.com")
+  const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((s: string) => s.trim().toLowerCase())
+    .filter(Boolean);
+
+  const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
+
+  // ha tölt, mutass valamit
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0b0f14] text-white flex items-center justify-center">
+        Betöltés…
+      </div>
+    );
+  }
+
+  // ha nincs user, jöjjön a login/registration képernyő
+  if (!user) {
+    return <AuthScreen />;
+  }
   // jelzi, hogy a remote load már lefutott (akár sikerrel, akár hibával)
   const [remoteReady, setRemoteReady] = useState(false);
 
@@ -577,6 +611,7 @@ export default function App() {
     () => monthsBetweenInclusive(start, end).map(monthKey),
     [start, end]
   );
+
 
   // Quick lookup maps
   const catById = useMemo(
@@ -1188,29 +1223,53 @@ export default function App() {
             >
               <Upload className="w-3.5 h-3.5" /> Import
             </SmallButton>
-            <SmallButton
-              variant="danger"
-              onClick={() => {
-                if (
-                  window.confirm(
-                    "Biztosan visszaállítod az alkalmazást alapértelmezett állapotra? Minden jelenlegi adat törlődik erről a háztartásról."
-                  )
-                ) {
-                  const storageKey = localScopeId
-                    ? `${STORAGE_KEY}-${localScopeId}`
-                    : STORAGE_KEY;
-                  try {
-                    localStorage.removeItem(storageKey);
-                  } catch {
-                    // ignore
+            {isAdmin && (
+              <SmallButton
+                variant="danger"
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Biztosan visszaállítod az alkalmazást alapértelmezett állapotra? Minden jelenlegi adat törlődik erről a háztartásról."
+                    )
+                  ) {
+                    const storageKey = localScopeId
+                      ? `${STORAGE_KEY}-${localScopeId}`
+                      : STORAGE_KEY;
+                    try {
+                      localStorage.removeItem(storageKey);
+                    } catch {
+                      // ignore
+                    }
+                    setState(defaultState());
                   }
-                  setState(defaultState());
-                }
-              }}
-              title="Alaphelyzetbe állítás"
-            >
-              Reset
-            </SmallButton>
+                }}
+                title="Alaphelyzetbe állítás"
+              >
+                Reset
+              </SmallButton>
+            )}
+
+            {/* user info + logout */}
+            {user && (
+              <div className="hidden md:flex items-center gap-2 pl-2 ml-2 border-l border-white/10">
+                <div className="text-xs text-white/50 max-w-55 truncate" title={user.email ?? ""}>
+                  {user.email}
+                </div>
+                <SmallButton variant="ghost" onClick={handleLogout} title="Kijelentkezés">
+                  <LogOut className="w-3.5 h-3.5" /> Kilépés
+                </SmallButton>
+              </div>
+            )}
+
+            {/* mobilon csak ikon/gomb */}
+            {user && (
+              <div className="md:hidden">
+                <SmallButton variant="ghost" onClick={handleLogout} title="Kijelentkezés">
+                  <LogOut className="w-3.5 h-3.5" />
+                </SmallButton>
+              </div>
+            )}
+
             <input
               ref={fileInputRef}
               type="file"
