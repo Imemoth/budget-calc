@@ -32,10 +32,72 @@ function handleError<T>(
 }
 
 // =========================
+// DB row típusok (Supabase generált típusok helyett explicit interface-ek)
+// =========================
+
+interface HouseholdRow {
+  id: string;
+  owner_user_id?: string;
+  currency?: string | null;
+  horizon_months?: number | null;
+  start_month?: string | null;
+  theme?: string | null;
+}
+
+interface PersonRow {
+  id: string;
+  name: string;
+  color_index?: number | null;
+}
+
+interface CategoryRow {
+  id: string;
+  name: string;
+  type: string;
+}
+
+interface RecurringRow {
+  id: string;
+  name: string;
+  amount: number | string;
+  type: string;
+  category_id?: string | null;
+  cadence?: string | null;
+  start_month: string;
+  end_month?: string | null;
+  day_of_month?: number | null;
+  person_id?: string | null;
+  enabled?: boolean | null;
+  notes?: string | null;
+}
+
+interface TransactionRow {
+  id: string;
+  date: string | Date;
+  name: string;
+  amount: number | string;
+  type: string;
+  category_id?: string | null;
+  person_id?: string | null;
+  note?: string | null;
+  notes?: string | null;
+}
+
+interface SavingsRow {
+  id: string;
+  name: string;
+  target_amount: number | string;
+  start_month: string;
+  end_month: string;
+  monthly_planned: number | string;
+  notes?: string | null;
+}
+
+// =========================
 // Mapperek: DB row -> front típusok
 // =========================
 
-function mapHouseholdRowToSettings(row: any): Settings {
+function mapHouseholdRowToSettings(row: HouseholdRow): Settings {
   return {
     currency: row.currency ?? "HUF",
     horizonMonths: row.horizon_months ?? 18,
@@ -44,7 +106,7 @@ function mapHouseholdRowToSettings(row: any): Settings {
   };
 }
 
-function mapPersonRow(row: any): Person {
+function mapPersonRow(row: PersonRow): Person {
   return {
     id: row.id,
     name: row.name,
@@ -52,23 +114,23 @@ function mapPersonRow(row: any): Person {
   };
 }
 
-function mapCategoryRow(row: any): Category {
+function mapCategoryRow(row: CategoryRow): Category {
   return {
     id: row.id,
     name: row.name,
     // DB-ben text, check-kel: 'income' | 'expense'
-    type: row.type,
+    type: row.type as Category["type"],
   };
 }
 
-function mapRecurringRow(row: any): RecurringItem {
+function mapRecurringRow(row: RecurringRow): RecurringItem {
   return {
     id: row.id,
     name: row.name,
     amount: Number(row.amount) || 0,
-    type: row.type,
+    type: row.type as RecurringItem["type"],
     categoryId: row.category_id ?? null,
-    cadence: row.cadence ?? "monthly",
+    cadence: (row.cadence ?? "monthly") as RecurringItem["cadence"],
     startMonth: row.start_month,
     endMonth: row.end_month ?? null,
     dayOfMonth: row.day_of_month ?? 1,
@@ -78,7 +140,7 @@ function mapRecurringRow(row: any): RecurringItem {
   };
 }
 
-function mapTransactionRow(row: any): Transaction {
+function mapTransactionRow(row: TransactionRow): Transaction {
   // Supabase date -> 'YYYY-MM-DD' string
   const dateStr =
     typeof row.date === "string"
@@ -92,14 +154,14 @@ function mapTransactionRow(row: any): Transaction {
     date: dateStr,
     name: row.name,
     amount: Number(row.amount) || 0,
-    type: row.type,
+    type: row.type as Transaction["type"],
     categoryId: row.category_id ?? null,
     personId: row.person_id ?? null,
     notes: row.note ?? row.notes ?? undefined,
   };
 }
 
-function mapSavingsRow(row: any): SavingsBucket {
+function mapSavingsRow(row: SavingsRow): SavingsBucket {
   return {
     id: row.id,
     name: row.name,
@@ -193,7 +255,7 @@ function mapSavingsToRow(s: SavingsBucket, householdId: string) {
 //  - ha nincs találat, akkor owner_user_id-ként (régi működés)
 // =========================
 
-async function getHouseholdForKey(householdIdOrUserId: string): Promise<any> {
+async function getHouseholdForKey(householdIdOrUserId: string): Promise<HouseholdRow> {
   // 1) Try as household id
   const byId = await supabase
     .from("households")
@@ -331,7 +393,7 @@ export async function saveStatePatch(
   const household = await getHouseholdForKey(householdIdOrUserId);
   const householdId: string = household.id;
 
-  const tasks: Promise<any>[] = [];
+  const tasks: Promise<void>[] = [];
 
   // Settings -> households update
   if (patch.settings) {

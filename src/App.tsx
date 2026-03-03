@@ -202,7 +202,9 @@ function useUserLocalState(
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(state));
-    } catch {}
+    } catch {
+      // localStorage nem elérhető (pl. private mode) – silent fail
+    }
   }, [storageKey, state]);
 
   return [state, setState];
@@ -526,7 +528,10 @@ async function ensureDefaultHousehold(userId: string): Promise<string> {
   }
 
   // 4) Létrehozzuk a membership-et (role csak akkor, ha létezik az oszlop)
-  const basePayload: any = { household_id: householdId, user_id: userId };
+  const basePayload: { household_id: string; user_id: string } = {
+    household_id: householdId!,
+    user_id: userId,
+  };
 
   const withRole = await supabase
     .from("household_members")
@@ -595,19 +600,6 @@ const handleLogout = async () => {
 
   const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
 
-  // ha tölt, mutass valamit
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0b0f14] text-white flex items-center justify-center">
-        Betöltés…
-      </div>
-    );
-  }
-
-  // ha nincs user, jöjjön a login/registration képernyő
-  if (!user) {
-    return <AuthScreen />;
-  }
   // jelzi, hogy a remote load már lefutott (akár sikerrel, akár hibával)
   const [remoteReady, setRemoteReady] = useState(false);
 
@@ -2642,7 +2634,9 @@ function RecurringList({
                     <Select
                       value={r.cadence}
                       onChange={(e) =>
-                        updateRecurring(r.id, { cadence: e.target.value as any })
+                        updateRecurring(r.id, {
+                          cadence: e.target.value as RecurringItem["cadence"],
+                        })
                       }
                       className="w-full"
                     >
@@ -3093,7 +3087,6 @@ function SettingsView({
     assert(isMonthInRange("2026-06", "2026-01", "2026-12"), "isMonthInRange basic in-range case");
     assert(!isMonthInRange("2025-12", "2026-01", "2026-12"), "isMonthInRange basic out-of-range case");
   } catch (err) {
-    // eslint-disable-next-line no-console
     console.warn("Budget Planner self-check failed:", err);
   }
 })();

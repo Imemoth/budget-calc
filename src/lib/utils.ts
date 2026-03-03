@@ -115,13 +115,19 @@ export const monthsBetweenInclusive = (start: Date, end: Date) => {
   return out;
 };
 
-export const mergeDeep = (target: any, source: any): any => {
+export const mergeDeep = (
+  target: Record<string, unknown>,
+  source: Record<string, unknown>
+): Record<string, unknown> => {
     if (typeof target !== "object" || target === null) return source;
     if (typeof source !== "object" || source === null) return target;
     const output = { ...target };
     for (const key of Object.keys(source)) {
         if (key in target) {
-            output[key] = mergeDeep(target[key], source[key]);
+            output[key] = mergeDeep(
+              target[key] as Record<string, unknown>,
+              source[key] as Record<string, unknown>
+            );
         } else {
             output[key] = source[key];
         }
