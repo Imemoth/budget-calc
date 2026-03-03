@@ -455,3 +455,53 @@ export async function saveStatePatch(
   // Minden párhuzamosan fusson
   await Promise.all(tasks);
 }
+
+// =========================
+// Delete függvények (RLS védi, hogy csak saját household sorát törölhesse)
+// =========================
+
+export async function deletePerson(id: string): Promise<void> {
+  const { error } = await supabase.from("people").delete().eq("id", id);
+  if (error) {
+    console.error("[dataClient] deletePerson error:", error);
+    throw new Error(`deletePerson failed: ${error.message}`);
+  }
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  const { error } = await supabase.from("categories").delete().eq("id", id);
+  if (error) {
+    console.error("[dataClient] deleteCategory error:", error);
+    throw new Error(`deleteCategory failed: ${error.message}`);
+  }
+}
+
+export async function deleteRecurring(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("recurring_items")
+    .delete()
+    .eq("id", id);
+  if (error) {
+    console.error("[dataClient] deleteRecurring error:", error);
+    throw new Error(`deleteRecurring failed: ${error.message}`);
+  }
+}
+
+export async function deleteTransaction(id: string): Promise<void> {
+  const { error } = await supabase.from("transactions").delete().eq("id", id);
+  if (error) {
+    console.error("[dataClient] deleteTransaction error:", error);
+    throw new Error(`deleteTransaction failed: ${error.message}`);
+  }
+}
+
+export async function deleteSavings(id: string): Promise<void> {
+  const { error } = await supabase
+    .from("savings_buckets")
+    .delete()
+    .eq("id", id);
+  if (error) {
+    console.error("[dataClient] deleteSavings error:", error);
+    throw new Error(`deleteSavings failed: ${error.message}`);
+  }
+}

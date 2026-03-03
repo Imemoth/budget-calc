@@ -7,7 +7,15 @@ import { Wallet, BarChart3, Repeat, PiggyBank, Users, Settings2, Plus, Trash2, D
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./auth";
 import { AuthScreen } from "./authscreen";
-import { loadFullStateForUser, saveStatePatch } from "./dataClient";
+import {
+  loadFullStateForUser,
+  saveStatePatch,
+  deletePerson,
+  deleteCategory,
+  deleteRecurring,
+  deleteTransaction,
+  deleteSavings,
+} from "./dataClient";
 
 //-------------------- chart colors --------------------
 // Soft, high-contrast palette that works on dark UI
@@ -880,7 +888,7 @@ const handleLogout = async () => {
       people: s.people.map((p) => (p.id === id ? { ...p, ...patch } : p)),
     }));
 
-  const removePerson = (id: string) =>
+  const removePerson = async (id: string) => {
     setState((s) => ({
       ...s,
       people: s.people.filter((p) => p.id !== id),
@@ -891,6 +899,14 @@ const handleLogout = async () => {
         t.personId === id ? { ...t, personId: null } : t
       ),
     }));
+    if (activeHouseholdId) {
+      try {
+        await deletePerson(id);
+      } catch (err) {
+        console.error("Nem sikerült törölni a személyt a DB-ből:", err);
+      }
+    }
+  };
 
   const addCategory = (type: MoneyType) =>
     setState((s) => ({
@@ -916,7 +932,7 @@ const handleLogout = async () => {
       ),
     }));
 
-  const removeCategory = (id: string) =>
+  const removeCategory = async (id: string) => {
     setState((s) => ({
       ...s,
       categories: s.categories.filter((c) => c.id !== id),
@@ -927,6 +943,14 @@ const handleLogout = async () => {
         t.categoryId === id ? { ...t, categoryId: null } : t
       ),
     }));
+    if (activeHouseholdId) {
+      try {
+        await deleteCategory(id);
+      } catch (err) {
+        console.error("Nem sikerült törölni a kategóriát a DB-ből:", err);
+      }
+    }
+  };
 
   const addRecurring = (type: MoneyType) =>
     setState((s) => ({
@@ -958,11 +982,19 @@ const handleLogout = async () => {
       ),
     }));
 
-  const removeRecurring = (id: string) =>
+  const removeRecurring = async (id: string) => {
     setState((s) => ({
       ...s,
       recurring: s.recurring.filter((r) => r.id !== id),
     }));
+    if (activeHouseholdId) {
+      try {
+        await deleteRecurring(id);
+      } catch (err) {
+        console.error("Nem sikerült törölni a fix tételt a DB-ből:", err);
+      }
+    }
+  };
 
   const addTransaction = () =>
     setState((s) => ({
@@ -991,11 +1023,19 @@ const handleLogout = async () => {
       ),
     }));
 
-  const removeTransaction = (id: string) =>
+  const removeTransaction = async (id: string) => {
     setState((s) => ({
       ...s,
       transactions: s.transactions.filter((t) => t.id !== id),
     }));
+    if (activeHouseholdId) {
+      try {
+        await deleteTransaction(id);
+      } catch (err) {
+        console.error("Nem sikerült törölni a tranzakciót a DB-ből:", err);
+      }
+    }
+  };
 
   const addSavings = () =>
     setState((s) => ({
@@ -1022,11 +1062,19 @@ const handleLogout = async () => {
       ),
     }));
 
-  const removeSavings = (id: string) =>
+  const removeSavings = async (id: string) => {
     setState((s) => ({
       ...s,
       savings: s.savings.filter((x) => x.id !== id),
     }));
+    if (activeHouseholdId) {
+      try {
+        await deleteSavings(id);
+      } catch (err) {
+        console.error("Nem sikerült törölni a megtakarítást a DB-ből:", err);
+      }
+    }
+  };
 
   // Export / Import
   const fileInputRef = useRef<HTMLInputElement | null>(null);
