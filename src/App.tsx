@@ -551,20 +551,23 @@ async function ensureDefaultHousehold(userId: string): Promise<string> {
 // -------------------- main app --------------------
 
 export default function App() {
-  const { user, loading, } = useAuth();
+  const { user, loading, signOut } = useAuth();
 
-const handleLogout = async () => {
-  try {
-    await supabase.auth.signOut();
-  } catch (e) {
-    console.error(e);
-  } finally {
-    setTab("dashboard");
-    setIsChangelogOpen(false);
-    setActiveHouseholdId(null);
-    setIsProvisioning(false);
-  }
-};
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setTab("dashboard");
+      setIsChangelogOpen(false);
+      setActiveHouseholdId(null);
+      setIsProvisioning(false);
+      setRemoteReady(false);
+      setSavingStatus("idle");
+      setSaveError(null);
+    }
+  };
 
   // -------------------- household provisioning (RLS scope) --------------------
   // Bejelentkezés után megkeressük / létrehozzuk a user aktív householdját,
@@ -595,19 +598,6 @@ const handleLogout = async () => {
 
   const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
 
-  // ha tölt, mutass valamit
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0b0f14] text-white flex items-center justify-center">
-        Betöltés…
-      </div>
-    );
-  }
-
-  // ha nincs user, jöjjön a login/registration képernyő
-  if (!user) {
-    return <AuthScreen />;
-  }
   // jelzi, hogy a remote load már lefutott (akár sikerrel, akár hibával)
   const [remoteReady, setRemoteReady] = useState(false);
 
