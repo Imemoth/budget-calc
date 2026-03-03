@@ -556,7 +556,7 @@ async function ensureDefaultHousehold(userId: string): Promise<string> {
 // -------------------- main app --------------------
 
 export default function App() {
-  const { user, loading, } = useAuth();
+  const { user, loading, signOut } = useAuth();
 
 const handleLogout = async () => {
   // Pending autosave flush: cancel the debounce timer and save immediately
