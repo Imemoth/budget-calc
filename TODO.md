@@ -6,18 +6,7 @@
 
 ## 🔴 Kritikus – stabilitás, adatintegritás
 
-- [ ] **Törlés szinkronizálása** – `saveStatePatch` csak upsert-el, nem töröl.
-  Ha a user töröl egy tételt, az a DB-ben marad. Kell egy `deleteItem(table, id)` és/vagy
-  „full replace" stratégia a vonatkozó táblákhoz.
-
-- [ ] **`.env.example` létrehozása** – jelenleg nincs, a fejlesztők nem tudják, milyen
-  env változókra van szükség. Hozzá kell adni a repóhoz (valódi értékek nélkül).
-
-- [ ] **Jelszó-visszaállítás (Forgot password)** – a login képernyőn nincs „Elfelejtett jelszó"
-  link. Supabase `resetPasswordForEmail` alapon megoldható.
-
-- [ ] **Error boundary** – az App nem tartalmaz React Error Boundary-t. Bármilyen render hiba
-  fehér képernyőt ad, a felhasználó nem kap visszajelzést.
+*(Minden kritikus feladat elvégezve – lásd Elvégzett)*
 
 ---
 
@@ -48,8 +37,9 @@
 - [ ] **Loading skeleton / spinner** – az adatbetöltés közben nincs visszajelzés.
   `loadFullStateForUser` alatt a UI üres marad.
 
-- [ ] **Típusbiztonság javítása** – `dataClient.ts`-ben sok `any` típus van a mapperekben.
-  Supabase generált típusokkal (`supabase gen types typescript`) érdemes felváltani.
+- [ ] **Típusbiztonság javítása** – a `dataClient.ts` mapperjeiben az `any` típusokat
+  explicit interfészekre cseréltük (`HouseholdRow`, `PersonRow` stb.), de a végső cél
+  a Supabase generált típusok használata (`supabase gen types typescript`).
 
 ---
 
@@ -113,3 +103,20 @@
 - [x] Changelog modal (version.ts alapon)
 - [x] Util függvények kiszervezve `src/lib/utils.ts`-be
 - [x] Tailwind v4 + Vite plugin stabil konfig
+- [x] **Törlés szinkronizálása** – `deletePerson/Category/Recurring/Transaction/Savings` függvények
+  a `dataClient.ts`-ben; az App.tsx `remove*` függvényei aszinkronná váltak és közvetlenül
+  törölnek a Supabase DB-ből (RLS védi). `saveStatePatch` csak upsert – ez megmarad.
+- [x] **`.env.example` létrehozása** – `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
+  `VITE_ADMIN_EMAILS` változókkal; `.gitignore`-ban `!.env.example` kivétel hozzáadva.
+- [x] **Jelszó-visszaállítás (Forgot password)** – `resetPassword(email)` az `AuthContext`-ben
+  (Supabase `resetPasswordForEmail`); `AuthScreen` új `"forgot"` mód: email + link küldés +
+  visszajelzés; „Elfelejtett jelszó?" link a login képernyőn.
+- [x] **Error boundary** – `src/ErrorBoundary.tsx` class component; `main.tsx`-be csomagolva;
+  render hiba esetén barátságos hibaképernyő „Oldal újratöltése" gombbal.
+- [x] **React hooks order violation javítása** – Az App.tsx-ben korai `if(loading)/if(!user)`
+  return-ök a hookók közepén voltak → runtime crash bejelentkezésnél. Eltávolítva; az auth
+  gating az összes hook után maradt.
+- [x] **Lint hibák javítása** – `no-explicit-any` (dataClient.ts mapperek → explicit row interfészek),
+  `no-empty` catch, unused eslint-disable, `react-refresh/only-export-components` (auth.tsx).
+- [x] **Autosave flush kijelentkezésnél** – `handleLogout` most a `signOut()` előtt törli a pending
+  debounce timert és azonnal `saveStatePatch`-et hív; az utolsó módosítások nem vesznek el.
