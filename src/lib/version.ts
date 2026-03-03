@@ -3,9 +3,15 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.0";
+export const APP_VERSION = "0.5.1";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.1": {
+    date: "2026-03-03",
+    changes: [
+      "Autosave megbízhatóság: kijelentkezés előtt a pending debounce timer törlődik és azonnali Supabase mentés fut – az utolsó módosítások nem vesznek el.",
+    ],
+  },
   "0.5.0": {
     date: "2026-03-03",
     changes: [

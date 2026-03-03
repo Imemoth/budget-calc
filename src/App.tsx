@@ -559,6 +559,18 @@ export default function App() {
   const { user, loading, } = useAuth();
 
 const handleLogout = async () => {
+  // Pending autosave flush: cancel the debounce timer and save immediately
+  if (saveTimerRef.current != null) {
+    window.clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = null;
+  }
+  if (activeHouseholdId) {
+    try {
+      await saveStatePatch(activeHouseholdId, state);
+    } catch (err) {
+      console.error("Logout előtti mentés sikertelen:", err);
+    }
+  }
   try {
     await supabase.auth.signOut();
   } catch (e) {
