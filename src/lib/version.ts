@@ -3,9 +3,18 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.4.0";
+export const APP_VERSION = "0.5.0";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.0": {
+    date: "2026-03-03",
+    changes: [
+      "Törlés szinkronizálva a DB-vel: person/kategória/fix tétel/tranzakció/megtakarítás törlése most valóban törli a sort Supabase-ből.",
+      "Elfelejtett jelszó (Forgot password) link a bejelentkezési képernyőn; Supabase resetPasswordForEmail alapon.",
+      "React Error Boundary hozzáadva: render hiba esetén barátságos hibaképernyő, nem fehér lap.",
+      ".env.example fájl létrehozva a szükséges env változókkal (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_ADMIN_EMAILS).",
+    ],
+  },
   "0.4.0": {
     date: "2025-12-16",
     changes: [
