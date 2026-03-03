@@ -3,9 +3,18 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.0";
+export const APP_VERSION = "0.5.1";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.1": {
+    date: "2026-03-03",
+    changes: [
+      "Törlés megerősítése UI-ban: minden törlés gomb inline megerősítő sort jelenít meg (Biztosan törlöd? Igen / Mégsem).",
+      "App.tsx feldarabolása befejezve: minden tab külön komponensfájlban (src/components/).",
+      "domainHelpers.ts kiszervezve: dátum/szám normalizáló és üzleti logika segédfüggvények.",
+      "types.ts kiszervezve: összes domain típus centralizálva.",
+    ],
+  },
   "0.5.0": {
     date: "2026-03-03",
     changes: [

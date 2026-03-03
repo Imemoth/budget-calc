@@ -4,38 +4,7 @@
 
 ---
 
-## 🔴 Kritikus – stabilitás, adatintegritás
-
-- [ ] **Törlés szinkronizálása** – `saveStatePatch` csak upsert-el, nem töröl.
-  Ha a user töröl egy tételt, az a DB-ben marad. Kell egy `deleteItem(table, id)` és/vagy
-  „full replace" stratégia a vonatkozó táblákhoz.
-
-- [ ] **`.env.example` létrehozása** – jelenleg nincs, a fejlesztők nem tudják, milyen
-  env változókra van szükség. Hozzá kell adni a repóhoz (valódi értékek nélkül).
-
-- [ ] **Jelszó-visszaállítás (Forgot password)** – a login képernyőn nincs „Elfelejtett jelszó"
-  link. Supabase `resetPasswordForEmail` alapon megoldható.
-
-- [ ] **Error boundary** – az App nem tartalmaz React Error Boundary-t. Bármilyen render hiba
-  fehér képernyőt ad, a felhasználó nem kap visszajelzést.
-
----
-
 ## 🟡 Fontos – fejlesztői minőség
-
-- [ ] **App.tsx feldarabolása** – az `App.tsx` ~800+ soros monolitikus fájl. Minden tab
-  (Dashboard, Transactions, Recurring, Savings, People, Settings) külön komponens fájlba
-  kerüljön a `src/components/` mappába.
-
-  ```
-  src/components/
-  ├── DashboardTab.tsx
-  ├── TransactionsTab.tsx
-  ├── RecurringTab.tsx
-  ├── SavingsTab.tsx
-  ├── PeopleTab.tsx
-  └── SettingsTab.tsx
-  ```
 
 - [ ] **Teszt infrastruktúra** – nincs egyetlen teszt sem. Minimum:
   - Vitest + React Testing Library telepítése
@@ -113,3 +82,8 @@
 - [x] Changelog modal (version.ts alapon)
 - [x] Util függvények kiszervezve `src/lib/utils.ts`-be
 - [x] Tailwind v4 + Vite plugin stabil konfig
+- [x] Törlés szinkronizálása (`deletePerson/Category/Recurring/Transaction/Savings` a `dataClient.ts`-ben)
+- [x] `.env.example` fájl a repóban
+- [x] Jelszó-visszaállítás – Forgot password (Supabase `resetPasswordForEmail`)
+- [x] Error Boundary a renderhibákhoz
+- [x] App.tsx feldarabolása – minden tab külön komponensfájlban (`src/components/`)

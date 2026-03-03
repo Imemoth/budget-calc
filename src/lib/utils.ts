@@ -115,6 +115,7 @@ export const monthsBetweenInclusive = (start: Date, end: Date) => {
   return out;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const mergeDeep = (target: any, source: any): any => {
     if (typeof target !== "object" || target === null) return source;
     if (typeof source !== "object" || source === null) return target;
