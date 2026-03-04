@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Plus, ChevronDown } from "lucide-react";
 import { formatHUF } from "../lib/utils";
 import type { State, MoneyType, RecurringItem } from "../types";
-import { Card, Field, Input, Select, SmallButton, ConfirmDelete } from "./ui";
+import { Card, Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect } from "./ui";
 import { monthKey } from "../lib/utils";
 import {
   normalizeMonthInput,
@@ -211,18 +211,12 @@ function RecurringList({
                 </div>
                 <div className="md:col-span-3 min-w-0">
                   <Field label="Kategória">
-                    <Select
+                    <CategorySelect
                       value={r.categoryId || ""}
-                      onChange={(e) =>
-                        updateRecurring(r.id, { categoryId: e.target.value || null })
-                      }
+                      onChange={(id) => updateRecurring(r.id, { categoryId: id || null })}
+                      categories={cats}
                       className="w-full"
-                    >
-                      <option value="">(nincs)</option>
-                      {cats.map((c) => (
-                        <option key={c.id} value={c.id}>{c.name}</option>
-                      ))}
-                    </Select>
+                    />
                   </Field>
                 </div>
                 <div className="md:col-span-3 min-w-0">

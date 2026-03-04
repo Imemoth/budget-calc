@@ -38,7 +38,7 @@ function handleError<T>(
 
 interface HouseholdRow { id: string; currency?: string; horizon_months?: number; start_month?: string; theme?: string; owner_user_id?: string; }
 interface PersonRow { id: string; name: string; color_index?: number; }
-interface CategoryRow { id: string; name: string; type: MoneyType; }
+interface CategoryRow { id: string; name: string; type: MoneyType; parent_id?: string | null; }
 interface RecurringRow { id: string; name: string; amount?: string | number; type: MoneyType; category_id?: string | null; cadence?: "monthly"; start_month: string; end_month?: string | null; day_of_month?: number; person_id?: string | null; enabled?: boolean; notes?: string; }
 interface TransactionRow { id: string; date?: string | Date; name: string; amount?: string | number; type: MoneyType; category_id?: string | null; person_id?: string | null; note?: string; notes?: string; }
 interface SavingsRow { id: string; name: string; target_amount?: string | number; start_month: string; end_month: string; monthly_planned?: string | number; notes?: string; }
@@ -68,8 +68,8 @@ function mapCategoryRow(row: CategoryRow): Category {
   return {
     id: row.id,
     name: row.name,
-    // DB-ben text, check-kel: 'income' | 'expense'
     type: row.type,
+    parentId: row.parent_id ?? null,
   };
 }
 
@@ -151,6 +151,7 @@ function mapCategoryToRow(c: Category, householdId: string) {
     household_id: householdId,
     name: c.name,
     type: c.type,
+    parent_id: c.parentId ?? null,
   };
 }
 
@@ -312,10 +313,15 @@ export async function loadFullStateForUser(
   );
 
   const people: Person[] = peopleRows.map(mapPersonRow);
-  const categories: Category[] = categoryRows.map(mapCategoryRow);
+  let categories: Category[] = categoryRows.map(mapCategoryRow);
   const recurring: RecurringItem[] = recurringRows.map(mapRecurringRow);
   const transactions: Transaction[] = txRows.map(mapTransactionRow);
   const savings: SavingsBucket[] = savingsRows.map(mapSavingsRow);
+
+  // Új háztartásnál: ha nincs még kategória, seedeljük az alapértelmezetteket
+  if (categories.length === 0) {
+    categories = await seedDefaultCategories(householdId);
+  }
 
   const state: State = {
     settings,
@@ -466,6 +472,147 @@ export async function saveStatePatch(
 
   // Minden párhuzamosan fusson
   await Promise.all(tasks);
+}
+
+// =========================
+// Alap kategória seed (új háztartásnál, ha a categories tábla üres)
+// =========================
+
+function makeId() {
+  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+export async function seedDefaultCategories(householdId: string): Promise<Category[]> {
+  // --- Szülő kategóriák ---
+  const incomeParents: Category[] = [
+    { id: makeId(), name: "Munkabér", type: "income", parentId: null },
+    { id: makeId(), name: "Vállalkozás / mellékes", type: "income", parentId: null },
+    { id: makeId(), name: "Állami / családi támogatás", type: "income", parentId: null },
+    { id: makeId(), name: "Pénzügyi bevételek", type: "income", parentId: null },
+    { id: makeId(), name: "Egyéb bevétel", type: "income", parentId: null },
+  ];
+  const expenseParents: Category[] = [
+    { id: makeId(), name: "Lakhatás 🏠", type: "expense", parentId: null },
+    { id: makeId(), name: "Rezsi ⚡", type: "expense", parentId: null },
+    { id: makeId(), name: "Élelmiszer & háztartás 🛒", type: "expense", parentId: null },
+    { id: makeId(), name: "Étkezésen kívül 🍽️", type: "expense", parentId: null },
+    { id: makeId(), name: "Közlekedés 🚗", type: "expense", parentId: null },
+    { id: makeId(), name: "Egészség 🩺", type: "expense", parentId: null },
+    { id: makeId(), name: "Biztosítások 🛡️", type: "expense", parentId: null },
+    { id: makeId(), name: "Adók & díjak 🧾", type: "expense", parentId: null },
+    { id: makeId(), name: "Előfizetések & digitális 🧩", type: "expense", parentId: null },
+    { id: makeId(), name: "Szórakozás & hobbi 🎮", type: "expense", parentId: null },
+    { id: makeId(), name: "Ruházat & személyes 👕", type: "expense", parentId: null },
+    { id: makeId(), name: "Család & gyerek 👶", type: "expense", parentId: null },
+    { id: makeId(), name: "Ajándék & jótékony 🎁", type: "expense", parentId: null },
+    { id: makeId(), name: "Utazás ✈️", type: "expense", parentId: null },
+    { id: makeId(), name: "Egyéb / váratlan 🧯", type: "expense", parentId: null },
+  ];
+
+  const allParents = [...incomeParents, ...expenseParents];
+
+  // Helper: szülő id megkeresése index alapján
+  const ip = (i: number) => incomeParents[i].id;
+  const ep = (i: number) => expenseParents[i].id;
+
+  // --- Alkatégóriák ---
+  const children: Category[] = [
+    // Munkabér
+    { id: makeId(), name: "Nettó fizetés", type: "income", parentId: ip(0) },
+    { id: makeId(), name: "Bónusz / prémium", type: "income", parentId: ip(0) },
+    { id: makeId(), name: "Cafeteria / juttatások", type: "income", parentId: ip(0) },
+    // Vállalkozás / mellékes
+    { id: makeId(), name: "Szabadúszás / projektmunka", type: "income", parentId: ip(1) },
+    { id: makeId(), name: "Online bevétel", type: "income", parentId: ip(1) },
+    { id: makeId(), name: "Egyéb vállalkozói bevétel", type: "income", parentId: ip(1) },
+    // Állami / családi támogatás
+    { id: makeId(), name: "Családtámogatás / ellátások", type: "income", parentId: ip(2) },
+    { id: makeId(), name: "Nyugdíj / ösztöndíj / segély", type: "income", parentId: ip(2) },
+    // Pénzügyi bevételek
+    { id: makeId(), name: "Kamat", type: "income", parentId: ip(3) },
+    { id: makeId(), name: "Osztalék", type: "income", parentId: ip(3) },
+    { id: makeId(), name: "Árfolyamnyereség", type: "income", parentId: ip(3) },
+    // Egyéb bevétel
+    { id: makeId(), name: "Ajándék pénz", type: "income", parentId: ip(4) },
+    { id: makeId(), name: "Visszatérítés", type: "income", parentId: ip(4) },
+    { id: makeId(), name: "Eladásból bevétel", type: "income", parentId: ip(4) },
+    // Lakhatás
+    { id: makeId(), name: "Lakbér / hiteltörlesztő", type: "expense", parentId: ep(0) },
+    { id: makeId(), name: "Közös költség", type: "expense", parentId: ep(0) },
+    { id: makeId(), name: "Lakásbiztosítás", type: "expense", parentId: ep(0) },
+    { id: makeId(), name: "Karbantartás / javítás / felújítás", type: "expense", parentId: ep(0) },
+    // Rezsi
+    { id: makeId(), name: "Villany / gáz / víz", type: "expense", parentId: ep(1) },
+    { id: makeId(), name: "Internet / mobil", type: "expense", parentId: ep(1) },
+    { id: makeId(), name: "TV / streaming", type: "expense", parentId: ep(1) },
+    // Élelmiszer & háztartás
+    { id: makeId(), name: "Bevásárlás (élelmiszer)", type: "expense", parentId: ep(2) },
+    { id: makeId(), name: "Háztartási vegyi / papír", type: "expense", parentId: ep(2) },
+    // Étkezésen kívül
+    { id: makeId(), name: "Étterem / rendelés", type: "expense", parentId: ep(3) },
+    { id: makeId(), name: "Kávé / pékség / útközbeni", type: "expense", parentId: ep(3) },
+    // Közlekedés
+    { id: makeId(), name: "Üzemanyag / töltés", type: "expense", parentId: ep(4) },
+    { id: makeId(), name: "Bérlet / tömegközlekedés", type: "expense", parentId: ep(4) },
+    { id: makeId(), name: "Parkolás / autópálya / taxi", type: "expense", parentId: ep(4) },
+    { id: makeId(), name: "Szerviz / gumi / alkatrész", type: "expense", parentId: ep(4) },
+    // Egészség
+    { id: makeId(), name: "Gyógyszertár", type: "expense", parentId: ep(5) },
+    { id: makeId(), name: "Magánorvos / vizsgálat", type: "expense", parentId: ep(5) },
+    { id: makeId(), name: "Fogászat", type: "expense", parentId: ep(5) },
+    // Biztosítások
+    { id: makeId(), name: "KGFB / Casco", type: "expense", parentId: ep(6) },
+    { id: makeId(), name: "Élet- / baleset- / egészségbiztosítás", type: "expense", parentId: ep(6) },
+    // Adók & díjak
+    { id: makeId(), name: "Helyi adók / illetékek", type: "expense", parentId: ep(7) },
+    { id: makeId(), name: "Banki költségek / számladíj", type: "expense", parentId: ep(7) },
+    { id: makeId(), name: "Bírságok / késedelmi díjak", type: "expense", parentId: ep(7) },
+    // Előfizetések & digitális
+    { id: makeId(), name: "Streaming", type: "expense", parentId: ep(8) },
+    { id: makeId(), name: "Szoftver / felhő / app", type: "expense", parentId: ep(8) },
+    { id: makeId(), name: "Tagságok (edzőterem, klub)", type: "expense", parentId: ep(8) },
+    // Szórakozás & hobbi
+    { id: makeId(), name: "Mozi / programok", type: "expense", parentId: ep(9) },
+    { id: makeId(), name: "Hobbi eszközök / játékok", type: "expense", parentId: ep(9) },
+    // Ruházat & személyes
+    { id: makeId(), name: "Ruházat / cipő", type: "expense", parentId: ep(10) },
+    { id: makeId(), name: "Kozmetikum / fodrász", type: "expense", parentId: ep(10) },
+    // Család & gyerek
+    { id: makeId(), name: "Bölcsi / ovi / iskola", type: "expense", parentId: ep(11) },
+    { id: makeId(), name: "Gyerekruha / felszerelés", type: "expense", parentId: ep(11) },
+    { id: makeId(), name: "Különórák", type: "expense", parentId: ep(11) },
+    // Ajándék & jótékony
+    { id: makeId(), name: "Ajándékok", type: "expense", parentId: ep(12) },
+    { id: makeId(), name: "Adomány", type: "expense", parentId: ep(12) },
+    // Utazás
+    { id: makeId(), name: "Szállás", type: "expense", parentId: ep(13) },
+    { id: makeId(), name: "Közlekedés (utazás)", type: "expense", parentId: ep(13) },
+    { id: makeId(), name: "Napi költés (utazás)", type: "expense", parentId: ep(13) },
+    // Egyéb / váratlan
+    { id: makeId(), name: "Váratlan kiadás / misc", type: "expense", parentId: ep(14) },
+  ];
+
+  // Insert szülők
+  const parentRows = allParents.map((c) => mapCategoryToRow(c, householdId));
+  const { error: parentError } = await supabase
+    .from("categories")
+    .insert(parentRows);
+  if (parentError) {
+    console.error("[dataClient] seedDefaultCategories (parents) error:", parentError);
+    throw new Error(`seedDefaultCategories failed: ${parentError.message}`);
+  }
+
+  // Insert gyerekek
+  const childRows = children.map((c) => mapCategoryToRow(c, householdId));
+  const { error: childError } = await supabase
+    .from("categories")
+    .insert(childRows);
+  if (childError) {
+    console.error("[dataClient] seedDefaultCategories (children) error:", childError);
+    throw new Error(`seedDefaultCategories failed: ${childError.message}`);
+  }
+
+  return [...allParents, ...children];
 }
 
 // =========================

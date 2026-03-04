@@ -3,9 +3,19 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.1";
+export const APP_VERSION = "0.5.2";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.2": {
+    date: "2026-03-04",
+    changes: [
+      "Vitest teszt infrastruktúra: 48 unit teszt a lib/utils.ts összes függvényére.",
+      "Hierarchikus kategóriák: szülő / alkategória struktúra (parentId mező, DB migráció).",
+      "Alap kategória seed: 20 csoport + ~55 alkategória automatikusan létrejön új háztartásnál.",
+      "CategorySelect komponens: optgroup alapú csoportosítás a Recurring és Transactions tabokban.",
+      "PeopleTab progressive disclosure: szülő kategóriák kinyithatók/csukhatók, alkategóriák szerkeszthetők.",
+    ],
+  },
   "0.5.1": {
     date: "2026-03-03",
     changes: [

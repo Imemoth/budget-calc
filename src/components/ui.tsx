@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Trash2 } from "lucide-react";
+import type { Category } from "../types";
 
 export const TabButton = ({
   active,
@@ -140,5 +141,50 @@ export const ConfirmDelete = ({
     >
       <Trash2 className="w-3.5 h-3.5" /> Törlés
     </SmallButton>
+  );
+};
+
+export const CategorySelect = ({
+  value,
+  onChange,
+  categories,
+  className,
+}: {
+  value: string;
+  onChange: (id: string) => void;
+  categories: Category[];
+  className?: string;
+}) => {
+  const parents = categories.filter((c) => !c.parentId);
+  const childrenOf = (parentId: string) =>
+    categories.filter((c) => c.parentId === parentId);
+
+  return (
+    <Select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={className}
+    >
+      <option value="">(nincs)</option>
+      {parents.map((parent) => {
+        const children = childrenOf(parent.id);
+        if (children.length === 0) {
+          return (
+            <option key={parent.id} value={parent.id}>
+              {parent.name}
+            </option>
+          );
+        }
+        return (
+          <optgroup key={parent.id} label={parent.name}>
+            {children.map((child) => (
+              <option key={child.id} value={child.id}>
+                {child.name}
+              </option>
+            ))}
+          </optgroup>
+        );
+      })}
+    </Select>
   );
 };
