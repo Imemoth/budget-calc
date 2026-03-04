@@ -32,6 +32,13 @@ const STORAGE_KEY = "household-budget-planner-v1";
 const defaultState = (): State => {
   const now = new Date();
   const year = now.getFullYear();
+
+  // Szülő ID-k (local fallback – DB seed a seedDefaultCategories végzi)
+  const ip0 = uid(), ip1 = uid(), ip2 = uid(), ip3 = uid(), ip4 = uid();
+  const ep0 = uid(), ep1 = uid(), ep2 = uid(), ep3 = uid(), ep4 = uid();
+  const ep5 = uid(), ep6 = uid(), ep7 = uid(), ep8 = uid(), ep9 = uid();
+  const ep10 = uid(), ep11 = uid(), ep12 = uid(), ep13 = uid(), ep14 = uid();
+
   return {
     settings: { currency: "HUF", horizonMonths: 18, startMonth: monthKey(new Date(year, 0, 1)), theme: "dark-neo" },
     people: [
@@ -39,18 +46,83 @@ const defaultState = (): State => {
       { id: uid(), name: "Partner", colorIndex: 1 },
     ],
     categories: [
-      { id: uid(), name: "Fizetés", type: "income" },
-      { id: uid(), name: "Egyéb bevétel", type: "income" },
-      { id: uid(), name: "Lakhatás", type: "expense" },
-      { id: uid(), name: "Rezsi", type: "expense" },
-      { id: uid(), name: "Élelmiszer", type: "expense" },
-      { id: uid(), name: "Közlekedés", type: "expense" },
-      { id: uid(), name: "Egészség", type: "expense" },
-      { id: uid(), name: "Szórakozás", type: "expense" },
-      { id: uid(), name: "Előfizetések", type: "expense" },
-      { id: uid(), name: "Háziállat", type: "expense" },
-      { id: uid(), name: "Felújítás", type: "expense" },
-      { id: uid(), name: "Egyéb", type: "expense" },
+      // Bevétel szülők
+      { id: ip0, name: "Munkabér", type: "income", parentId: null },
+      { id: ip1, name: "Vállalkozás / mellékes", type: "income", parentId: null },
+      { id: ip2, name: "Állami / családi támogatás", type: "income", parentId: null },
+      { id: ip3, name: "Pénzügyi bevételek", type: "income", parentId: null },
+      { id: ip4, name: "Egyéb bevétel", type: "income", parentId: null },
+      // Bevétel alkategóriák
+      { id: uid(), name: "Nettó fizetés", type: "income", parentId: ip0 },
+      { id: uid(), name: "Bónusz / prémium", type: "income", parentId: ip0 },
+      { id: uid(), name: "Cafeteria / juttatások", type: "income", parentId: ip0 },
+      { id: uid(), name: "Szabadúszás / projektmunka", type: "income", parentId: ip1 },
+      { id: uid(), name: "Online bevétel", type: "income", parentId: ip1 },
+      { id: uid(), name: "Egyéb vállalkozói bevétel", type: "income", parentId: ip1 },
+      { id: uid(), name: "Családtámogatás / ellátások", type: "income", parentId: ip2 },
+      { id: uid(), name: "Nyugdíj / ösztöndíj / segély", type: "income", parentId: ip2 },
+      { id: uid(), name: "Kamat", type: "income", parentId: ip3 },
+      { id: uid(), name: "Osztalék", type: "income", parentId: ip3 },
+      { id: uid(), name: "Árfolyamnyereség", type: "income", parentId: ip3 },
+      { id: uid(), name: "Ajándék pénz", type: "income", parentId: ip4 },
+      { id: uid(), name: "Visszatérítés", type: "income", parentId: ip4 },
+      { id: uid(), name: "Eladásból bevétel", type: "income", parentId: ip4 },
+      // Kiadás szülők
+      { id: ep0, name: "Lakhatás 🏠", type: "expense", parentId: null },
+      { id: ep1, name: "Rezsi ⚡", type: "expense", parentId: null },
+      { id: ep2, name: "Élelmiszer & háztartás 🛒", type: "expense", parentId: null },
+      { id: ep3, name: "Étkezésen kívül 🍽️", type: "expense", parentId: null },
+      { id: ep4, name: "Közlekedés 🚗", type: "expense", parentId: null },
+      { id: ep5, name: "Egészség 🩺", type: "expense", parentId: null },
+      { id: ep6, name: "Biztosítások 🛡️", type: "expense", parentId: null },
+      { id: ep7, name: "Adók & díjak 🧾", type: "expense", parentId: null },
+      { id: ep8, name: "Előfizetések & digitális 🧩", type: "expense", parentId: null },
+      { id: ep9, name: "Szórakozás & hobbi 🎮", type: "expense", parentId: null },
+      { id: ep10, name: "Ruházat & személyes 👕", type: "expense", parentId: null },
+      { id: ep11, name: "Család & gyerek 👶", type: "expense", parentId: null },
+      { id: ep12, name: "Ajándék & jótékony 🎁", type: "expense", parentId: null },
+      { id: ep13, name: "Utazás ✈️", type: "expense", parentId: null },
+      { id: ep14, name: "Egyéb / váratlan 🧯", type: "expense", parentId: null },
+      // Kiadás alkategóriák
+      { id: uid(), name: "Lakbér / hiteltörlesztő", type: "expense", parentId: ep0 },
+      { id: uid(), name: "Közös költség", type: "expense", parentId: ep0 },
+      { id: uid(), name: "Lakásbiztosítás", type: "expense", parentId: ep0 },
+      { id: uid(), name: "Karbantartás / javítás / felújítás", type: "expense", parentId: ep0 },
+      { id: uid(), name: "Villany / gáz / víz", type: "expense", parentId: ep1 },
+      { id: uid(), name: "Internet / mobil", type: "expense", parentId: ep1 },
+      { id: uid(), name: "TV / streaming", type: "expense", parentId: ep1 },
+      { id: uid(), name: "Bevásárlás (élelmiszer)", type: "expense", parentId: ep2 },
+      { id: uid(), name: "Háztartási vegyi / papír", type: "expense", parentId: ep2 },
+      { id: uid(), name: "Étterem / rendelés", type: "expense", parentId: ep3 },
+      { id: uid(), name: "Kávé / pékség / útközbeni", type: "expense", parentId: ep3 },
+      { id: uid(), name: "Üzemanyag / töltés", type: "expense", parentId: ep4 },
+      { id: uid(), name: "Bérlet / tömegközlekedés", type: "expense", parentId: ep4 },
+      { id: uid(), name: "Parkolás / autópálya / taxi", type: "expense", parentId: ep4 },
+      { id: uid(), name: "Szerviz / gumi / alkatrész", type: "expense", parentId: ep4 },
+      { id: uid(), name: "Gyógyszertár", type: "expense", parentId: ep5 },
+      { id: uid(), name: "Magánorvos / vizsgálat", type: "expense", parentId: ep5 },
+      { id: uid(), name: "Fogászat", type: "expense", parentId: ep5 },
+      { id: uid(), name: "KGFB / Casco", type: "expense", parentId: ep6 },
+      { id: uid(), name: "Élet- / baleset- / egészségbiztosítás", type: "expense", parentId: ep6 },
+      { id: uid(), name: "Helyi adók / illetékek", type: "expense", parentId: ep7 },
+      { id: uid(), name: "Banki költségek / számladíj", type: "expense", parentId: ep7 },
+      { id: uid(), name: "Bírságok / késedelmi díjak", type: "expense", parentId: ep7 },
+      { id: uid(), name: "Streaming", type: "expense", parentId: ep8 },
+      { id: uid(), name: "Szoftver / felhő / app", type: "expense", parentId: ep8 },
+      { id: uid(), name: "Tagságok (edzőterem, klub)", type: "expense", parentId: ep8 },
+      { id: uid(), name: "Mozi / programok", type: "expense", parentId: ep9 },
+      { id: uid(), name: "Hobbi eszközök / játékok", type: "expense", parentId: ep9 },
+      { id: uid(), name: "Ruházat / cipő", type: "expense", parentId: ep10 },
+      { id: uid(), name: "Kozmetikum / fodrász", type: "expense", parentId: ep10 },
+      { id: uid(), name: "Bölcsi / ovi / iskola", type: "expense", parentId: ep11 },
+      { id: uid(), name: "Gyerekruha / felszerelés", type: "expense", parentId: ep11 },
+      { id: uid(), name: "Különórák", type: "expense", parentId: ep11 },
+      { id: uid(), name: "Ajándékok", type: "expense", parentId: ep12 },
+      { id: uid(), name: "Adomány", type: "expense", parentId: ep12 },
+      { id: uid(), name: "Szállás", type: "expense", parentId: ep13 },
+      { id: uid(), name: "Közlekedés (utazás)", type: "expense", parentId: ep13 },
+      { id: uid(), name: "Napi költés (utazás)", type: "expense", parentId: ep13 },
+      { id: uid(), name: "Váratlan kiadás / misc", type: "expense", parentId: ep14 },
     ],
     recurring: [],
     transactions: [],
@@ -387,10 +459,18 @@ export default function App() {
     }
   };
 
-  const addCategory = (type: MoneyType) =>
+  const addCategory = (type: MoneyType, parentId?: string) =>
     setState((s) => ({
       ...s,
-      categories: [...s.categories, { id: uid(), name: type === "income" ? "Új bevétel kategória" : "Új kiadás kategória", type }],
+      categories: [
+        ...s.categories,
+        {
+          id: uid(),
+          name: parentId ? "Új alkategória" : type === "income" ? "Új bevétel kategória" : "Új kiadás kategória",
+          type,
+          parentId: parentId ?? null,
+        },
+      ],
     }));
 
   const updateCategory = (id: string, patch: Partial<Category>) =>

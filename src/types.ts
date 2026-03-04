@@ -27,6 +27,7 @@ export type Category = {
   id: string;
   name: string;
   type: MoneyType;
+  parentId?: string | null;
 };
 
 export type RecurringItem = {

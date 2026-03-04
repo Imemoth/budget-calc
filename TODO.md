@@ -6,13 +6,10 @@
 
 ## 🟡 Fontos – fejlesztői minőség
 
-- [ ] **Teszt infrastruktúra** – nincs egyetlen teszt sem. Minimum:
-  - Vitest + React Testing Library telepítése
-  - Unit tesztek a `lib/utils.ts` függvényeire
-  - Integrációs teszt az auth flow-ra (mock Supabase)
-
-- [ ] **Törlés megerősítése UI-ban** – a jelenlegi törlés gombok nincsenek megerősítő
-  dialóggal védve; könnyen véletlenül el lehet törölni adatokat.
+- [ ] **Navigáció / adatmodell átgondolása** – megvizsgálni, hogy a jelenlegi
+  Tételek / Fix tételek / Megtakarítás fülstruktúra optimális-e. Alternatíva:
+  egységes bevétel / kiadás / megtakarítás rögzítési paradigmára váltani, ahol
+  a "fix" jelleg csak attribútum, nem külön tab.
 
 - [ ] **Loading skeleton / spinner** – az adatbetöltés közben nincs visszajelzés.
   `loadFullStateForUser` alatt a UI üres marad.
@@ -87,3 +84,6 @@
 - [x] Jelszó-visszaállítás – Forgot password (Supabase `resetPasswordForEmail`)
 - [x] Error Boundary a renderhibákhoz
 - [x] App.tsx feldarabolása – minden tab külön komponensfájlban (`src/components/`)
+- [x] Törlés megerősítése UI-ban – inline `ConfirmDelete` komponens minden tab törlés gombjainál
+- [x] Teszt infrastruktúra – Vitest + 48 unit teszt a `lib/utils.ts` függvényeire
+- [x] Hierarchikus kategóriák – szülő / alkategória struktúra, progressive disclosure UI, alap seed (20 csoport, ~55 alkategória)

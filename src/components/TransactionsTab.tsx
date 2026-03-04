@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Plus, ChevronDown } from "lucide-react";
 import { formatHUF } from "../lib/utils";
 import type { State, TabKey, MoneyType, Transaction, Category } from "../types";
-import { Card, Field, Input, Select, SmallButton, ConfirmDelete } from "./ui";
+import { Card, Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect } from "./ui";
 import { normalizeMonthInput, normalizeDateInput, parseNumberInput } from "../lib/domainHelpers";
 
 export function TransactionsView({
@@ -207,18 +207,12 @@ export function TransactionsView({
                           </div>
                           <div className="md:col-span-3 min-w-0">
                             <Field label="Kategória">
-                              <Select
+                              <CategorySelect
                                 value={t.categoryId || ""}
-                                onChange={(e) =>
-                                  updateTransaction(t.id, { categoryId: e.target.value || null })
-                                }
+                                onChange={(id) => updateTransaction(t.id, { categoryId: id || null })}
+                                categories={t.type === "income" ? catsIncome : catsExpense}
                                 className="w-full"
-                              >
-                                <option value="">(nincs)</option>
-                                {(t.type === "income" ? catsIncome : catsExpense).map((c) => (
-                                  <option key={c.id} value={c.id}>{c.name}</option>
-                                ))}
-                              </Select>
+                              />
                             </Field>
                           </div>
                           <div className="md:col-span-3 min-w-0">

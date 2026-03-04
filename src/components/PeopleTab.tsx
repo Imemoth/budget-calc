@@ -1,4 +1,5 @@
-import { Plus } from "lucide-react";
+import { useState } from "react";
+import { Plus, ChevronDown } from "lucide-react";
 import type { State, MoneyType, Person, Category } from "../types";
 import { Card, Field, Input, SmallButton, ConfirmDelete } from "./ui";
 
@@ -15,15 +16,18 @@ export function PeopleCategoriesView({
   addPerson: () => void;
   updatePerson: (id: string, patch: Partial<Person>) => void;
   removePerson: (id: string) => void;
-  addCategory: (type: MoneyType) => void;
+  addCategory: (type: MoneyType, parentId?: string) => void;
   updateCategory: (id: string, patch: Partial<Category>) => void;
   removeCategory: (id: string) => void;
 }) {
-  const incomeCats = state.categories.filter((c) => c.type === "income");
-  const expenseCats = state.categories.filter((c) => c.type === "expense");
+  const incomeParents = state.categories.filter((c) => c.type === "income" && !c.parentId);
+  const expenseParents = state.categories.filter((c) => c.type === "expense" && !c.parentId);
+  const childrenOf = (parentId: string) =>
+    state.categories.filter((c) => c.parentId === parentId);
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      {/* Személyek */}
       <Card className="p-5">
         <div className="flex items-center justify-between">
           <div>
@@ -64,6 +68,7 @@ export function PeopleCategoriesView({
         </div>
       </Card>
 
+      {/* Kategóriák */}
       <Card className="p-5">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
@@ -72,43 +77,143 @@ export function PeopleCategoriesView({
           </div>
           <div className="flex items-center gap-2">
             <SmallButton variant="ghost" onClick={() => addCategory("income")}>
-              <Plus className="w-3.5 h-3.5" /> Bevétel kategória
+              <Plus className="w-3.5 h-3.5" /> Bevétel csoport
             </SmallButton>
             <SmallButton variant="ghost" onClick={() => addCategory("expense")}>
-              <Plus className="w-3.5 h-3.5" /> Kiadás kategória
+              <Plus className="w-3.5 h-3.5" /> Kiadás csoport
             </SmallButton>
           </div>
         </div>
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <div className="text-sm font-semibold">Bevétel</div>
-            {incomeCats.map((c) => (
-              <div key={c.id} className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-2">
-                <Input
-                  value={c.name}
-                  onChange={(e) => updateCategory(c.id, { name: e.target.value })}
-                />
-                <ConfirmDelete onConfirm={() => removeCategory(c.id)} />
-              </div>
-            ))}
-            {incomeCats.length === 0 && <div className="text-xs text-white/40">Nincs bevétel kategória.</div>}
-          </div>
-          <div className="space-y-2">
-            <div className="text-sm font-semibold">Kiadás</div>
-            {expenseCats.map((c) => (
-              <div key={c.id} className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-2">
-                <Input
-                  value={c.name}
-                  onChange={(e) => updateCategory(c.id, { name: e.target.value })}
-                />
-                <ConfirmDelete onConfirm={() => removeCategory(c.id)} />
-              </div>
-            ))}
-            {expenseCats.length === 0 && <div className="text-xs text-white/40">Nincs kiadás kategória.</div>}
-          </div>
+          <CategorySection
+            title="Bevétel"
+            type="income"
+            parents={incomeParents}
+            childrenOf={childrenOf}
+            addCategory={addCategory}
+            updateCategory={updateCategory}
+            removeCategory={removeCategory}
+          />
+          <CategorySection
+            title="Kiadás"
+            type="expense"
+            parents={expenseParents}
+            childrenOf={childrenOf}
+            addCategory={addCategory}
+            updateCategory={updateCategory}
+            removeCategory={removeCategory}
+          />
         </div>
       </Card>
+    </div>
+  );
+}
+
+function CategorySection({
+  title,
+  type,
+  parents,
+  childrenOf,
+  addCategory,
+  updateCategory,
+  removeCategory,
+}: {
+  title: string;
+  type: MoneyType;
+  parents: Category[];
+  childrenOf: (parentId: string) => Category[];
+  addCategory: (type: MoneyType, parentId?: string) => void;
+  updateCategory: (id: string, patch: Partial<Category>) => void;
+  removeCategory: (id: string) => void;
+}) {
+  // Set of parent IDs that are collapsed; alapból minden nyitva
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  const toggle = (id: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+
+  return (
+    <div className="space-y-2">
+      <div className="text-sm font-semibold">{title}</div>
+
+      {parents.length === 0 && (
+        <div className="text-xs text-white/40">Nincs {title.toLowerCase()} kategória.</div>
+      )}
+
+      {parents.map((parent) => {
+        const children = childrenOf(parent.id);
+        const isCollapsed = collapsed.has(parent.id);
+        const hasChildren = children.length > 0;
+
+        return (
+          <div key={parent.id} className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+            {/* Szülő sor */}
+            <div className="flex items-center gap-2 p-2 pl-3">
+              <button
+                type="button"
+                onClick={() => toggle(parent.id)}
+                className="shrink-0 text-white/40 hover:text-white/70 transition"
+                title={isCollapsed ? "Kinyit" : "Összecsuk"}
+              >
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
+                />
+              </button>
+              <Input
+                value={parent.name}
+                onChange={(e) => updateCategory(parent.id, { name: e.target.value })}
+                className="flex-1 font-medium"
+              />
+              <SmallButton
+                variant="ghost"
+                onClick={() => addCategory(type, parent.id)}
+                title="Alkategória hozzáadása"
+              >
+                <Plus className="w-3 h-3" />
+              </SmallButton>
+              <ConfirmDelete onConfirm={() => removeCategory(parent.id)} />
+            </div>
+
+            {/* Alkategóriák – csak ha nem összecsukt */}
+            {!isCollapsed && hasChildren && (
+              <div className="border-t border-white/10 bg-black/10">
+                {children.map((child) => (
+                  <div
+                    key={child.id}
+                    className="flex items-center gap-2 px-3 py-2 pl-9 border-b border-white/5 last:border-b-0"
+                  >
+                    <span className="text-white/30 text-xs shrink-0">↳</span>
+                    <Input
+                      value={child.name}
+                      onChange={(e) => updateCategory(child.id, { name: e.target.value })}
+                      className="flex-1 text-sm"
+                    />
+                    <ConfirmDelete onConfirm={() => removeCategory(child.id)} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Alkategória hozzáadása gomb – összecsukt esetén is látszik ha üres */}
+            {!isCollapsed && !hasChildren && (
+              <div className="border-t border-white/10 px-9 py-2">
+                <button
+                  type="button"
+                  onClick={() => addCategory(type, parent.id)}
+                  className="text-xs text-white/40 hover:text-white/70 transition flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" /> alkategória hozzáadása
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
