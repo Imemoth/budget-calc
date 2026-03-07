@@ -30,3 +30,7 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Képek
+*.png
+*.jpg
+*.jpeg
