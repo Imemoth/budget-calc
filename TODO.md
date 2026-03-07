@@ -78,3 +78,4 @@
 - [x] Loading skeleton – isProvisioning / remoteReady alatt animate-pulse kártyák
 - [x] Típusbiztonság – explicit row interface-ek + Supabase query cast-ok a dataClient.ts-ben
 - [x] Cadence bővítés – monthly / quarterly / yearly, expandRecurringForMonth periódus-logika
+- [x] Supabase generált típusok – `database.types.ts`, `createClient<Database>`, generált típus aliasok; transactions séma javítás (name, person_id oszlopok)

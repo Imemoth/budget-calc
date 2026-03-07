@@ -3,9 +3,17 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.5";
+export const APP_VERSION = "0.5.6";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.6": {
+    date: "2026-03-07",
+    changes: [
+      "Supabase generált típusok: supabase gen types alapján database.types.ts, createClient<Database> generikus.",
+      "Transactions séma javítás: name és person_id oszlopok hozzáadva a transactions táblához (DB migration).",
+      "dataClient: kézi row interface-ek lecserélve generált típus aliasokra – automatikus típusellenőrzés a DB sémával.",
+    ],
+  },
   "0.5.5": {
     date: "2026-03-07",
     changes: [
