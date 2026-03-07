@@ -3,9 +3,16 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.7";
+export const APP_VERSION = "0.5.8";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.8": {
+    date: "2026-03-07",
+    changes: [
+      "Supabase szinkron javítás: ensureDefaultHousehold idempotens upsert – mobilon és webes böngészőn ugyanazok az adatok töltődnek be.",
+      "Autosave guard: ha a Supabase load sikertelen volt, az app nem írja felül az adatokat üres állapottal.",
+    ],
+  },
   "0.5.7": {
     date: "2026-03-07",
     changes: [

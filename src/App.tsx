@@ -176,34 +176,52 @@ function useUserLocalState(
 // -------------------- Supabase helpers --------------------
 
 async function ensureDefaultHousehold(userId: string): Promise<string> {
+  // Step 1: existing membership – order by created_at for a consistent result across devices
   const memberRes = await supabase
-    .from("household_members").select("household_id").eq("user_id", userId).limit(1).maybeSingle();
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
   if (memberRes.error) throw memberRes.error;
   if (memberRes.data?.household_id) return memberRes.data.household_id as string;
 
+  // Step 2: household owned by user
   const ownedRes = await supabase
-    .from("households").select("id").eq("owner_user_id", userId).limit(1).maybeSingle();
+    .from("households")
+    .select("id")
+    .eq("owner_user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
   if (ownedRes.error) throw ownedRes.error;
 
   let householdId = ownedRes.data?.id as string | undefined;
 
+  // Step 3: create household if none exists
   if (!householdId) {
     const createRes = await supabase
-      .from("households").insert({ owner_user_id: userId, name: "Saját háztartás", currency: "HUF", start_month: new Date().toISOString().slice(0, 7) }).select("id").single();
+      .from("households")
+      .insert({ owner_user_id: userId, name: "Saját háztartás", currency: "HUF", start_month: new Date().toISOString().slice(0, 7) })
+      .select("id")
+      .single();
     if (createRes.error) throw createRes.error;
     householdId = createRes.data.id as string;
   }
 
-  const basePayload = { household_id: householdId!, user_id: userId };
-  const withRole = await supabase.from("household_members").insert({ ...basePayload, role: "OWNER" });
-
-  if (withRole.error) {
-    const msg = (withRole.error.message || "").toLowerCase();
-    if (msg.includes("role") && (msg.includes("column") || msg.includes("does not exist"))) {
-      const withoutRole = await supabase.from("household_members").insert(basePayload);
-      if (withoutRole.error) throw withoutRole.error;
-    } else {
-      throw withRole.error;
+  // Step 4: upsert membership – idempotent, safe to call repeatedly
+  const insertRes = await supabase
+    .from("household_members")
+    .upsert(
+      { household_id: householdId!, user_id: userId },
+      { onConflict: "household_id,user_id", ignoreDuplicates: true }
+    );
+  if (insertRes.error) {
+    const msg = (insertRes.error.message || "").toLowerCase();
+    // Swallow duplicate/conflict errors – the row already exists which is fine
+    if (!msg.includes("duplicate") && !msg.includes("unique") && !msg.includes("conflict")) {
+      throw insertRes.error;
     }
   }
 
@@ -256,6 +274,7 @@ export default function App() {
     .split(",").map((s: string) => s.trim().toLowerCase()).filter(Boolean);
   const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
   const [remoteReady, setRemoteReady] = useState(false);
+  const [remoteLoadSuccess, setRemoteLoadSuccess] = useState(false);
 
   const { start, end } = useMemo(() => monthBoundsFromSettings(state.settings), [state.settings]);
   const monthList = useMemo(() => monthsBetweenInclusive(start, end).map(monthKey), [start, end]);
@@ -272,7 +291,7 @@ export default function App() {
   // 1) Provisioning
   useEffect(() => {
     const userId = user?.id;
-    if (!userId) { setActiveHouseholdId(null); setRemoteReady(false); setSavingStatus("idle"); setSaveError(null); return; }
+    if (!userId) { setActiveHouseholdId(null); setRemoteReady(false); setRemoteLoadSuccess(false); setSavingStatus("idle"); setSaveError(null); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -294,14 +313,15 @@ export default function App() {
     if (!activeHouseholdId) return;
     let cancelled = false;
     setRemoteReady(false);
+    setRemoteLoadSuccess(false);
     (async () => {
       try {
         const remote = await loadFullStateForUser(activeHouseholdId);
         if (!cancelled && remote) setState(remote);
+        if (!cancelled) { setRemoteLoadSuccess(true); setRemoteReady(true); }
       } catch (err) {
         console.error("Nem sikerült betölteni az állapotot Supabase-ből:", err);
-      } finally {
-        if (!cancelled) setRemoteReady(true);
+        // Do NOT set remoteReady=true here – autosave must not run if load failed
       }
     })();
     return () => { cancelled = true; };
@@ -309,7 +329,7 @@ export default function App() {
 
   // 3) Supabase autosave
   useEffect(() => {
-    if (!activeHouseholdId || !remoteReady) return;
+    if (!activeHouseholdId || !remoteReady || !remoteLoadSuccess) return;
     if (saveTimerRef.current != null) window.clearTimeout(saveTimerRef.current);
     saveTimerRef.current = window.setTimeout(async () => {
       try {
@@ -322,10 +342,10 @@ export default function App() {
       }
     }, 1500);
     return () => { if (saveTimerRef.current != null) window.clearTimeout(saveTimerRef.current); };
-  }, [state, activeHouseholdId, remoteReady]);
+  }, [state, activeHouseholdId, remoteReady, remoteLoadSuccess]);
 
   useEffect(() => {
-    if (!user) { setSavingStatus("idle"); setSaveError(null); setRemoteReady(false); setActiveHouseholdId(null); }
+    if (!user) { setSavingStatus("idle"); setSaveError(null); setRemoteReady(false); setRemoteLoadSuccess(false); setActiveHouseholdId(null); }
   }, [user]);
 
   useEffect(() => {
