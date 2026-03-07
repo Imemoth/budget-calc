@@ -3,9 +3,18 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.2";
+export const APP_VERSION = "0.5.3";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.3": {
+    date: "2026-03-07",
+    changes: [
+      "Navigáció átszervezve: Tételek + Fix tételek → Bevétel / Kiadás tab.",
+      "MoneyTab: minden típusnál Tervezett (fix sablonok) és Tényleges (rögzített tételek) szekció egymás alatt.",
+      "addTransaction(type) – típus alapú tranzakció létrehozás.",
+      "Backward compat: régi localStorage tab kulcsok ('transactions', 'recurring') → 'expense' tabra mappelve.",
+    ],
+  },
   "0.5.2": {
     date: "2026-03-04",
     changes: [
