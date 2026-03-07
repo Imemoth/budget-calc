@@ -36,7 +36,7 @@ export type RecurringItem = {
   amount: number;
   type: MoneyType;
   categoryId: string | null;
-  cadence: "monthly";
+  cadence: "monthly" | "quarterly" | "yearly";
   startMonth: string; // YYYY-MM
   endMonth: string | null; // YYYY-MM | null
   dayOfMonth: number;

@@ -6,21 +6,12 @@
 
 ## 🟡 Fontos – fejlesztői minőség
 
-- [ ] **Loading skeleton / spinner** – az adatbetöltés közben nincs visszajelzés.
-  `loadFullStateForUser` alatt a UI üres marad.
-
-- [ ] **Típusbiztonság javítása** – `dataClient.ts`-ben sok `any` típus van a mapperekben.
-  Supabase generált típusokkal (`supabase gen types typescript`) érdemes felváltani.
 
 ---
 
 ## 🟡 Fontos – UX / felhasználói élmény
 
-- [ ] **Ismétlődő tételek cadence bővítése** – jelenleg csak `"monthly"` lehetséges
-  (`cadence: "monthly"` hardkódolva). Kell legalább `"yearly"` és `"quarterly"` is.
-
-- [ ] **Mobilnézet optimalizálása** – a nav tab-ok sok helyet foglalnak kis képernyőn;
-  bottom navigation bar vagy hamburger menü a mobilos élményhez.
+- [ ] **Mobilnézet finomítás** – bottom nav kész; még hiányzik: érintésbarát méretezés, horizontális scroll a hosszú listáknál, MoneyTab form mobilon.
 
 - [ ] **Sötét/Világos téma váltó** – a `settings.theme` mező létezik, de a tényleges
   téma-váltás nincs implementálva az UI-ban.
@@ -83,3 +74,11 @@
 - [x] Teszt infrastruktúra – Vitest + 48 unit teszt a `lib/utils.ts` függvényeire
 - [x] Hierarchikus kategóriák – szülő / alkategória struktúra, progressive disclosure UI, alap seed (20 csoport, ~55 alkategória)
 - [x] Navigáció átszervezve – Bevétel / Kiadás tab (fix sablonok + tényleges tételek egy helyen)
+- [x] Loading skeleton – isProvisioning / remoteReady alatt animate-pulse kártyák
+- [x] Típusbiztonság – explicit row interface-ek + Supabase query cast-ok a dataClient.ts-ben
+- [x] Cadence bővítés – monthly / quarterly / yearly, expandRecurringForMonth periódus-logika
+- [x] Supabase generált típusok – `database.types.ts`, `createClient<Database>`, generált típus aliasok; transactions séma javítás (name, person_id oszlopok)
+- [x] Mobile bottom navigation – `sm:hidden` fixed bottom bar, desktop top nav `hidden sm:flex`
+- [x] focusMonth = aktuális hónap alapból
+- [x] Kategóriák collapsed by default + visszaállítás gomb (reseed)
+- [x] Cadence DB constraint javítás – `recurring_items_cadence_check` quarterly/yearly is engedélyez

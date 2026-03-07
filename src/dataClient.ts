@@ -1,6 +1,7 @@
 // src/dataClient.ts
 
 import { supabase } from "./supabaseClient";
+import type { Database } from "./lib/database.types";
 import type {
   Settings,
   Person,
@@ -9,7 +10,6 @@ import type {
   Transaction,
   SavingsBucket,
   State,
-  MoneyType,
 } from "./App";
 
 // =========================
@@ -33,15 +33,16 @@ function handleError<T>(
 }
 
 // =========================
-// DB row típusok (Supabase generált típusok helyett, amíg a gen types nincs bevezetve)
+// DB row típusok – Supabase generált típusokból
 // =========================
 
-interface HouseholdRow { id: string; currency?: string; horizon_months?: number; start_month?: string; theme?: string; owner_user_id?: string; }
-interface PersonRow { id: string; name: string; color_index?: number; }
-interface CategoryRow { id: string; name: string; type: MoneyType; parent_id?: string | null; }
-interface RecurringRow { id: string; name: string; amount?: string | number; type: MoneyType; category_id?: string | null; cadence?: "monthly"; start_month: string; end_month?: string | null; day_of_month?: number; person_id?: string | null; enabled?: boolean; notes?: string; }
-interface TransactionRow { id: string; date?: string | Date; name: string; amount?: string | number; type: MoneyType; category_id?: string | null; person_id?: string | null; note?: string; notes?: string; }
-interface SavingsRow { id: string; name: string; target_amount?: string | number; start_month: string; end_month: string; monthly_planned?: string | number; notes?: string; }
+type Tables = Database["public"]["Tables"];
+type HouseholdRow = Tables["households"]["Row"];
+type PersonRow = Tables["people"]["Row"];
+type CategoryRow = Tables["categories"]["Row"];
+type RecurringRow = Tables["recurring_items"]["Row"];
+type TransactionRow = Tables["transactions"]["Row"];
+type SavingsRow = Tables["savings_buckets"]["Row"];
 
 // =========================
 // Mapperek: DB row -> front típusok
@@ -68,7 +69,7 @@ function mapCategoryRow(row: CategoryRow): Category {
   return {
     id: row.id,
     name: row.name,
-    type: row.type,
+    type: row.type as Category["type"],
     parentId: row.parent_id ?? null,
   };
 }
@@ -78,9 +79,9 @@ function mapRecurringRow(row: RecurringRow): RecurringItem {
     id: row.id,
     name: row.name,
     amount: Number(row.amount) || 0,
-    type: row.type,
+    type: row.type as RecurringItem["type"],
     categoryId: row.category_id ?? null,
-    cadence: row.cadence ?? "monthly",
+    cadence: (row.cadence as RecurringItem["cadence"]) ?? "monthly",
     startMonth: row.start_month,
     endMonth: row.end_month ?? null,
     dayOfMonth: row.day_of_month ?? 1,
@@ -91,23 +92,15 @@ function mapRecurringRow(row: RecurringRow): RecurringItem {
 }
 
 function mapTransactionRow(row: TransactionRow): Transaction {
-  // Supabase date -> 'YYYY-MM-DD' string
-  const dateStr =
-    typeof row.date === "string"
-      ? row.date
-      : row.date instanceof Date
-      ? row.date.toISOString().slice(0, 10)
-      : "";
-
   return {
     id: row.id,
-    date: dateStr,
+    date: row.date,
     name: row.name,
-    amount: Number(row.amount) || 0,
-    type: row.type,
+    amount: row.amount,
+    type: row.type as Transaction["type"],
     categoryId: row.category_id ?? null,
     personId: row.person_id ?? null,
-    notes: row.note ?? row.notes ?? undefined,
+    notes: row.note ?? undefined,
   };
 }
 
@@ -218,7 +211,7 @@ async function getHouseholdForKey(householdIdOrUserId: string): Promise<Househol
     console.error("[dataClient] getHouseholdForKey (by id) error:", byId.error);
     throw new Error(`Failed to load household (by id): ${byId.error.message}`);
   }
-  if (byId.data) return byId.data;
+  if (byId.data) return byId.data as HouseholdRow;
 
   // 2) Fallback: try as owner_user_id
   const byOwner = await supabase
@@ -239,7 +232,7 @@ async function getHouseholdForKey(householdIdOrUserId: string): Promise<Househol
   if (!byOwner.data) {
     throw new Error("No household found for this key.");
   }
-  return byOwner.data;
+  return byOwner.data as HouseholdRow;
 }
 
 // =========================
@@ -294,23 +287,11 @@ export async function loadFullStateForUser(
       .order("created_at", { ascending: true }),
   ]);
 
-  const peopleRows = handleError("load people", peopleError, peopleData ?? []);
-  const categoryRows = handleError(
-    "load categories",
-    categoriesError,
-    categoriesData ?? []
-  );
-  const recurringRows = handleError(
-    "load recurring items",
-    recurringError,
-    recurringData ?? []
-  );
-  const txRows = handleError("load transactions", txError, txData ?? []);
-  const savingsRows = handleError(
-    "load savings buckets",
-    savingsError,
-    savingsData ?? []
-  );
+  const peopleRows = handleError<PersonRow[]>("load people", peopleError, (peopleData as PersonRow[] | null) ?? []);
+  const categoryRows = handleError<CategoryRow[]>("load categories", categoriesError, (categoriesData as CategoryRow[] | null) ?? []);
+  const recurringRows = handleError<RecurringRow[]>("load recurring items", recurringError, (recurringData as RecurringRow[] | null) ?? []);
+  const txRows = handleError<TransactionRow[]>("load transactions", txError, (txData as TransactionRow[] | null) ?? []);
+  const savingsRows = handleError<SavingsRow[]>("load savings buckets", savingsError, (savingsData as SavingsRow[] | null) ?? []);
 
   const people: Person[] = peopleRows.map(mapPersonRow);
   let categories: Category[] = categoryRows.map(mapCategoryRow);
@@ -632,6 +613,14 @@ export async function deleteCategory(id: string): Promise<void> {
   if (error) {
     console.error("[dataClient] deleteCategory error:", error);
     throw new Error(`deleteCategory failed: ${error.message}`);
+  }
+}
+
+export async function deleteAllCategories(householdId: string): Promise<void> {
+  const { error } = await supabase.from("categories").delete().eq("household_id", householdId);
+  if (error) {
+    console.error("[dataClient] deleteAllCategories error:", error);
+    throw new Error(`deleteAllCategories failed: ${error.message}`);
   }
 }
 

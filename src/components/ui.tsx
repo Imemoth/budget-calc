@@ -192,3 +192,26 @@ export const CategorySelect = ({
     </Select>
   );
 };
+
+export const MobileNavBtn = ({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  active?: boolean;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick?: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={
+      "flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl flex-1 transition " +
+      (active ? "text-white" : "text-white/50")
+    }
+  >
+    <Icon className="w-5 h-5" />
+    <span className="text-[9px] leading-tight truncate max-w-full">{label}</span>
+  </button>
+);

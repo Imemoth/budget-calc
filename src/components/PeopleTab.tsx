@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, ChevronDown } from "lucide-react";
+import { Plus, ChevronDown, RotateCcw } from "lucide-react";
 import type { State, MoneyType, Person, Category } from "../types";
 import { Card, Field, Input, SmallButton, ConfirmDelete } from "./ui";
 
@@ -11,6 +11,7 @@ export function PeopleCategoriesView({
   addCategory,
   updateCategory,
   removeCategory,
+  reseedCategories,
 }: {
   state: State;
   addPerson: () => void;
@@ -19,6 +20,7 @@ export function PeopleCategoriesView({
   addCategory: (type: MoneyType, parentId?: string) => void;
   updateCategory: (id: string, patch: Partial<Category>) => void;
   removeCategory: (id: string) => void;
+  reseedCategories: () => void;
 }) {
   const incomeParents = state.categories.filter((c) => c.type === "income" && !c.parentId);
   const expenseParents = state.categories.filter((c) => c.type === "expense" && !c.parentId);
@@ -75,13 +77,18 @@ export function PeopleCategoriesView({
             <div className="text-sm text-white/60">Kategória-rendszer</div>
             <div className="text-lg font-semibold">Bevétel- és kiadás kategóriák</div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <SmallButton variant="ghost" onClick={() => addCategory("income")}>
               <Plus className="w-3.5 h-3.5" /> Bevétel csoport
             </SmallButton>
             <SmallButton variant="ghost" onClick={() => addCategory("expense")}>
               <Plus className="w-3.5 h-3.5" /> Kiadás csoport
             </SmallButton>
+            {state.categories.length < 10 && (
+              <SmallButton variant="ghost" onClick={reseedCategories} title="Visszaállítja az alapértelmezett kategóriákat">
+                <RotateCcw className="w-3.5 h-3.5" /> Visszaállítás
+              </SmallButton>
+            )}
           </div>
         </div>
 
@@ -127,8 +134,8 @@ function CategorySection({
   updateCategory: (id: string, patch: Partial<Category>) => void;
   removeCategory: (id: string) => void;
 }) {
-  // Set of parent IDs that are collapsed; alapból minden nyitva
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // Alapból minden csoport csukva; kattintásra nyílik ki
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(parents.map((p) => p.id)));
 
   const toggle = (id: string) =>
     setCollapsed((prev) => {
