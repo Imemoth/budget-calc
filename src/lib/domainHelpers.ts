@@ -46,7 +46,13 @@ export const isMonthInRange = (
 export const expandRecurringForMonth = (rec: RecurringItem, key: string) => {
   if (!rec.enabled) return null;
   if (!isMonthInRange(key, rec.startMonth, rec.endMonth)) return null;
-  if (rec.cadence !== "monthly") return null;
+
+  const [ky, km] = key.split("-").map(Number);
+  const [sy, sm] = rec.startMonth.split("-").map(Number);
+  const diff = (ky - sy) * 12 + (km - sm);
+  const period = rec.cadence === "yearly" ? 12 : rec.cadence === "quarterly" ? 3 : 1;
+  if (diff % period !== 0) return null;
+
   return {
     id: `rec-${rec.id}-${key}`,
     sourceRecurringId: rec.id,

@@ -39,7 +39,7 @@ function handleError<T>(
 interface HouseholdRow { id: string; currency?: string; horizon_months?: number; start_month?: string; theme?: string; owner_user_id?: string; }
 interface PersonRow { id: string; name: string; color_index?: number; }
 interface CategoryRow { id: string; name: string; type: MoneyType; parent_id?: string | null; }
-interface RecurringRow { id: string; name: string; amount?: string | number; type: MoneyType; category_id?: string | null; cadence?: "monthly"; start_month: string; end_month?: string | null; day_of_month?: number; person_id?: string | null; enabled?: boolean; notes?: string; }
+interface RecurringRow { id: string; name: string; amount?: string | number; type: MoneyType; category_id?: string | null; cadence?: "monthly" | "quarterly" | "yearly"; start_month: string; end_month?: string | null; day_of_month?: number; person_id?: string | null; enabled?: boolean; notes?: string; }
 interface TransactionRow { id: string; date?: string | Date; name: string; amount?: string | number; type: MoneyType; category_id?: string | null; person_id?: string | null; note?: string; notes?: string; }
 interface SavingsRow { id: string; name: string; target_amount?: string | number; start_month: string; end_month: string; monthly_planned?: string | number; notes?: string; }
 

@@ -3,9 +3,16 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.4";
+export const APP_VERSION = "0.5.5";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.5": {
+    date: "2026-03-07",
+    changes: [
+      "Cadence bővítés: havi mellett negyedéves és éves ismétlődés is beállítható a fix tételeknél.",
+      "expandRecurringForMonth: periódus-alapú logika (diff % period === 0).",
+    ],
+  },
   "0.5.4": {
     date: "2026-03-07",
     changes: [

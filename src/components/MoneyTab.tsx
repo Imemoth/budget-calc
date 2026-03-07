@@ -297,8 +297,16 @@ function PlannedSection({
                     </div>
                     <div className="md:col-span-2 min-w-0">
                       <Field label="Gyakoriság">
-                        <Select value={r.cadence} className="w-full" onChange={() => {}}>
+                        <Select
+                          value={r.cadence}
+                          onChange={(e) =>
+                            updateRecurring(r.id, { cadence: e.target.value as RecurringItem["cadence"] })
+                          }
+                          className="w-full"
+                        >
                           <option value="monthly">Havi</option>
+                          <option value="quarterly">Negyedéves</option>
+                          <option value="yearly">Éves</option>
                         </Select>
                       </Field>
                     </div>

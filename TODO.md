@@ -11,9 +11,6 @@
 
 ## 🟡 Fontos – UX / felhasználói élmény
 
-- [ ] **Ismétlődő tételek cadence bővítése** – jelenleg csak `"monthly"` lehetséges
-  (`cadence: "monthly"` hardkódolva). Kell legalább `"yearly"` és `"quarterly"` is.
-
 - [ ] **Mobilnézet optimalizálása** – a nav tab-ok sok helyet foglalnak kis képernyőn;
   bottom navigation bar vagy hamburger menü a mobilos élményhez.
 
@@ -80,3 +77,4 @@
 - [x] Navigáció átszervezve – Bevétel / Kiadás tab (fix sablonok + tényleges tételek egy helyen)
 - [x] Loading skeleton – isProvisioning / remoteReady alatt animate-pulse kártyák
 - [x] Típusbiztonság – explicit row interface-ek + Supabase query cast-ok a dataClient.ts-ben
+- [x] Cadence bővítés – monthly / quarterly / yearly, expandRecurringForMonth periódus-logika
