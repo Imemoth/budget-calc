@@ -1,0 +1,2 @@
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS name text NOT NULL DEFAULT '';
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS person_id uuid REFERENCES people(id) ON DELETE SET NULL;

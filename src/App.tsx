@@ -189,7 +189,7 @@ async function ensureDefaultHousehold(userId: string): Promise<string> {
 
   if (!householdId) {
     const createRes = await supabase
-      .from("households").insert({ owner_user_id: userId, name: "Saját háztartás", currency: "HUF" }).select("id").single();
+      .from("households").insert({ owner_user_id: userId, name: "Saját háztartás", currency: "HUF", start_month: new Date().toISOString().slice(0, 7) }).select("id").single();
     if (createRes.error) throw createRes.error;
     householdId = createRes.data.id as string;
   }
