@@ -616,6 +616,14 @@ export async function deleteCategory(id: string): Promise<void> {
   }
 }
 
+export async function deleteAllCategories(householdId: string): Promise<void> {
+  const { error } = await supabase.from("categories").delete().eq("household_id", householdId);
+  if (error) {
+    console.error("[dataClient] deleteAllCategories error:", error);
+    throw new Error(`deleteAllCategories failed: ${error.message}`);
+  }
+}
+
 export async function deleteRecurring(id: string): Promise<void> {
   const { error } = await supabase
     .from("recurring_items")

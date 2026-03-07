@@ -6,14 +6,14 @@ import { Wallet, BarChart3, TrendingUp, TrendingDown, PiggyBank, Users, Settings
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./auth";
 import { AuthScreen } from "./authscreen";
-import { loadFullStateForUser, saveStatePatch, deletePerson, deleteCategory, deleteRecurring, deleteTransaction, deleteSavings } from "./dataClient";
+import { loadFullStateForUser, saveStatePatch, seedDefaultCategories, deletePerson, deleteCategory, deleteAllCategories, deleteRecurring, deleteTransaction, deleteSavings } from "./dataClient";
 
 // Types
 export type { Settings, Person, Category, RecurringItem, Transaction, SavingsBucket, State, MoneyType, TabKey, SeriesRow } from "./types";
 import type { Settings, Person, Category, RecurringItem, Transaction, SavingsBucket, State, MoneyType, TabKey } from "./types";
 
 // Components
-import { TabButton, SmallButton, Skeleton } from "./components/ui";
+import { TabButton, MobileNavBtn, SmallButton, Skeleton } from "./components/ui";
 import { ChangelogModal } from "./components/ChangelogModal";
 import { DashboardView } from "./components/DashboardTab";
 import { MoneyTab } from "./components/MoneyTab";
@@ -384,12 +384,17 @@ export default function App() {
     });
   }, [monthList, plannedByMonth, actualByMonth]);
 
-  const [focusMonth, setFocusMonth] = useState(() =>
-    monthList.length ? monthList[monthList.length - 1] : monthKey(new Date())
-  );
+  const [focusMonth, setFocusMonth] = useState(() => {
+    const now = monthKey(new Date());
+    if (!monthList.length) return now;
+    return monthList.includes(now) ? now : monthList[0];
+  });
   useEffect(() => {
     if (!monthList.length) return;
-    if (!focusMonth || !monthList.includes(focusMonth)) setFocusMonth(monthList[monthList.length - 1]);
+    if (!focusMonth || !monthList.includes(focusMonth)) {
+      const now = monthKey(new Date());
+      setFocusMonth(monthList.includes(now) ? now : monthList[0]);
+    }
   }, [monthList, focusMonth]);
 
   const categoryBreakdown = useMemo(() => {
@@ -497,6 +502,23 @@ export default function App() {
     }));
     if (activeHouseholdId) {
       try { await deleteCategory(id); } catch (err) { console.error("Nem sikerült törölni a kategóriát a DB-ből:", err); }
+    }
+  };
+
+  const reseedCategories = async () => {
+    if (!activeHouseholdId) return;
+    if (!window.confirm("Ez törli az összes jelenlegi kategóriát és visszaállítja az alapértelmezetteket. Biztosan folytatod?")) return;
+    try {
+      await deleteAllCategories(activeHouseholdId);
+      const defaultCategories = await seedDefaultCategories(activeHouseholdId);
+      setState((s) => ({
+        ...s,
+        categories: defaultCategories,
+        recurring: s.recurring.map((r) => ({ ...r, categoryId: null })),
+        transactions: s.transactions.map((t) => ({ ...t, categoryId: null })),
+      }));
+    } catch (err) {
+      console.error("Nem sikerült visszaállítani a kategóriákat:", err);
     }
   };
 
@@ -691,8 +713,8 @@ export default function App() {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="mt-6 flex flex-wrap gap-2">
+        {/* Tabs – desktop */}
+        <div className="mt-6 hidden sm:flex flex-wrap gap-2">
           <TabButton active={tab === "dashboard"} onClick={() => setTab("dashboard")} icon={BarChart3}>Dashboard</TabButton>
           <TabButton active={tab === "income"} onClick={() => setTab("income")} icon={TrendingUp}>Bevétel</TabButton>
           <TabButton active={tab === "expense"} onClick={() => setTab("expense")} icon={TrendingDown}>Kiadás</TabButton>
@@ -702,7 +724,7 @@ export default function App() {
         </div>
 
         {/* Content */}
-        <div className="mt-6">
+        <div className="mt-6 pb-20 sm:pb-0">
           {(isProvisioning || (!!activeHouseholdId && !remoteReady)) && (
             <div className="space-y-4">
               <div className="rounded-2xl bg-white/5 border border-white/10 p-5 space-y-3">
@@ -759,7 +781,8 @@ export default function App() {
             {tab === "people" && (
               <motion.div key="people" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
                 <PeopleCategoriesView state={state} addPerson={addPerson} updatePerson={updatePerson} removePerson={removePerson}
-                  addCategory={addCategory} updateCategory={updateCategory} removeCategory={removeCategory} />
+                  addCategory={addCategory} updateCategory={updateCategory} removeCategory={removeCategory}
+                  reseedCategories={reseedCategories} />
               </motion.div>
             )}
             {tab === "settings" && (
@@ -777,6 +800,16 @@ export default function App() {
         </div>
 
         <ChangelogModal open={isChangelogOpen} onClose={() => setIsChangelogOpen(false)} />
+
+        {/* Bottom nav – mobile only */}
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur border-t border-white/10 flex justify-around px-1 py-1 z-50">
+          <MobileNavBtn active={tab === "dashboard"} icon={BarChart3} label="Dashboard" onClick={() => setTab("dashboard")} />
+          <MobileNavBtn active={tab === "income"} icon={TrendingUp} label="Bevétel" onClick={() => setTab("income")} />
+          <MobileNavBtn active={tab === "expense"} icon={TrendingDown} label="Kiadás" onClick={() => setTab("expense")} />
+          <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Megtakrítás" onClick={() => setTab("savings")} />
+          <MobileNavBtn active={tab === "people"} icon={Users} label="Kategóriák" onClick={() => setTab("people")} />
+          <MobileNavBtn active={tab === "settings"} icon={Settings2} label="Beállítások" onClick={() => setTab("settings")} />
+        </div>
 
         {/* Footer */}
         <div className="mt-10 text-[11px] text-white/40 space-y-1">
