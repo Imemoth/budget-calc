@@ -3,9 +3,19 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.6";
+export const APP_VERSION = "0.5.7";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.7": {
+    date: "2026-03-07",
+    changes: [
+      "Mobile bottom navigation bar: mobilon a tab-ok alul jelennek meg, ikon + rövid felirat.",
+      "focusMonth javítás: az aktuális hónap töltődik be alapból (nem a horizon utolsó hónapja).",
+      "Kategóriák csukva alapból: a szülőkategóriák összecsukva jelennek meg, kattintásra nyílnak ki.",
+      "Kategória visszaállítás: ha < 10 kategória van, megjelenik egy gomb az alapértelmezett seed visszaállításához.",
+      "Cadence CHECK constraint javítás (DB migration): quarterly és yearly is elfogadott a recurring_items táblában.",
+    ],
+  },
   "0.5.6": {
     date: "2026-03-07",
     changes: [

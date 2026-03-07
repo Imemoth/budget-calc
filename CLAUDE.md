@@ -31,14 +31,25 @@ npm run preview    # production preview lokálisan
 
 ```
 src/
-├── App.tsx           # Fő app + összes tab UI (monolitikus – refaktorálandó)
-├── auth.tsx          # AuthContext (useAuth hook, AuthProvider)
-├── authscreen.tsx    # Login/Register képernyő
-├── dataClient.ts     # Egyetlen Supabase CRUD réteg
-├── supabaseClient.ts # Supabase kliens (env alapon)
+├── App.tsx                    # Fő app: state, autosave, layout, nav
+├── types.ts                   # Összes domain típus (re-exportálva App.tsx-ből)
+├── auth.tsx                   # AuthContext (useAuth hook, AuthProvider)
+├── authscreen.tsx             # Login/Register képernyő
+├── dataClient.ts              # Egyetlen Supabase CRUD réteg
+├── supabaseClient.ts          # Supabase kliens – createClient<Database>
+├── components/
+│   ├── ui.tsx                 # Alap UI primitívek (Card, Input, Select, TabButton, MobileNavBtn…)
+│   ├── DashboardTab.tsx
+│   ├── MoneyTab.tsx           # Bevétel + Kiadás tab (fix sablonok + tranzakciók)
+│   ├── SavingsTab.tsx
+│   ├── PeopleTab.tsx          # Keresők + kategóriák (reseed gomb)
+│   ├── SettingsTab.tsx
+│   └── ChangelogModal.tsx
 └── lib/
-    ├── utils.ts      # Pure helper függvények
-    └── version.ts    # APP_VERSION + CHANGELOG konstansok
+    ├── utils.ts               # Pure helper függvények
+    ├── domainHelpers.ts       # expandRecurringForMonth, monthBounds stb.
+    ├── version.ts             # APP_VERSION + CHANGELOG konstansok
+    └── database.types.ts      # Supabase generált típusok (ne kézzel szerkeszd!)
 ```
 
 ## Kulcsszabályok módosításhoz
@@ -52,14 +63,15 @@ src/
 
 ### Típusok
 - Az összes domain típus (`Settings`, `Person`, `Category`, `RecurringItem`,
-  `Transaction`, `SavingsBucket`, `State`) az `App.tsx`-ben van definiálva és
-  re-exportálva. Importálj innen, ne duplikálj.
-- Kerüld az `any` típust – ha Supabase row-t kapsz, definiálj explicit interface-t
-  vagy használj `unknown`-t + type guardot.
+  `Transaction`, `SavingsBucket`, `State`) a `src/types.ts`-ben van, App.tsx re-exportálja.
+  Importálj `../types`-ból a komponensekben.
+- Supabase DB row típusok: `src/lib/database.types.ts` (generált, ne kézzel szerkeszd).
+  `dataClient.ts`-ben: `type XxxRow = Database["public"]["Tables"]["xxx"]["Row"]`
+- Ha a sémát módosítottad: `npx supabase gen types typescript --project-id lvccbfkvwuvnjtpsrzqh > src/lib/database.types.ts`
 
 ### UI komponensek
-- Az alap UI primitívek (`Card`, `Input`, `Select`, `SmallButton`, `Field`, `TabButton`)
-  az `App.tsx` aljában vannak. Használd ezeket, ne írj Tailwind-et direktben ismétlődően.
+- Az alap UI primitívek (`Card`, `Input`, `Select`, `SmallButton`, `Field`, `TabButton`, `MobileNavBtn`, `Skeleton`, `CategorySelect`, `ConfirmDelete`)
+  a `src/components/ui.tsx`-ben vannak. Használd ezeket, ne írj Tailwind-et direktben ismétlődően.
 - Stílus: sötét téma (`bg-slate-950`, `bg-slate-900`), `text-white/70` az alvó elemek,
   `rounded-2xl` a kártyákhoz, `border-white/10` a keretek.
 - Animációkhoz Framer Motion `motion.*` komponenseket és `AnimatePresence`-t használj.
@@ -86,11 +98,9 @@ src/
 
 ## Ismert tech debt (ne kerüld el, hanem javítsd ha belefutsz)
 
-1. **App.tsx monolitikus** – a tabokat külön fájlokba kell szétbontani (`src/components/`)
-2. **saveStatePatch nem töröl** – törlés után az adatok orphan-ként maradnak a DB-ben
-3. **`any` típusok a mapperekben** – Supabase generált típusokkal (`supabase gen types`) kell felváltani
-4. **Nincs teszt** – Vitest + RTL infrastruktúra hiányzik
-5. **Csak `"monthly"` cadence** – `RecurringItem.cadence` típusa bővítendő
+1. **saveStatePatch nem töröl** – upsert alapú; törléshez külön `deleteXxx(id)` függvények vannak, de batch-delete nincs
+2. **MoneyTab form mobilon** – a form mezők szélessége mobilon még nem optimális
+3. **Témaváltó nincs implementálva** – `settings.theme` mező létezik DB-ben, de a tényleges light/dark váltás hiányzik
 
 ## Git konvenció
 

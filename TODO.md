@@ -11,8 +11,7 @@
 
 ## 🟡 Fontos – UX / felhasználói élmény
 
-- [ ] **Mobilnézet optimalizálása** – a nav tab-ok sok helyet foglalnak kis képernyőn;
-  bottom navigation bar vagy hamburger menü a mobilos élményhez.
+- [ ] **Mobilnézet finomítás** – bottom nav kész; még hiányzik: érintésbarát méretezés, horizontális scroll a hosszú listáknál, MoneyTab form mobilon.
 
 - [ ] **Sötét/Világos téma váltó** – a `settings.theme` mező létezik, de a tényleges
   téma-váltás nincs implementálva az UI-ban.
@@ -79,3 +78,7 @@
 - [x] Típusbiztonság – explicit row interface-ek + Supabase query cast-ok a dataClient.ts-ben
 - [x] Cadence bővítés – monthly / quarterly / yearly, expandRecurringForMonth periódus-logika
 - [x] Supabase generált típusok – `database.types.ts`, `createClient<Database>`, generált típus aliasok; transactions séma javítás (name, person_id oszlopok)
+- [x] Mobile bottom navigation – `sm:hidden` fixed bottom bar, desktop top nav `hidden sm:flex`
+- [x] focusMonth = aktuális hónap alapból
+- [x] Kategóriák collapsed by default + visszaállítás gomb (reseed)
+- [x] Cadence DB constraint javítás – `recurring_items_cadence_check` quarterly/yearly is engedélyez
