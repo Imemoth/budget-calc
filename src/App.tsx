@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { APP_VERSION } from "./lib/version";
 import { AnimatePresence, motion } from "framer-motion";
 import { uid, monthKey, monthsBetweenInclusive } from "./lib/utils";
-import { Wallet, BarChart3, Repeat, PiggyBank, Users, Settings2, Download, Upload, Info, LogOut } from "lucide-react";
+import { Wallet, BarChart3, TrendingUp, TrendingDown, PiggyBank, Users, Settings2, Download, Upload, Info, LogOut } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./auth";
 import { AuthScreen } from "./authscreen";
@@ -13,11 +13,10 @@ export type { Settings, Person, Category, RecurringItem, Transaction, SavingsBuc
 import type { Settings, Person, Category, RecurringItem, Transaction, SavingsBucket, State, MoneyType, TabKey } from "./types";
 
 // Components
-import { TabButton, SmallButton } from "./components/ui";
+import { TabButton, SmallButton, Skeleton } from "./components/ui";
 import { ChangelogModal } from "./components/ChangelogModal";
 import { DashboardView } from "./components/DashboardTab";
-import { TransactionsView } from "./components/TransactionsTab";
-import { RecurringView } from "./components/RecurringTab";
+import { MoneyTab } from "./components/MoneyTab";
 import { SavingsView } from "./components/SavingsTab";
 import { PeopleCategoriesView } from "./components/PeopleTab";
 import { SettingsView } from "./components/SettingsTab";
@@ -237,7 +236,16 @@ export default function App() {
   const [isProvisioning, setIsProvisioning] = useState(false);
   const localScopeId = activeHouseholdId ?? user?.id ?? null;
   const [state, setState] = useUserLocalState(localScopeId);
-  const [tab, setTab] = useState<TabKey>("dashboard");
+  const [tab, setTab] = useState<TabKey>(() => {
+    // Backward compat: map old tab keys stored in localStorage
+    try {
+      const stored = localStorage.getItem("household-budget-planner-tab");
+      if (stored === "transactions" || stored === "recurring") return "expense";
+      if (stored && ["dashboard", "income", "expense", "savings", "people", "settings"].includes(stored))
+        return stored as TabKey;
+    } catch { /* ignore */ }
+    return "dashboard";
+  });
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -319,6 +327,10 @@ export default function App() {
   useEffect(() => {
     if (!user) { setSavingStatus("idle"); setSaveError(null); setRemoteReady(false); setActiveHouseholdId(null); }
   }, [user]);
+
+  useEffect(() => {
+    try { localStorage.setItem("household-budget-planner-tab", tab); } catch { /* ignore */ }
+  }, [tab]);
 
   // Computed data
   const plannedByMonth = useMemo(() => {
@@ -512,14 +524,14 @@ export default function App() {
     }
   };
 
-  const addTransaction = () =>
+  const addTransaction = (type: MoneyType = "expense") =>
     setState((s) => ({
       ...s,
       transactions: [{
         id: uid(),
         date: new Date().toISOString().slice(0, 10),
-        name: "Új tétel", amount: 0, type: "expense",
-        categoryId: s.categories.find((c) => c.type === "expense")?.id || null,
+        name: "Új tétel", amount: 0, type,
+        categoryId: s.categories.find((c) => c.type === type)?.id || null,
         personId: null, notes: "",
       }, ...s.transactions],
     }));
@@ -682,8 +694,8 @@ export default function App() {
         {/* Tabs */}
         <div className="mt-6 flex flex-wrap gap-2">
           <TabButton active={tab === "dashboard"} onClick={() => setTab("dashboard")} icon={BarChart3}>Dashboard</TabButton>
-          <TabButton active={tab === "transactions"} onClick={() => setTab("transactions")} icon={Wallet}>Tételek</TabButton>
-          <TabButton active={tab === "recurring"} onClick={() => setTab("recurring")} icon={Repeat}>Fix tételek</TabButton>
+          <TabButton active={tab === "income"} onClick={() => setTab("income")} icon={TrendingUp}>Bevétel</TabButton>
+          <TabButton active={tab === "expense"} onClick={() => setTab("expense")} icon={TrendingDown}>Kiadás</TabButton>
           <TabButton active={tab === "savings"} onClick={() => setTab("savings")} icon={PiggyBank}>Megtakarítás</TabButton>
           <TabButton active={tab === "people"} onClick={() => setTab("people")} icon={Users}>Keresők & kategóriák</TabButton>
           <TabButton active={tab === "settings"} onClick={() => setTab("settings")} icon={Settings2}>Beállítások</TabButton>
@@ -691,6 +703,29 @@ export default function App() {
 
         {/* Content */}
         <div className="mt-6">
+          {(isProvisioning || (!!activeHouseholdId && !remoteReady)) && (
+            <div className="space-y-4">
+              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 space-y-3">
+                <Skeleton className="h-4 w-48" />
+                <Skeleton className="h-6 w-72" />
+                <div className="flex gap-3 mt-2">
+                  <Skeleton className="h-8 w-32" />
+                  <Skeleton className="h-8 w-32" />
+                </div>
+              </div>
+              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 space-y-3">
+                <Skeleton className="h-5 w-56" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-4/6" />
+              </div>
+              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 space-y-3">
+                <Skeleton className="h-5 w-44" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </div>
+            </div>
+          )}
           <AnimatePresence mode="wait">
             {tab === "dashboard" && (
               <motion.div key="dash" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
@@ -700,16 +735,20 @@ export default function App() {
                   currency={state.settings.currency} />
               </motion.div>
             )}
-            {tab === "transactions" && (
-              <motion.div key="tx" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
-                <TransactionsView state={state} setTab={setTab} addTransaction={addTransaction}
-                  updateTransaction={updateTransaction} removeTransaction={removeTransaction} />
+            {tab === "income" && (
+              <motion.div key="income" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
+                <MoneyTab type="income" state={state}
+                  addRecurring={addRecurring} updateRecurring={updateRecurring} removeRecurring={removeRecurring}
+                  quickCreateYearTemplate={quickCreateYearTemplate}
+                  addTransaction={addTransaction} updateTransaction={updateTransaction} removeTransaction={removeTransaction} />
               </motion.div>
             )}
-            {tab === "recurring" && (
-              <motion.div key="rec" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
-                <RecurringView state={state} addRecurring={addRecurring} updateRecurring={updateRecurring}
-                  removeRecurring={removeRecurring} quickCreateYearTemplate={quickCreateYearTemplate} />
+            {tab === "expense" && (
+              <motion.div key="expense" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
+                <MoneyTab type="expense" state={state}
+                  addRecurring={addRecurring} updateRecurring={updateRecurring} removeRecurring={removeRecurring}
+                  quickCreateYearTemplate={quickCreateYearTemplate}
+                  addTransaction={addTransaction} updateTransaction={updateTransaction} removeTransaction={removeTransaction} />
               </motion.div>
             )}
             {tab === "savings" && (
@@ -741,7 +780,7 @@ export default function App() {
 
         {/* Footer */}
         <div className="mt-10 text-[11px] text-white/40 space-y-1">
-          <div>Tipp: a fix tételeket a "Fix tételek" fülön vedd fel, és állítsd be a start/end hónapot. Így a 2026-os bevételek/kiadások előre modellezhetők a dashboardon.</div>
+          <div>Tipp: a fix tételeket a "Bevétel" és "Kiadás" füleken vedd fel, és állítsd be a start/end hónapot. Így a 2026-os bevételek/kiadások előre modellezhetők a dashboardon.</div>
           {user && (
             <div>
               {isProvisioning && "Household előkészítés..."}

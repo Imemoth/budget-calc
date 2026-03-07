@@ -6,11 +6,6 @@
 
 ## 🟡 Fontos – fejlesztői minőség
 
-- [ ] **Navigáció / adatmodell átgondolása** – megvizsgálni, hogy a jelenlegi
-  Tételek / Fix tételek / Megtakarítás fülstruktúra optimális-e. Alternatíva:
-  egységes bevétel / kiadás / megtakarítás rögzítési paradigmára váltani, ahol
-  a "fix" jelleg csak attribútum, nem külön tab.
-
 - [ ] **Loading skeleton / spinner** – az adatbetöltés közben nincs visszajelzés.
   `loadFullStateForUser` alatt a UI üres marad.
 
@@ -87,3 +82,4 @@
 - [x] Törlés megerősítése UI-ban – inline `ConfirmDelete` komponens minden tab törlés gombjainál
 - [x] Teszt infrastruktúra – Vitest + 48 unit teszt a `lib/utils.ts` függvényeire
 - [x] Hierarchikus kategóriák – szülő / alkategória struktúra, progressive disclosure UI, alap seed (20 csoport, ~55 alkategória)
+- [x] Navigáció átszervezve – Bevétel / Kiadás tab (fix sablonok + tényleges tételek egy helyen)
