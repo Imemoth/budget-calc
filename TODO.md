@@ -6,11 +6,6 @@
 
 ## 🟡 Fontos – fejlesztői minőség
 
-- [ ] **Loading skeleton / spinner** – az adatbetöltés közben nincs visszajelzés.
-  `loadFullStateForUser` alatt a UI üres marad.
-
-- [ ] **Típusbiztonság javítása** – `dataClient.ts`-ben sok `any` típus van a mapperekben.
-  Supabase generált típusokkal (`supabase gen types typescript`) érdemes felváltani.
 
 ---
 
@@ -83,3 +78,5 @@
 - [x] Teszt infrastruktúra – Vitest + 48 unit teszt a `lib/utils.ts` függvényeire
 - [x] Hierarchikus kategóriák – szülő / alkategória struktúra, progressive disclosure UI, alap seed (20 csoport, ~55 alkategória)
 - [x] Navigáció átszervezve – Bevétel / Kiadás tab (fix sablonok + tényleges tételek egy helyen)
+- [x] Loading skeleton – isProvisioning / remoteReady alatt animate-pulse kártyák
+- [x] Típusbiztonság – explicit row interface-ek + Supabase query cast-ok a dataClient.ts-ben

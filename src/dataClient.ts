@@ -218,7 +218,7 @@ async function getHouseholdForKey(householdIdOrUserId: string): Promise<Househol
     console.error("[dataClient] getHouseholdForKey (by id) error:", byId.error);
     throw new Error(`Failed to load household (by id): ${byId.error.message}`);
   }
-  if (byId.data) return byId.data;
+  if (byId.data) return byId.data as HouseholdRow;
 
   // 2) Fallback: try as owner_user_id
   const byOwner = await supabase
@@ -239,7 +239,7 @@ async function getHouseholdForKey(householdIdOrUserId: string): Promise<Househol
   if (!byOwner.data) {
     throw new Error("No household found for this key.");
   }
-  return byOwner.data;
+  return byOwner.data as HouseholdRow;
 }
 
 // =========================
@@ -294,23 +294,11 @@ export async function loadFullStateForUser(
       .order("created_at", { ascending: true }),
   ]);
 
-  const peopleRows = handleError("load people", peopleError, peopleData ?? []);
-  const categoryRows = handleError(
-    "load categories",
-    categoriesError,
-    categoriesData ?? []
-  );
-  const recurringRows = handleError(
-    "load recurring items",
-    recurringError,
-    recurringData ?? []
-  );
-  const txRows = handleError("load transactions", txError, txData ?? []);
-  const savingsRows = handleError(
-    "load savings buckets",
-    savingsError,
-    savingsData ?? []
-  );
+  const peopleRows = handleError<PersonRow[]>("load people", peopleError, (peopleData as PersonRow[] | null) ?? []);
+  const categoryRows = handleError<CategoryRow[]>("load categories", categoriesError, (categoriesData as CategoryRow[] | null) ?? []);
+  const recurringRows = handleError<RecurringRow[]>("load recurring items", recurringError, (recurringData as RecurringRow[] | null) ?? []);
+  const txRows = handleError<TransactionRow[]>("load transactions", txError, (txData as TransactionRow[] | null) ?? []);
+  const savingsRows = handleError<SavingsRow[]>("load savings buckets", savingsError, (savingsData as SavingsRow[] | null) ?? []);
 
   const people: Person[] = peopleRows.map(mapPersonRow);
   let categories: Category[] = categoryRows.map(mapCategoryRow);

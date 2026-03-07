@@ -3,9 +3,16 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.3";
+export const APP_VERSION = "0.5.4";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.4": {
+    date: "2026-03-07",
+    changes: [
+      "Loading skeleton: betöltés közben animate-pulse kártyák a tartalom helyén.",
+      "Típusbiztonság: Supabase query eredmények explicit row interface cast-okkal ellátva a dataClient.ts-ben.",
+    ],
+  },
   "0.5.3": {
     date: "2026-03-07",
     changes: [
