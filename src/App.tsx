@@ -321,7 +321,8 @@ export default function App() {
         if (!cancelled) { setRemoteLoadSuccess(true); setRemoteReady(true); }
       } catch (err) {
         console.error("Nem sikerült betölteni az állapotot Supabase-ből:", err);
-        // Do NOT set remoteReady=true here – autosave must not run if load failed
+        // remoteLoadSuccess=false marad → autosave nem fut; remoteReady=true → skeleton eltűnik
+        if (!cancelled) setRemoteReady(true);
       }
     })();
     return () => { cancelled = true; };
