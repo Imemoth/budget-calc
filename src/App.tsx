@@ -317,7 +317,20 @@ export default function App() {
     (async () => {
       try {
         const remote = await loadFullStateForUser(activeHouseholdId);
-        if (!cancelled && remote) setState(remote);
+        if (!cancelled && remote) {
+          // Ha Supabase üres (nincs people/recurring/transactions/savings) de localStorage-ban
+          // van adat, tartsuk meg a localst – az autosave majd visszaszinkronizál Supabase-be.
+          const remoteIsEmpty =
+            remote.people.length === 0 &&
+            remote.recurring.length === 0 &&
+            remote.transactions.length === 0 &&
+            remote.savings.length === 0;
+          if (!remoteIsEmpty) {
+            setState(remote);
+          }
+          // Ha remoteIsEmpty, a setState nem fut le → a localStorage-ból betöltött state marad,
+          // és az autosave (remoteLoadSuccess=true után) visszatölti azt Supabase-be.
+        }
         if (!cancelled) { setRemoteLoadSuccess(true); setRemoteReady(true); }
       } catch (err) {
         console.error("Nem sikerült betölteni az állapotot Supabase-ből:", err);
