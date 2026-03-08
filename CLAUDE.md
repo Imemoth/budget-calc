@@ -102,8 +102,22 @@ src/
 2. **MoneyTab form mobilon** – a form mezők szélessége mobilon még nem optimális
 3. **Témaváltó nincs implementálva** – `settings.theme` mező létezik DB-ben, de a tényleges light/dark váltás hiányzik
 
+## CLI engedélyek
+
+Claude szabadon futtathatja az alábbi CLI eszközöket jóváhagyás nélkül:
+
+- **npm** – `npm run dev/build/typecheck/lint/preview/test` és `npx` parancsok
+- **git** – olvasás (`status`, `log`, `diff`); írás (commit, push) csak ha a user kéri
+- **Supabase CLI** – `npx supabase ...` (típusgenerálás, migration push, DB dump stb.)
+- **Docker / MCP Docker** – böngésző automatizáció (`mcp__MCP_DOCKER__browser_*`) és `mcp__MCP_DOCKER__mcp-exec` diagnosztikai célokra (pl. DB lekérdezés, hálózati teszt)
+- **curl / REST API hívások** – Supabase REST API diagnosztikához (service role key kizárólag lokálisan, `.env.local`-ból olvasva, sosem commitolva)
+
 ## Git konvenció
 
 - Branch: `feature/<rövid-leírás>` vagy AI session esetén `claude/<leírás>-<session-id>`
 - Commit: `feat:`, `fix:`, `refactor:`, `docs:`, `chore:` prefix
 - Minden commithoz futtasd: `npm run typecheck && npm run lint`
+
+## Skills
+Use the following skills when relevant:
+- ~/.claude/skills/uiux-design-skill.skill — for all UI/UX design decisions
