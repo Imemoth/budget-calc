@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { APP_VERSION } from "./lib/version";
 import { AnimatePresence, motion } from "framer-motion";
-import { uid, monthKey, monthsBetweenInclusive } from "./lib/utils";
+import { uid, isUUID, monthKey, monthsBetweenInclusive } from "./lib/utils";
 import { Wallet, BarChart3, TrendingUp, TrendingDown, PiggyBank, Users, Settings2, Download, Upload, Info, LogOut } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./auth";
@@ -27,6 +27,55 @@ import { monthBoundsFromSettings, expandRecurringForMonth, isMonthInRange } from
 // -------------------- storage --------------------
 
 const STORAGE_KEY = "household-budget-planner-v1";
+
+/**
+ * Régi sessions-ökben az uid() Math.random().toString(36) stringeket generált,
+ * nem valid UUID-kat. Ez a migráció minden nem-UUID ID-t felváltja crypto.randomUUID()-val,
+ * megtartva az összes belső referenciát (categoryId, personId, parentId).
+ */
+function migrateStateIds(state: State): State {
+  const anyNonUUID = [
+    ...state.people.map((p) => p.id),
+    ...state.categories.map((c) => c.id),
+    ...state.recurring.map((r) => r.id),
+    ...state.transactions.map((t) => t.id),
+    ...state.savings.map((s) => s.id),
+  ].some((id) => !isUUID(id));
+
+  if (!anyNonUUID) return state; // Már mind UUID → nincs teendő
+
+  const idMap = new Map<string, string>();
+  const remap = (id: string | null | undefined): string | null => {
+    if (!id) return null;
+    if (isUUID(id)) return id;
+    if (!idMap.has(id)) idMap.set(id, crypto.randomUUID());
+    return idMap.get(id)!;
+  };
+  const remapRequired = (id: string): string => remap(id) as string;
+
+  return {
+    ...state,
+    people: state.people.map((p) => ({ ...p, id: remapRequired(p.id) })),
+    categories: state.categories.map((c) => ({
+      ...c,
+      id: remapRequired(c.id),
+      parentId: remap(c.parentId),
+    })),
+    recurring: state.recurring.map((r) => ({
+      ...r,
+      id: remapRequired(r.id),
+      categoryId: remap(r.categoryId),
+      personId: remap(r.personId),
+    })),
+    transactions: state.transactions.map((t) => ({
+      ...t,
+      id: remapRequired(t.id),
+      categoryId: remap(t.categoryId),
+      personId: remap(t.personId),
+    })),
+    savings: state.savings.map((s) => ({ ...s, id: remapRequired(s.id) })),
+  };
+}
 
 const defaultState = (): State => {
   const now = new Date();
@@ -149,7 +198,8 @@ function useUserLocalState(
       const raw = localStorage.getItem(storageKey);
       if (!raw) return defaultState();
       const parsed = JSON.parse(raw);
-      return { ...defaultState(), ...parsed } as State;
+      const merged = { ...defaultState(), ...parsed } as State;
+      return migrateStateIds(merged);
     } catch {
       return defaultState();
     }

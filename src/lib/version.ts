@@ -3,9 +3,16 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.8";
+export const APP_VERSION = "0.5.9";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.9": {
+    date: "2026-03-08",
+    changes: [
+      "Kritikus szinkronhiba javítás: az ID-generátor most érvényes UUID-kat hoz létre – ettől kezdve az adatok valóban mentődnek Supabase-be.",
+      "Automatikus ID-migráció: a korábban elmentett (nem-UUID) adatok betöltéskor automatikusan konvertálódnak, belső hivatkozásokkal együtt.",
+    ],
+  },
   "0.5.8": {
     date: "2026-03-07",
     changes: [

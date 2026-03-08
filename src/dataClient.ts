@@ -460,7 +460,7 @@ export async function saveStatePatch(
 // =========================
 
 function makeId() {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  return crypto.randomUUID();
 }
 
 export async function seedDefaultCategories(householdId: string): Promise<Category[]> {

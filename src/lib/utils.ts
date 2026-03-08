@@ -2,8 +2,10 @@
 
 // -------------------- general --------------------
 
-export const uid = () =>
-  Math.random().toString(36).slice(2) + Date.now().toString(36);
+export const uid = () => crypto.randomUUID();
+
+export const isUUID = (id: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
 export const sleep = (ms: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, ms));
