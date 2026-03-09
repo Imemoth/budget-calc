@@ -742,13 +742,18 @@ export default function App() {
 
   // -------------------- layout --------------------
 
-  const isLight = state.settings.theme === 'light';
+  const rootClass = (() => {
+    switch (state.settings.theme) {
+      case 'light':            return "min-h-screen bg-linear-to-b from-slate-100 via-white to-slate-50 text-slate-900";
+      case 'trust-blue':       return "min-h-screen bg-linear-to-b from-[#F8FAFC] via-[#EFF6FF] to-[#DBEAFE] text-slate-900";
+      case 'teal-slate':       return "min-h-screen bg-linear-to-b from-[#F5F7F8] via-[#EEF2F5] to-[#E8EDF2] text-gray-900";
+      case 'graphite-emerald': return "min-h-screen bg-linear-to-b from-[#0B1220] via-[#0B1220] to-[#060D18] text-white";
+      default:                 return "min-h-screen bg-linear-to-b from-[#0b0f14] via-[#0b0f14] to-black text-white";
+    }
+  })();
 
   return (
-    <div className={isLight
-      ? "min-h-screen bg-linear-to-b from-slate-100 via-white to-slate-50 text-slate-900"
-      : "min-h-screen bg-linear-to-b from-[#0b0f14] via-[#0b0f14] to-black text-white"
-    }>
+    <div className={rootClass}>
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
