@@ -3,9 +3,16 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.10";
+export const APP_VERSION = "0.5.11";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.11": {
+    date: "2026-03-09",
+    changes: [
+      "SavingsTab: hónap mezők már nem lógnak ki – sm:grid-cols-2 közbenső breakpoint + min-w-0 javítás.",
+      "Fekvő mobil nézet: az alsó navigáció és a tartalom alap-paddingja md: (768px) határon vált – így telefon fekvőben is látszik a bottom nav.",
+    ],
+  },
   "0.5.10": {
     date: "2026-03-08",
     changes: [
