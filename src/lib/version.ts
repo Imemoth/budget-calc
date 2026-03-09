@@ -3,9 +3,15 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.11";
+export const APP_VERSION = "0.5.12";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.12": {
+    date: "2026-03-09",
+    changes: [
+      "Sötét/Világos téma váltó: a Beállítások fülön választható a megjelenés (Sötét / Világos).",
+    ],
+  },
   "0.5.11": {
     date: "2026-03-09",
     changes: [

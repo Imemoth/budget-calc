@@ -326,6 +326,14 @@ export default function App() {
   const [remoteReady, setRemoteReady] = useState(false);
   const [remoteLoadSuccess, setRemoteLoadSuccess] = useState(false);
 
+  // Téma szinkronizálása a dokumentumra (CSS override strategy)
+  useEffect(() => {
+    document.documentElement.setAttribute(
+      'data-theme',
+      state.settings.theme === 'light' ? 'light' : 'dark'
+    );
+  }, [state.settings.theme]);
+
   const { start, end } = useMemo(() => monthBoundsFromSettings(state.settings), [state.settings]);
   const monthList = useMemo(() => monthsBetweenInclusive(start, end).map(monthKey), [start, end]);
 
@@ -734,8 +742,13 @@ export default function App() {
 
   // -------------------- layout --------------------
 
+  const isLight = state.settings.theme === 'light';
+
   return (
-    <div className="min-h-screen bg-linear-to-b from-[#0b0f14] via-[#0b0f14] to-black text-white">
+    <div className={isLight
+      ? "min-h-screen bg-linear-to-b from-slate-100 via-white to-slate-50 text-slate-900"
+      : "min-h-screen bg-linear-to-b from-[#0b0f14] via-[#0b0f14] to-black text-white"
+    }>
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
