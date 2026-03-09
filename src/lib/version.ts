@@ -3,9 +3,15 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.12";
+export const APP_VERSION = "0.5.13";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.13": {
+    date: "2026-03-09",
+    changes: [
+      "3 új színséma: Trust Blue + Mint, Teal + Slate (világos), Graphite + Emerald (sötét) – Beállítások → Megjelenés.",
+    ],
+  },
   "0.5.12": {
     date: "2026-03-09",
     changes: [

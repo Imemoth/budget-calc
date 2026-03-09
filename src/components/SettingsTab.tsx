@@ -58,8 +58,11 @@ export function SettingsView({
               value={settings.theme ?? "dark-neo"}
               onChange={(e) => updateSettings({ theme: e.target.value })}
             >
-              <option value="dark-neo">Sötét</option>
+              <option value="dark-neo">Sötét (Dark Neo)</option>
+              <option value="graphite-emerald">Graphite + Emerald</option>
               <option value="light">Világos</option>
+              <option value="trust-blue">Trust Blue + Mint</option>
+              <option value="teal-slate">Teal + Slate</option>
             </Select>
           </Field>
         </div>
