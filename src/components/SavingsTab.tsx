@@ -30,8 +30,7 @@ export function SavingsView({
         </div>
       </Card>
 
-      <div className="overflow-x-auto">
-        <div className="grid min-w-225 grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 gap-3">
           {state.savings.length === 0 ? (
             <Card className="p-6">
               <div className="text-sm text-white/40">Még nincs megtakarítási keret.</div>
@@ -116,7 +115,6 @@ export function SavingsView({
             hozz létre egy "Megtakarítás" kiadás kategóriát, és rögzítsd a valós átvezetéseket tételként.
           </div>
         </Card>
-      </div>
     </div>
   );
 }

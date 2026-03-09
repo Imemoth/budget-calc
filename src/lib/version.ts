@@ -3,9 +3,18 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.9";
+export const APP_VERSION = "0.5.10";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.10": {
+    date: "2026-03-08",
+    changes: [
+      "Mobilnézet finomítás: SavingsTab vízszintes scroll eltávolítva (min-w-225 törölve).",
+      "MobileNavBtn: nagyobb érintési terület (min-h-12), olvashatóbb felirat (text-[10px]).",
+      "MoneyTab toolbar: évválasztó, hónapválasztó és szűrő mezők mobilon teljes szélességre váltanak (w-full sm:w-auto).",
+      "PeopleTab kategória toggle gomb: min 36×36px érintési terület (WCAG-barát).",
+    ],
+  },
   "0.5.9": {
     date: "2026-03-08",
     changes: [

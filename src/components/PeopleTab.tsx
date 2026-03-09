@@ -164,7 +164,7 @@ function CategorySection({
               <button
                 type="button"
                 onClick={() => toggle(parent.id)}
-                className="shrink-0 text-white/40 hover:text-white/70 transition"
+                className="shrink-0 text-white/40 hover:text-white/70 transition min-w-9 min-h-9 flex items-center justify-center"
                 title={isCollapsed ? "Kinyit" : "Összecsuk"}
               >
                 <ChevronDown
