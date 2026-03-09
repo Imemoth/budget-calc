@@ -3,9 +3,15 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.14";
+export const APP_VERSION = "0.5.15";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.15": {
+    date: "2026-03-09",
+    changes: [
+      "Export (CSV): Tranzakciók, Fix tételek, Megtakarítások, Havi összesítő – Beállítások → Export. UTF-8 BOM, pontosvessző elválasztó, Excel-kompatibilis.",
+    ],
+  },
   "0.5.14": {
     date: "2026-03-09",
     changes: [

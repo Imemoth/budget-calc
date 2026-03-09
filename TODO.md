@@ -4,13 +4,6 @@
 
 ---
 
-## 🟡 Fontos – UX / felhasználói élmény
-
-- [ ] **Export funkció (CSV/Excel)** – a felhasználók exportálhassák a tranzakcióikat és
-  az éves összesítőt táblázatba.
-
----
-
 ## 🟢 Jó lenne – bővítések
 
 - [ ] **Household megosztás / meghívó** – jelenleg egy háztartás = egy user. Kell egy
@@ -72,3 +65,4 @@
 - [x] Mobilnézet finomítás – SavingsTab vízszintes scroll eltávolítva, MobileNavBtn touch target (min-h-12), MoneyTab toolbar responsive szélességek, PeopleTab toggle min 36px (v0.5.10)
 - [x] Sötét/Világos téma váltó + 3 extra színséma (Trust Blue, Teal+Slate, Graphite+Emerald) – Beállítások → Megjelenés (v0.5.12–0.5.13)
 - [x] Megtakarítási haladás vizualizáció – progress bar + tervezett összeg / célösszeg / havi terv / hátralévő hónapok (v0.5.14)
+- [x] Export (CSV) – Tranzakciók, Fix tételek, Megtakarítások, Havi összesítő letöltése (v0.5.15)
