@@ -3,9 +3,15 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.15";
+export const APP_VERSION = "0.5.16";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.16": {
+    date: "2026-03-09",
+    changes: [
+      "UI/UX polish: Dashboard hero összesítő kártya (nagy nettó szám + Bevétel/Kiadás/Megtakarítás sor), kategória progress bar-ok a pie chart alatt, SVG ring progress a savings goal kártyákon.",
+    ],
+  },
   "0.5.15": {
     date: "2026-03-09",
     changes: [

@@ -1,6 +1,6 @@
 import { Plus } from "lucide-react";
 import type { State, SavingsBucket } from "../types";
-import { Card, Field, Input, SmallButton, ConfirmDelete } from "./ui";
+import { Card, Field, Input, SmallButton, ConfirmDelete, RingProgress } from "./ui";
 import { normalizeMonthInput, parseNonNegativeInput } from "../lib/domainHelpers";
 import { formatHUF, monthKey } from "../lib/utils";
 
@@ -78,43 +78,46 @@ export function SavingsView({
                 {/* ---- Progress summary ---- */}
                 {prog && (
                   <div className="mb-4 pb-4 border-b border-white/10">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-sm font-semibold truncate pr-2">
-                        {s.name || "(névtelen)"}
-                      </span>
-                      <span className={`text-xs font-mono shrink-0 ${prog.pct >= 100 ? "text-emerald-300" : "text-white/60"}`}>
-                        {prog.pct}%
-                      </span>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div className="h-2 rounded-full bg-white/10 overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${prog.pct >= 100 ? "bg-emerald-400" : "bg-emerald-500/70"}`}
-                        style={{ width: `${prog.pct}%` }}
-                      />
-                    </div>
-
-                    {/* Stats row */}
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-white/50">
-                      <span>
-                        <span className="text-white/80">{fmt(prog.accumulated)}</span>
-                        {" / "}
-                        {fmt(prog.target)}
-                      </span>
-                      {prog.monthly > 0 && (
-                        <span>Havi terv: <span className="text-white/70">{fmt(prog.monthly)}</span></span>
-                      )}
-                      {prog.projectedTotal !== null && prog.projectedTotal > 0 && (
-                        <span>Végösszeg: <span className="text-white/70">{fmt(prog.projectedTotal)}</span></span>
-                      )}
-                      {prog.monthsLeft !== null && (
-                        <span>
-                          {prog.monthsLeft === 0
-                            ? "Elérte a záró hónapot"
-                            : `${prog.monthsLeft} hónap van hátra`}
-                        </span>
-                      )}
+                    <div className="flex items-start gap-4">
+                      {/* Ring */}
+                      <div className="relative shrink-0">
+                        <RingProgress pct={prog.pct} size={72} />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className={`text-xs font-bold ${prog.pct >= 100 ? "text-emerald-300" : "text-white/70"}`}>
+                            {prog.pct}%
+                          </span>
+                        </div>
+                      </div>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-sm truncate">{s.name || "(névtelen)"}</div>
+                        <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${prog.pct >= 100 ? "bg-emerald-400" : "bg-emerald-500/70"}`}
+                            style={{ width: `${prog.pct}%` }}
+                          />
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-white/50">
+                          <span>
+                            <span className="text-white/80">{fmt(prog.accumulated)}</span>
+                            {" / "}
+                            {fmt(prog.target)}
+                          </span>
+                          {prog.monthly > 0 && (
+                            <span>Havi: <span className="text-white/70">{fmt(prog.monthly)}</span></span>
+                          )}
+                          {prog.projectedTotal !== null && prog.projectedTotal > 0 && (
+                            <span>Végösszeg: <span className="text-white/70">{fmt(prog.projectedTotal)}</span></span>
+                          )}
+                          {prog.monthsLeft !== null && (
+                            <span>
+                              {prog.monthsLeft === 0
+                                ? "Elérte a záró hónapot"
+                                : `${prog.monthsLeft} hónap van hátra`}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
