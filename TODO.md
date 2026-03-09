@@ -4,20 +4,10 @@
 
 ---
 
-## 🟡 Fontos – fejlesztői minőség
-
-
----
-
 ## 🟡 Fontos – UX / felhasználói élmény
-
-- [ ] **Mobilnézet finomítás** – bottom nav kész; még hiányzik: érintésbarát méretezés, horizontális scroll a hosszú listáknál, MoneyTab form mobilon.
 
 - [ ] **Sötét/Világos téma váltó** – a `settings.theme` mező létezik, de a tényleges
   téma-váltás nincs implementálva az UI-ban.
-
-- [ ] **Tranzakciók szűrése és keresése** – sok tranzakció esetén nincs szűrő (kategória,
-  személy, hónap, szabad szöveges keresés).
 
 - [ ] **Export funkció (CSV/Excel)** – a felhasználók exportálhassák a tranzakcióikat és
   az éves összesítőt táblázatba.
@@ -82,3 +72,7 @@
 - [x] focusMonth = aktuális hónap alapból
 - [x] Kategóriák collapsed by default + visszaállítás gomb (reseed)
 - [x] Cadence DB constraint javítás – `recurring_items_cadence_check` quarterly/yearly is engedélyez
+- [x] UUID ID-generátor fix – `crypto.randomUUID()` + `migrateStateIds()` localStorage migrációval (v0.5.9)
+- [x] Supabase szinkron – `ensureDefaultHousehold` idempotens upsert, `remoteLoadSuccess` guard, local-wins logika (v0.5.8–0.5.9)
+- [x] Tranzakciók hónap- és szabad szöveges szűrése – MoneyTab Tényleges szekció toolbar (filterMonth + search)
+- [x] Mobilnézet finomítás – SavingsTab vízszintes scroll eltávolítva, MobileNavBtn touch target (min-h-12), MoneyTab toolbar responsive szélességek, PeopleTab toggle min 36px (v0.5.10)

@@ -38,16 +38,17 @@ export function SavingsView({
           ) : (
             state.savings.map((s) => (
               <Card key={s.id} className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-                  <div className="md:col-span-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3 items-end">
+                  <div className="sm:col-span-2 md:col-span-4 min-w-0">
                     <Field label="Név">
                       <Input
                         value={s.name || ""}
                         onChange={(e) => updateSavings(s.id, { name: e.target.value })}
+                        className="w-full"
                       />
                     </Field>
                   </div>
-                  <div className="md:col-span-2">
+                  <div className="min-w-0 md:col-span-2">
                     <Field label="Célösszeg">
                       <Input
                         type="number"
@@ -55,10 +56,11 @@ export function SavingsView({
                         onChange={(e) =>
                           updateSavings(s.id, { targetAmount: parseNonNegativeInput(e.target.value) })
                         }
+                        className="w-full"
                       />
                     </Field>
                   </div>
-                  <div className="md:col-span-2">
+                  <div className="min-w-0 md:col-span-2">
                     <Field label="Havi terv">
                       <Input
                         type="number"
@@ -66,10 +68,11 @@ export function SavingsView({
                         onChange={(e) =>
                           updateSavings(s.id, { monthlyPlanned: parseNonNegativeInput(e.target.value) })
                         }
+                        className="w-full"
                       />
                     </Field>
                   </div>
-                  <div className="md:col-span-2">
+                  <div className="min-w-0 md:col-span-2">
                     <Field label="Kezdő hónap" hint="YYYY-MM">
                       <Input
                         type="month"
@@ -77,10 +80,11 @@ export function SavingsView({
                         onChange={(e) =>
                           updateSavings(s.id, { startMonth: normalizeMonthInput(e.target.value) })
                         }
+                        className="w-full"
                       />
                     </Field>
                   </div>
-                  <div className="md:col-span-2">
+                  <div className="min-w-0 md:col-span-2">
                     <Field label="Záró hónap" hint="YYYY-MM">
                       <Input
                         type="month"
@@ -88,18 +92,20 @@ export function SavingsView({
                         onChange={(e) =>
                           updateSavings(s.id, { endMonth: normalizeMonthInput(e.target.value) })
                         }
+                        className="w-full"
                       />
                     </Field>
                   </div>
-                  <div className="md:col-span-12">
+                  <div className="sm:col-span-2 md:col-span-12 min-w-0">
                     <Field label="Megjegyzés">
                       <Input
                         value={s.notes || ""}
                         onChange={(e) => updateSavings(s.id, { notes: e.target.value })}
+                        className="w-full"
                       />
                     </Field>
                   </div>
-                  <div className="md:col-span-12 flex justify-end">
+                  <div className="sm:col-span-2 md:col-span-12 flex justify-end">
                     <ConfirmDelete onConfirm={() => removeSavings(s.id)} />
                   </div>
                 </div>

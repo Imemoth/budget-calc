@@ -53,6 +53,15 @@ export function SettingsView({
               <option value="USD">USD</option>
             </Select>
           </Field>
+          <Field label="Megjelenés">
+            <Select
+              value={settings.theme ?? "dark-neo"}
+              onChange={(e) => updateSettings({ theme: e.target.value })}
+            >
+              <option value="dark-neo">Sötét</option>
+              <option value="light">Világos</option>
+            </Select>
+          </Field>
         </div>
 
         <div className="mt-4 text-[11px] text-white/40">

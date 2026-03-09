@@ -326,6 +326,14 @@ export default function App() {
   const [remoteReady, setRemoteReady] = useState(false);
   const [remoteLoadSuccess, setRemoteLoadSuccess] = useState(false);
 
+  // Téma szinkronizálása a dokumentumra (CSS override strategy)
+  useEffect(() => {
+    document.documentElement.setAttribute(
+      'data-theme',
+      state.settings.theme === 'light' ? 'light' : 'dark'
+    );
+  }, [state.settings.theme]);
+
   const { start, end } = useMemo(() => monthBoundsFromSettings(state.settings), [state.settings]);
   const monthList = useMemo(() => monthsBetweenInclusive(start, end).map(monthKey), [start, end]);
 
@@ -734,8 +742,13 @@ export default function App() {
 
   // -------------------- layout --------------------
 
+  const isLight = state.settings.theme === 'light';
+
   return (
-    <div className="min-h-screen bg-linear-to-b from-[#0b0f14] via-[#0b0f14] to-black text-white">
+    <div className={isLight
+      ? "min-h-screen bg-linear-to-b from-slate-100 via-white to-slate-50 text-slate-900"
+      : "min-h-screen bg-linear-to-b from-[#0b0f14] via-[#0b0f14] to-black text-white"
+    }>
       <div className="max-w-6xl mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -768,7 +781,7 @@ export default function App() {
               </SmallButton>
             )}
             {user && (
-              <div className="hidden md:flex items-center gap-2 pl-2 ml-2 border-l border-white/10">
+              <div className="hidden lg:flex items-center gap-2 pl-2 ml-2 border-l border-white/10">
                 <div className="text-xs text-white/50 max-w-55 truncate" title={user.email ?? ""}>{user.email}</div>
                 <SmallButton variant="ghost" onClick={handleLogout} title="Kijelentkezés">
                   <LogOut className="w-3.5 h-3.5" /> Kilépés
@@ -776,7 +789,7 @@ export default function App() {
               </div>
             )}
             {user && (
-              <div className="md:hidden">
+              <div className="lg:hidden">
                 <SmallButton variant="ghost" onClick={handleLogout} title="Kijelentkezés">
                   <LogOut className="w-3.5 h-3.5" />
                 </SmallButton>
@@ -798,7 +811,7 @@ export default function App() {
         )}
 
         {/* Tabs – desktop */}
-        <div className="mt-6 hidden sm:flex flex-wrap gap-2">
+        <div className="mt-6 hidden md:flex flex-wrap gap-2">
           <TabButton active={tab === "dashboard"} onClick={() => setTab("dashboard")} icon={BarChart3}>Dashboard</TabButton>
           <TabButton active={tab === "income"} onClick={() => setTab("income")} icon={TrendingUp}>Bevétel</TabButton>
           <TabButton active={tab === "expense"} onClick={() => setTab("expense")} icon={TrendingDown}>Kiadás</TabButton>
@@ -808,7 +821,7 @@ export default function App() {
         </div>
 
         {/* Content */}
-        <div className="mt-6 pb-20 sm:pb-0">
+        <div className="mt-6 pb-20 md:pb-0">
           {(isProvisioning || (!!activeHouseholdId && !remoteReady)) && (
             <div className="space-y-4">
               <div className="rounded-2xl bg-white/5 border border-white/10 p-5 space-y-3">
@@ -886,7 +899,7 @@ export default function App() {
         <ChangelogModal open={isChangelogOpen} onClose={() => setIsChangelogOpen(false)} />
 
         {/* Bottom nav – mobile only */}
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur border-t border-white/10 flex justify-around px-1 py-1 z-50">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur border-t border-white/10 flex justify-around px-1 py-1 z-50">
           <MobileNavBtn active={tab === "dashboard"} icon={BarChart3} label="Dashboard" onClick={() => setTab("dashboard")} />
           <MobileNavBtn active={tab === "income"} icon={TrendingUp} label="Bevétel" onClick={() => setTab("income")} />
           <MobileNavBtn active={tab === "expense"} icon={TrendingDown} label="Kiadás" onClick={() => setTab("expense")} />
