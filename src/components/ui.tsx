@@ -193,6 +193,23 @@ export const CategorySelect = ({
   );
 };
 
+export function RingProgress({ pct, size = 72 }: { pct: number; size?: number }) {
+  const r = (size - 10) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - Math.min(100, pct) / 100);
+  const done = pct >= 100;
+  return (
+    <svg width={size} height={size} className="-rotate-90" style={{ flexShrink: 0 }}>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none"
+        stroke="rgb(255 255 255 / 0.08)" strokeWidth={6} />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none"
+        stroke={done ? "#34d399" : "#10b981"} strokeWidth={6}
+        strokeDasharray={circ} strokeDashoffset={offset}
+        strokeLinecap="round" className="transition-all duration-700" />
+    </svg>
+  );
+}
+
 export const MobileNavBtn = ({
   active,
   icon: Icon,

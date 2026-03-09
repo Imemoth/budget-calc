@@ -895,7 +895,7 @@ export default function App() {
                     v{APP_VERSION} – frissítések megtekintése
                   </button>
                 </div>
-                <SettingsView settings={state.settings} updateSettings={updateSettings} />
+                <SettingsView settings={state.settings} updateSettings={updateSettings} state={state} series={dashboardSeries} />
               </motion.div>
             )}
           </AnimatePresence>

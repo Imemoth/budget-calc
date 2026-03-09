@@ -3,9 +3,27 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.13";
+export const APP_VERSION = "0.5.16";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.16": {
+    date: "2026-03-09",
+    changes: [
+      "UI/UX polish: Dashboard hero összesítő kártya (nagy nettó szám + Bevétel/Kiadás/Megtakarítás sor), kategória progress bar-ok a pie chart alatt, SVG ring progress a savings goal kártyákon.",
+    ],
+  },
+  "0.5.15": {
+    date: "2026-03-09",
+    changes: [
+      "Export (CSV): Tranzakciók, Fix tételek, Megtakarítások, Havi összesítő – Beállítások → Export. UTF-8 BOM, pontosvessző elválasztó, Excel-kompatibilis.",
+    ],
+  },
+  "0.5.14": {
+    date: "2026-03-09",
+    changes: [
+      "Megtakarítási haladás vizualizáció: progress bar + tervezett összeg / célösszeg / havi terv / hátralévő hónapok minden savings kártyán.",
+    ],
+  },
   "0.5.13": {
     date: "2026-03-09",
     changes: [

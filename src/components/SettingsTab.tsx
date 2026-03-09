@@ -1,14 +1,148 @@
+import { Download } from "lucide-react";
 import { APP_VERSION } from "../lib/version";
-import type { Settings } from "../types";
-import { Card, Field, Input, Select } from "./ui";
+import type { Settings, State, SeriesRow } from "../types";
+import { Card, Field, Input, Select, SmallButton } from "./ui";
 import { normalizeMonthInput, parseNonNegativeInput } from "../lib/domainHelpers";
+
+// ---- CSV helpers ----
+
+function escField(v: string | number | null | undefined): string {
+  const s = v == null ? "" : String(v);
+  if (s.includes(";") || s.includes('"') || s.includes("\n")) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function buildCSV(rows: (string | number | null | undefined)[][]): string {
+  const BOM = "\uFEFF";
+  return BOM + rows.map((r) => r.map(escField).join(";")).join("\r\n");
+}
+
+function downloadCSV(filename: string, rows: (string | number | null | undefined)[][]): void {
+  const blob = new Blob([buildCSV(rows)], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function todayStr(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function exportTransactions(state: State) {
+  const catMap = Object.fromEntries(state.categories.map((c) => [c.id, c.name]));
+  const personMap = Object.fromEntries(state.people.map((p) => [p.id, p.name]));
+  const rows: (string | number | null)[][] = [
+    ["Dátum", "Megnevezés", "Típus", `Összeg (${state.settings.currency})`, "Kategória", "Személy", "Megjegyzés"],
+    ...state.transactions
+      .slice()
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((t) => [
+        t.date,
+        t.name,
+        t.type === "income" ? "bevétel" : "kiadás",
+        t.amount,
+        t.categoryId ? (catMap[t.categoryId] ?? t.categoryId) : "",
+        t.personId ? (personMap[t.personId] ?? t.personId) : "",
+        t.notes ?? "",
+      ]),
+  ];
+  downloadCSV(`tranzakciok_${todayStr()}.csv`, rows);
+}
+
+function exportRecurring(state: State) {
+  const catMap = Object.fromEntries(state.categories.map((c) => [c.id, c.name]));
+  const personMap = Object.fromEntries(state.people.map((p) => [p.id, p.name]));
+  const cadenceLabel: Record<string, string> = {
+    monthly: "havi",
+    quarterly: "negyedéves",
+    yearly: "éves",
+  };
+  const rows: (string | number | null)[][] = [
+    [
+      "Megnevezés", "Típus", `Összeg (${state.settings.currency})`, "Cadence",
+      "Kezdő hónap", "Záró hónap", "Esedékesség (nap)", "Kategória", "Személy", "Aktív", "Megjegyzés",
+    ],
+    ...state.recurring.map((r) => [
+      r.name,
+      r.type === "income" ? "bevétel" : "kiadás",
+      r.amount,
+      cadenceLabel[r.cadence] ?? r.cadence,
+      r.startMonth,
+      r.endMonth ?? "",
+      r.dayOfMonth,
+      r.categoryId ? (catMap[r.categoryId] ?? r.categoryId) : "",
+      r.personId ? (personMap[r.personId] ?? r.personId) : "",
+      r.enabled ? "igen" : "nem",
+      r.notes ?? "",
+    ]),
+  ];
+  downloadCSV(`fix_tetelek_${todayStr()}.csv`, rows);
+}
+
+function exportSavings(state: State) {
+  const rows: (string | number | null)[][] = [
+    [
+      "Megnevezés",
+      `Célösszeg (${state.settings.currency})`,
+      `Havi terv (${state.settings.currency})`,
+      "Kezdő hónap", "Záró hónap", "Megjegyzés",
+    ],
+    ...state.savings.map((s) => [
+      s.name,
+      s.targetAmount,
+      s.monthlyPlanned,
+      s.startMonth,
+      s.endMonth ?? "",
+      s.notes ?? "",
+    ]),
+  ];
+  downloadCSV(`megtakaritasok_${todayStr()}.csv`, rows);
+}
+
+function exportSummary(state: State, series: SeriesRow[]) {
+  const cur = state.settings.currency;
+  const rows: (string | number | null)[][] = [
+    [
+      "Hónap",
+      `Tervezett bevétel (${cur})`,
+      `Tervezett kiadás (${cur})`,
+      `Tervezett megtakarítás (${cur})`,
+      `Tervezett nettó (${cur})`,
+      `Tényleges bevétel (${cur})`,
+      `Tényleges kiadás (${cur})`,
+      `Tényleges nettó (${cur})`,
+    ],
+    ...series.map((row) => [
+      row.month,
+      row.plannedIncome,
+      row.plannedExpense,
+      row.plannedSavings,
+      row.plannedNet,
+      row.actualIncome,
+      row.actualExpense,
+      row.actualNet,
+    ]),
+  ];
+  downloadCSV(`havi_osszesito_${todayStr()}.csv`, rows);
+}
+
+// ---- Component ----
 
 export function SettingsView({
   settings,
   updateSettings,
+  state,
+  series,
 }: {
   settings: Settings;
   updateSettings: (patch: Partial<Settings>) => void;
+  state: State;
+  series: SeriesRow[];
 }) {
   const { startMonth, horizonMonths, currency } = settings;
 
@@ -83,6 +217,32 @@ export function SettingsView({
         <div className="mt-4 text-[11px] text-white/40">
           Az adataid a böngésző <b>localStorage</b>-ében vannak tárolva.
           Ha törlöd a böngésző adatait, a költségvetés is törlődik.
+        </div>
+      </Card>
+
+      <Card className="p-5 xl:col-span-2">
+        <div className="text-sm text-white/60">Adatok letöltése</div>
+        <div className="text-lg font-semibold">Export (CSV)</div>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <SmallButton variant="solid" onClick={() => exportTransactions(state)}>
+            <Download className="w-3.5 h-3.5" />
+            Tranzakciók
+          </SmallButton>
+          <SmallButton variant="solid" onClick={() => exportRecurring(state)}>
+            <Download className="w-3.5 h-3.5" />
+            Fix tételek
+          </SmallButton>
+          <SmallButton variant="solid" onClick={() => exportSavings(state)}>
+            <Download className="w-3.5 h-3.5" />
+            Megtakarítások
+          </SmallButton>
+          <SmallButton variant="solid" onClick={() => exportSummary(state, series)}>
+            <Download className="w-3.5 h-3.5" />
+            Havi összesítő
+          </SmallButton>
+        </div>
+        <div className="mt-3 text-[11px] text-white/40">
+          UTF-8 BOM, pontosvessző elválasztó – közvetlenül megnyitható Excelben.
         </div>
       </Card>
 
