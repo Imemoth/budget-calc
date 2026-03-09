@@ -6,14 +6,8 @@
 
 ## 🟡 Fontos – UX / felhasználói élmény
 
-- [ ] **Sötét/Világos téma váltó** – a `settings.theme` mező létezik, de a tényleges
-  téma-váltás nincs implementálva az UI-ban.
-
 - [ ] **Export funkció (CSV/Excel)** – a felhasználók exportálhassák a tranzakcióikat és
   az éves összesítőt táblázatba.
-
-- [ ] **Megtakarítási haladás vizualizációja** – a savings bucketekhez nincs progress bar
-  vagy vizuális kijelzés arról, mennyire áll a cél.
 
 ---
 
@@ -76,3 +70,5 @@
 - [x] Supabase szinkron – `ensureDefaultHousehold` idempotens upsert, `remoteLoadSuccess` guard, local-wins logika (v0.5.8–0.5.9)
 - [x] Tranzakciók hónap- és szabad szöveges szűrése – MoneyTab Tényleges szekció toolbar (filterMonth + search)
 - [x] Mobilnézet finomítás – SavingsTab vízszintes scroll eltávolítva, MobileNavBtn touch target (min-h-12), MoneyTab toolbar responsive szélességek, PeopleTab toggle min 36px (v0.5.10)
+- [x] Sötét/Világos téma váltó + 3 extra színséma (Trust Blue, Teal+Slate, Graphite+Emerald) – Beállítások → Megjelenés (v0.5.12–0.5.13)
+- [x] Megtakarítási haladás vizualizáció – progress bar + tervezett összeg / célösszeg / havi terv / hátralévő hónapok (v0.5.14)

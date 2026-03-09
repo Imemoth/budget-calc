@@ -3,9 +3,15 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.13";
+export const APP_VERSION = "0.5.14";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.14": {
+    date: "2026-03-09",
+    changes: [
+      "Megtakarítási haladás vizualizáció: progress bar + tervezett összeg / célösszeg / havi terv / hátralévő hónapok minden savings kártyán.",
+    ],
+  },
   "0.5.13": {
     date: "2026-03-09",
     changes: [
