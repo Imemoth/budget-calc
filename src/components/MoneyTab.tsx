@@ -200,7 +200,7 @@ function PlannedSection({
                   const n = parseNumberInput(e.target.value);
                   setYearQuick(Math.min(2100, Math.max(2000, n || yearQuick)));
                 }}
-                className="w-28"
+                className="w-full sm:w-28"
               />
             </Field>
             <Field label="Előnézet hónap">
@@ -208,7 +208,7 @@ function PlannedSection({
                 type="month"
                 value={previewMonth}
                 onChange={(e) => setPreviewMonth(e.target.value)}
-                className="w-40"
+                className="w-full sm:w-40"
               />
             </Field>
             <SmallButton variant="solid" onClick={() => quickCreateYearTemplate(yearQuick)}>
@@ -450,7 +450,7 @@ function ActualSection({
               type="month"
               value={filterMonth}
               onChange={(e) => setFilterMonth(normalizeMonthInput(e.target.value))}
-              className="w-44"
+              className="w-full sm:w-44"
             />
           </Field>
           <SmallButton variant="ghost" onClick={() => setFilterMonth("")}>Összes</SmallButton>
@@ -459,7 +459,7 @@ function ActualSection({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="pl. bevásárlás"
-              className="w-44"
+              className="w-full sm:w-44"
             />
           </Field>
           <SmallButton variant="solid" onClick={() => addTransaction(type)}>
