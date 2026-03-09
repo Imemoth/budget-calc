@@ -1,24 +1,27 @@
-﻿# Budget Calc – Háztartási Költségvetés Tervező
+# Budget Calc – Háztartási Költségvetés Tervező
 
 Egy React + TypeScript alapú, Supabase-t használó háztartási pénzügyi tervező alkalmazás.
 Több személy bevételeit és kiadásait kezeli, ismétlődő tételekkel, megtakarítási célokkal és interaktív grafikonokkal.
 
 ## Jelenlegi verzió
 
-`v0.4.0` – 2025-12-19
+`v0.5.10` – 2026-03-09
 
 ## Funkciók
 
-- **Bejelentkezés / Regisztráció** – Supabase Auth (email + jelszó)
+- **Bejelentkezés / Regisztráció** – Supabase Auth (email + jelszó), elfelejtett jelszó visszaállítás
 - **Dashboard** – havi összesítő, bevétel vs kiadás grafikonok (bar, line, pie)
-- **Tranzakciók** – egyszeri bevételek/kiadások rögzítése, kategória + személyhez rendelés
-- **Fix tételek** – ismétlődő (havi) bevételek/kiadások, start/end hónappal
-- **Megtakarítások** – célalapú megtakarítási vödrök, haladáskövetéssel
+- **Bevétel / Kiadás tab** – fix sablonok (tervezett) és tényleges tételek egy helyen
+- **Fix tételek** – ismétlődő bevételek/kiadások havi / negyedéves / éves cadence-szel, start/end hónappal
+- **Tételszűrő és keresés** – hónap- és szabad szöveges szűrő a tényleges tételek között
+- **Hierarchikus kategóriák** – szülő / alkategória struktúra, ~75 alap seed kategória
+- **Megtakarítások** – célalapú megtakarítási keretek, tervezett havi befizetéssel
 - **Személyek** – több keresőhöz igazítható (pl. pár, család)
 - **Beállítások** – pénznem, időhorizont, deviza választó, changelog modal
 - **Admin reset** – adminok részére teljes adattörlés (`VITE_ADMIN_EMAILS`)
 - **Household provisioning** – automatikus háztartás-létrehozás első bejelentkezéskor
-- **Offline fallback** – adatok localStorage-ban is megőrződnek
+- **Mobile bottom navigation** – érintésbarát bottom nav mobilon, responsive toolbar
+- **Local-wins szinkron** – ha Supabase üres, a helyi adatok megmaradnak; UUID-alapú ID-k
 
 ## Technológiai stack
 
@@ -39,8 +42,8 @@ Több személy bevételeit és kiadásait kezeli, ismétlődő tételekkel, megt
 | `households` | Háztartás, beállítások (currency, horizon_months, start_month, theme) |
 | `household_members` | User ↔ household kapcsolótábla |
 | `people` | Személyek a háztartáson belül |
-| `categories` | Bevételi/kiadási kategóriák |
-| `recurring_items` | Ismétlődő tételek (havi cadence) |
+| `categories` | Bevételi/kiadási kategóriák (parentId: hierarchikus struktúra) |
+| `recurring_items` | Ismétlődő tételek (monthly / quarterly / yearly cadence) |
 | `transactions` | Egyszeri tranzakciók |
 | `savings_buckets` | Megtakarítási célok |
 
@@ -85,15 +88,26 @@ npm run lint
 
 ```
 src/
-├── App.tsx              # Fő alkalmazáslogika + összes UI tab (monolitikus, refaktorálandó)
-├── auth.tsx             # AuthContext + AuthProvider
-├── authscreen.tsx       # Bejelentkezési képernyő
-├── dataClient.ts        # Supabase CRUD (loadFullStateForUser, saveStatePatch)
-├── supabaseClient.ts    # Supabase kliens inicializálása
-├── main.tsx             # React entry point
+├── App.tsx                    # Fő app: state, autosave, layout, nav
+├── types.ts                   # Összes domain típus
+├── auth.tsx                   # AuthContext + AuthProvider
+├── authscreen.tsx             # Bejelentkezési képernyő
+├── dataClient.ts              # Supabase CRUD réteg (loadFullStateForUser, saveStatePatch, deleteXxx)
+├── supabaseClient.ts          # Supabase kliens inicializálása
+├── main.tsx                   # React entry point
+├── components/
+│   ├── ui.tsx                 # Alap UI primitívek (Card, Input, Select, TabButton, MobileNavBtn…)
+│   ├── DashboardTab.tsx
+│   ├── MoneyTab.tsx           # Bevétel + Kiadás tab (fix sablonok + tranzakciók)
+│   ├── SavingsTab.tsx
+│   ├── PeopleTab.tsx          # Keresők + kategóriák (reseed gomb)
+│   ├── SettingsTab.tsx
+│   └── ChangelogModal.tsx
 └── lib/
-    ├── utils.ts         # Általános segédfüggvények (dátum, pénz, uid, stb.)
-    └── version.ts       # APP_VERSION + CHANGELOG
+    ├── utils.ts               # Pure helper függvények (uid, formatHUF, monthKey stb.)
+    ├── domainHelpers.ts       # expandRecurringForMonth, monthBounds, dátum/szám normalizálás
+    ├── version.ts             # APP_VERSION + CHANGELOG konstansok
+    └── database.types.ts      # Supabase generált típusok (ne kézzel szerkeszd!)
 ```
 
 ## Env változók
@@ -103,6 +117,7 @@ src/
 | `VITE_SUPABASE_URL` | igen | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | igen | Supabase anon (public) key |
 | `VITE_ADMIN_EMAILS` | nem | Vesszővel elválasztott admin email lista |
+| `VITE_SUPABASE_SERVICE_ROLE_KEY` | nem | Csak lokális diagnosztikához; sosem commitolni |
 
 ## Hozzájárulás
 

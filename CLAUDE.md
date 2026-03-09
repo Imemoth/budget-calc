@@ -99,8 +99,7 @@ src/
 ## Ismert tech debt (ne kerüld el, hanem javítsd ha belefutsz)
 
 1. **saveStatePatch nem töröl** – upsert alapú; törléshez külön `deleteXxx(id)` függvények vannak, de batch-delete nincs
-2. **MoneyTab form mobilon** – a form mezők szélessége mobilon még nem optimális
-3. **Témaváltó nincs implementálva** – `settings.theme` mező létezik DB-ben, de a tényleges light/dark váltás hiányzik
+2. **Témaváltó nincs implementálva** – `settings.theme` mező létezik DB-ben, de a tényleges light/dark váltás hiányzik
 
 ## CLI engedélyek
 
