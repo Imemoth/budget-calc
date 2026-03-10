@@ -142,6 +142,7 @@ export function SettingsView({
   series,
   changePassword,
   householdMembers,
+  membersLoadError,
   isOwner,
   currentUserId,
   myPermissions: _myPermissions, // eslint-disable-line @typescript-eslint/no-unused-vars
@@ -155,6 +156,7 @@ export function SettingsView({
   series: SeriesRow[];
   changePassword: (currentPw: string, newPw: string) => Promise<{ error: string | null }>;
   householdMembers: HouseholdMember[];
+  membersLoadError: string | null;
   isOwner: boolean;
   currentUserId: string | null;
   myPermissions: MemberPermissions;
@@ -481,6 +483,18 @@ export function SettingsView({
         {!isOwner && householdMembers.length > 0 && (
           <div className="mt-3 text-xs text-white/40">
             Csak a háztartás tulajdonosa küldhet meghívókat.
+          </div>
+        )}
+
+        {membersLoadError && (
+          <div className="mt-3 text-xs text-rose-400">
+            Tagok betöltési hiba: {membersLoadError}
+          </div>
+        )}
+
+        {!membersLoadError && householdMembers.length === 0 && (
+          <div className="mt-3 text-xs text-white/40">
+            Betöltés folyamatban…
           </div>
         )}
       </Card>

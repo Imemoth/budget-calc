@@ -349,6 +349,7 @@ export default function App() {
   const [remoteReady, setRemoteReady] = useState(false);
   const [remoteLoadSuccess, setRemoteLoadSuccess] = useState(false);
   const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
+  const [membersLoadError, setMembersLoadError] = useState<string | null>(null);
 
   // Invite token kiolvasása URL-ből mountkor
   useEffect(() => {
@@ -441,9 +442,10 @@ export default function App() {
         // Tagok betöltése
         try {
           const members = await getHouseholdMembers(activeHouseholdId);
-          if (!cancelled) setHouseholdMembers(members);
+          if (!cancelled) { setHouseholdMembers(members); setMembersLoadError(null); }
         } catch (err) {
-          console.warn("Tagok betöltése sikertelen:", err);
+          console.error("Tagok betöltése sikertelen:", err);
+          if (!cancelled) setMembersLoadError(err instanceof Error ? err.message : String(err));
         }
       } catch (err) {
         console.error("Nem sikerült betölteni az állapotot Supabase-ből:", err);
@@ -1006,6 +1008,7 @@ export default function App() {
                   series={dashboardSeries}
                   changePassword={changePassword}
                   householdMembers={householdMembers}
+                  membersLoadError={membersLoadError}
                   isOwner={isOwner}
                   currentUserId={user?.id ?? null}
                   myPermissions={myPermissions}
