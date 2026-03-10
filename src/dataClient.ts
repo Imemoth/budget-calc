@@ -676,7 +676,7 @@ export async function getHouseholdMembers(householdId: string): Promise<Househol
     id: row.id,
     userId: row.user_id,
     role: (row.role ?? "MEMBER") as "OWNER" | "MEMBER",
-    email: (row as Record<string, unknown>)["email"] as string | null ?? null,
+    email: row.email ?? null,
     permissions: (row.permissions ?? {
       income: true, expense: true, savings: true, categories: true, settings: false,
     }) as MemberPermissions,

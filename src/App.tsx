@@ -236,7 +236,19 @@ async function ensureDefaultHousehold(userId: string, userEmail?: string | null)
     .limit(1)
     .maybeSingle();
   if (memberRes.error) throw memberRes.error;
-  if (memberRes.data?.household_id) return memberRes.data.household_id as string;
+  if (memberRes.data?.household_id) {
+    const hid = memberRes.data.household_id as string;
+    // Email frissítése ha még nincs mentve (meglévő tagok migrálása)
+    if (userEmail) {
+      await supabase
+        .from("household_members")
+        .update({ email: userEmail })
+        .eq("household_id", hid)
+        .eq("user_id", userId)
+        .is("email", null);
+    }
+    return hid;
+  }
 
   // Step 2: household owned by user
   const ownedRes = await supabase
