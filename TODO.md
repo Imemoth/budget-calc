@@ -9,8 +9,6 @@
 - [ ] **Household megosztás / meghívó** – jelenleg egy háztartás = egy user. Kell egy
   meghívó link / email alapú meghívó, hogy más user is csatlakozhassa a háztartáshoz.
 
-- [ ] **Jelszóváltoztatás a beállításoknál** – Supabase `updateUser` alapon.
-
 - [ ] **Többnyelvűség (i18n)** – az app teljesen magyarul van hardkódolva. Ha bővíteni
   kell más piacra, `i18next` integrációval lehetséges.
 
@@ -66,3 +64,5 @@
 - [x] Sötét/Világos téma váltó + 3 extra színséma (Trust Blue, Teal+Slate, Graphite+Emerald) – Beállítások → Megjelenés (v0.5.12–0.5.13)
 - [x] Megtakarítási haladás vizualizáció – progress bar + tervezett összeg / célösszeg / havi terv / hátralévő hónapok (v0.5.14)
 - [x] Export (CSV) – Tranzakciók, Fix tételek, Megtakarítások, Havi összesítő letöltése (v0.5.15)
+- [x] Jelszóváltoztatás – Beállítások → Jelszó módosítása (Supabase updateUser) (v0.5.17)
+- [x] Recurring → Transaction konverzió – „Rögzít" gomb fix tételeknél, előnézet hónap alapján (v0.5.17)

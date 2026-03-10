@@ -3,9 +3,16 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.16";
+export const APP_VERSION = "0.5.17";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.17": {
+    date: "2026-03-10",
+    changes: [
+      "Jelszóváltoztatás – Beállítások → Jelszó módosítása kártya (Supabase updateUser).",
+      "Recurring → Transaction konverzió – Fix tételeknél „Rögzít (YYYY-MM)" gomb létrehoz tényleges tranzakciót az előnézet hónapra.",
+    ],
+  },
   "0.5.16": {
     date: "2026-03-09",
     changes: [

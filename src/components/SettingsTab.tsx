@@ -1,4 +1,5 @@
 import { Download } from "lucide-react";
+import { useState } from "react";
 import { APP_VERSION } from "../lib/version";
 import type { Settings, State, SeriesRow } from "../types";
 import { Card, Field, Input, Select, SmallButton } from "./ui";
@@ -138,13 +139,30 @@ export function SettingsView({
   updateSettings,
   state,
   series,
+  changePassword,
 }: {
   settings: Settings;
   updateSettings: (patch: Partial<Settings>) => void;
   state: State;
   series: SeriesRow[];
+  changePassword: (pw: string) => Promise<{ error: string | null }>;
 }) {
   const { startMonth, horizonMonths, currency } = settings;
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwMsg, setPwMsg] = useState<{ type: "error" | "ok"; text: string } | null>(null);
+  const [pwLoading, setPwLoading] = useState(false);
+
+  async function handlePasswordChange() {
+    setPwMsg(null);
+    if (newPw.length < 8) { setPwMsg({ type: "error", text: "A jelszónak legalább 8 karakter kell." }); return; }
+    if (newPw !== confirmPw) { setPwMsg({ type: "error", text: "A két jelszó nem egyezik." }); return; }
+    setPwLoading(true);
+    const { error } = await changePassword(newPw);
+    setPwLoading(false);
+    if (error) { setPwMsg({ type: "error", text: error }); }
+    else { setPwMsg({ type: "ok", text: "Jelszó sikeresen megváltoztatva." }); setNewPw(""); setConfirmPw(""); }
+  }
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -243,6 +261,39 @@ export function SettingsView({
         </div>
         <div className="mt-3 text-[11px] text-white/40">
           UTF-8 BOM, pontosvessző elválasztó – közvetlenül megnyitható Excelben.
+        </div>
+      </Card>
+
+      <Card className="p-5">
+        <div className="text-sm text-white/60">Fiók</div>
+        <div className="text-lg font-semibold">Jelszó módosítása</div>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Field label="Új jelszó">
+            <Input
+              type="password"
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
+              placeholder="min. 8 karakter"
+            />
+          </Field>
+          <Field label="Új jelszó megerősítése">
+            <Input
+              type="password"
+              value={confirmPw}
+              onChange={(e) => setConfirmPw(e.target.value)}
+              placeholder="ugyanaz még egyszer"
+            />
+          </Field>
+        </div>
+        {pwMsg && (
+          <div className={`mt-2 text-xs ${pwMsg.type === "ok" ? "text-emerald-400" : "text-rose-400"}`}>
+            {pwMsg.text}
+          </div>
+        )}
+        <div className="mt-3">
+          <SmallButton variant="solid" onClick={handlePasswordChange} disabled={pwLoading}>
+            {pwLoading ? "Mentés…" : "Jelszó mentése"}
+          </SmallButton>
         </div>
       </Card>
 
