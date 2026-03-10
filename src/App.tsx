@@ -226,7 +226,7 @@ function useUserLocalState(
 
 // -------------------- Supabase helpers --------------------
 
-async function ensureDefaultHousehold(userId: string): Promise<string> {
+async function ensureDefaultHousehold(userId: string, userEmail?: string | null): Promise<string> {
   // Step 1: existing membership – order by created_at for a consistent result across devices
   const memberRes = await supabase
     .from("household_members")
@@ -265,9 +265,18 @@ async function ensureDefaultHousehold(userId: string): Promise<string> {
   const insertRes = await supabase
     .from("household_members")
     .upsert(
-      { household_id: householdId!, user_id: userId },
+      { household_id: householdId!, user_id: userId, role: "OWNER" },
       { onConflict: "household_id,user_id", ignoreDuplicates: true }
     );
+  // Step 4b: update owner email if provided (column added in 20260310140000 migration)
+  if (userEmail) {
+    await supabase
+      .from("household_members")
+      .update({ email: userEmail } as Record<string, unknown>)
+      .eq("household_id", householdId!)
+      .eq("user_id", userId)
+      .is("email", null);
+  }
   if (insertRes.error) {
     const msg = (insertRes.error.message || "").toLowerCase();
     // Swallow duplicate/conflict errors – the row already exists which is fine
@@ -367,7 +376,7 @@ export default function App() {
     (async () => {
       try {
         setIsProvisioning(true);
-        let hid = await ensureDefaultHousehold(userId);
+        let hid = await ensureDefaultHousehold(userId, user?.email);
 
         // Pending invite feldolgozása (pl. meghívó link megnyitása után)
         const pending = sessionStorage.getItem("pendingInviteToken");
@@ -390,7 +399,7 @@ export default function App() {
       }
     })();
     return () => { cancelled = true; };
-  }, [user?.id]);
+  }, [user?.id, user?.email]);
 
   // 2) Supabase load
   useEffect(() => {
