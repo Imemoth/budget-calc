@@ -995,7 +995,10 @@ export default function App() {
             )}
             {tab === "settings" && (
               <motion.div key="settings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
-                <div className="mt-2 flex justify-end">
+                <div className="mt-2 flex items-center justify-between">
+                  <div className="text-[10px] text-white/20 font-mono">
+                    hid:{activeHouseholdId?.slice(0,8) ?? "–"} | people:{state.people.length} | sync:{remoteLoadSuccess ? "✓" : "✗"}
+                  </div>
                   <button type="button" onClick={() => setIsChangelogOpen(true)}
                     className="text-xs text-white/50 hover:text-white/80 underline underline-offset-4">
                     v{APP_VERSION} – frissítések megtekintése
