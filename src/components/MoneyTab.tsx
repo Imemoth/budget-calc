@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, ChevronDown } from "lucide-react";
+import { Plus, ChevronDown, ArrowDownToLine } from "lucide-react";
 import { formatHUF, monthKey } from "../lib/utils";
 import type { State, MoneyType, RecurringItem, Transaction, Category } from "../types";
 import { Card, Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect } from "./ui";
@@ -21,6 +21,7 @@ export function MoneyTab({
   addTransaction,
   updateTransaction,
   removeTransaction,
+  convertRecurring,
 }: {
   type: MoneyType;
   state: State;
@@ -31,6 +32,7 @@ export function MoneyTab({
   addTransaction: (type: MoneyType) => void;
   updateTransaction: (id: string, patch: Partial<Transaction>) => void;
   removeTransaction: (id: string) => void;
+  convertRecurring: (r: RecurringItem, month: string) => void;
 }) {
   const label = type === "income" ? "Bevételek" : "Kiadások";
   const recurringItems = state.recurring.filter((r) => r.type === type);
@@ -83,6 +85,7 @@ export function MoneyTab({
         updateRecurring={updateRecurring}
         removeRecurring={removeRecurring}
         quickCreateYearTemplate={quickCreateYearTemplate}
+        convertRecurring={convertRecurring}
       />
 
       {/* Actual section */}
@@ -108,6 +111,7 @@ function PlannedSection({
   updateRecurring,
   removeRecurring,
   quickCreateYearTemplate,
+  convertRecurring,
 }: {
   type: MoneyType;
   state: State;
@@ -116,6 +120,7 @@ function PlannedSection({
   updateRecurring: (id: string, patch: Partial<RecurringItem>) => void;
   removeRecurring: (id: string) => void;
   quickCreateYearTemplate: (year: number) => void;
+  convertRecurring: (r: RecurringItem, month: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(true);
   const [yearQuick, setYearQuick] = useState<number>(2026);
@@ -352,7 +357,15 @@ function PlannedSection({
                         />
                       </Field>
                     </div>
-                    <div className="md:col-span-12 flex justify-end">
+                    <div className="md:col-span-12 flex items-center justify-between gap-2">
+                      <SmallButton
+                        variant="ghost"
+                        title={`Rögzít tényleges tételként: ${previewMonth}`}
+                        onClick={() => convertRecurring(r, previewMonth)}
+                      >
+                        <ArrowDownToLine className="w-3.5 h-3.5" />
+                        Rögzít ({previewMonth})
+                      </SmallButton>
                       <ConfirmDelete onConfirm={() => removeRecurring(r.id)} />
                     </div>
                   </div>

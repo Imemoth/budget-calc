@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "./auth";
 
 export function AuthScreen() {
@@ -9,6 +10,7 @@ export function AuthScreen() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -100,14 +102,24 @@ export function AuthScreen() {
           {mode !== "forgot" && (
             <div className="text-xs text-white/60">
               <div className="mb-1">Jelszó</div>
-              <input
-                type="password"
-                required
-                minLength={6}
-                className="w-full rounded-xl bg-slate-950/60 border border-white/10 px-3 py-2 text-sm outline-none focus:border-white/40"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  required
+                  minLength={6}
+                  className="w-full rounded-xl bg-slate-950/60 border border-white/10 px-3 py-2 pr-9 text-sm outline-none focus:border-white/40"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition"
+                  tabIndex={-1}
+                >
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
           )}
 

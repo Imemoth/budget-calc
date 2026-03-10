@@ -22,7 +22,7 @@ import { PeopleCategoriesView } from "./components/PeopleTab";
 import { SettingsView } from "./components/SettingsTab";
 
 // Domain helpers
-import { monthBoundsFromSettings, expandRecurringForMonth, isMonthInRange } from "./lib/domainHelpers";
+import { monthBoundsFromSettings, expandRecurringForMonth, isMonthInRange, dueDateForMonth } from "./lib/domainHelpers";
 
 // -------------------- storage --------------------
 
@@ -281,7 +281,7 @@ async function ensureDefaultHousehold(userId: string): Promise<string> {
 // -------------------- main app --------------------
 
 export default function App() {
-  const { user, loading } = useAuth();
+  const { user, loading, changePassword } = useAuth();
 
   const handleLogout = async () => {
     if (saveTimerRef.current != null) {
@@ -660,6 +660,22 @@ export default function App() {
     }
   };
 
+  const convertRecurring = (r: RecurringItem, month: string) => {
+    setState((s) => ({
+      ...s,
+      transactions: [{
+        id: uid(),
+        date: dueDateForMonth(month, r.dayOfMonth ?? 5),
+        name: r.name,
+        amount: r.amount,
+        type: r.type,
+        categoryId: r.categoryId,
+        personId: r.personId,
+        notes: r.notes || "",
+      }, ...s.transactions],
+    }));
+  };
+
   const addSavings = () =>
     setState((s) => ({
       ...s,
@@ -864,7 +880,8 @@ export default function App() {
                 <MoneyTab type="income" state={state}
                   addRecurring={addRecurring} updateRecurring={updateRecurring} removeRecurring={removeRecurring}
                   quickCreateYearTemplate={quickCreateYearTemplate}
-                  addTransaction={addTransaction} updateTransaction={updateTransaction} removeTransaction={removeTransaction} />
+                  addTransaction={addTransaction} updateTransaction={updateTransaction} removeTransaction={removeTransaction}
+                  convertRecurring={convertRecurring} />
               </motion.div>
             )}
             {tab === "expense" && (
@@ -872,7 +889,8 @@ export default function App() {
                 <MoneyTab type="expense" state={state}
                   addRecurring={addRecurring} updateRecurring={updateRecurring} removeRecurring={removeRecurring}
                   quickCreateYearTemplate={quickCreateYearTemplate}
-                  addTransaction={addTransaction} updateTransaction={updateTransaction} removeTransaction={removeTransaction} />
+                  addTransaction={addTransaction} updateTransaction={updateTransaction} removeTransaction={removeTransaction}
+                  convertRecurring={convertRecurring} />
               </motion.div>
             )}
             {tab === "savings" && (
@@ -895,7 +913,7 @@ export default function App() {
                     v{APP_VERSION} – frissítések megtekintése
                   </button>
                 </div>
-                <SettingsView settings={state.settings} updateSettings={updateSettings} state={state} series={dashboardSeries} />
+                <SettingsView settings={state.settings} updateSettings={updateSettings} state={state} series={dashboardSeries} changePassword={changePassword} />
               </motion.div>
             )}
           </AnimatePresence>
