@@ -3,9 +3,27 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.17";
+export const APP_VERSION = "0.5.20";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.20": {
+    date: "2026-03-10",
+    changes: [
+      "Household megosztás: email-alapú meghívó (Supabase Edge Function), tagok listája jogosultság-togglekkel (bevétel/kiadás/megtakarítás/kategóriák), tag eltávolítás – Beállítások → Megosztás kártya.",
+    ],
+  },
+  "0.5.19": {
+    date: "2026-03-10",
+    changes: [
+      "Supabase RLS audit: transactions.category_id FK javítva ON DELETE SET NULL-ra (kategória törlése többé nem dob FK violation hibát), duplikált households SELECT policy eltávolítva.",
+    ],
+  },
+  "0.5.18": {
+    date: "2026-03-10",
+    changes: [
+      "CI/CD pipeline: GitHub Actions – typecheck, lint és unit tesztek minden PR-on és main push-on.",
+    ],
+  },
   "0.5.17": {
     date: "2026-03-10",
     changes: [

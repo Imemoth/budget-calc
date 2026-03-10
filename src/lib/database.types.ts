@@ -80,11 +80,56 @@ export type Database = {
         }
         Relationships: []
       }
+      household_invites: {
+        Row: {
+          accepted_at: string | null
+          created_at: string | null
+          expires_at: string
+          household_id: string
+          id: string
+          invited_by: string
+          invited_email: string
+          permissions: Json
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string | null
+          expires_at?: string
+          household_id: string
+          id?: string
+          invited_by: string
+          invited_email: string
+          permissions?: Json
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string | null
+          expires_at?: string
+          household_id?: string
+          id?: string
+          invited_by?: string
+          invited_email?: string
+          permissions?: Json
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "household_invites_household_id_fkey"
+            columns: ["household_id"]
+            isOneToOne: false
+            referencedRelation: "households"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       household_members: {
         Row: {
           created_at: string
           household_id: string
           id: string
+          permissions: Json
           role: string
           user_id: string
         }
@@ -92,6 +137,7 @@ export type Database = {
           created_at?: string
           household_id: string
           id?: string
+          permissions?: Json
           role?: string
           user_id: string
         }
@@ -99,6 +145,7 @@ export type Database = {
           created_at?: string
           household_id?: string
           id?: string
+          permissions?: Json
           role?: string
           user_id?: string
         }
@@ -474,7 +521,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      accept_invite: { Args: { p_token: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never

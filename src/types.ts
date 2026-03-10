@@ -75,6 +75,31 @@ export type State = {
   savings: SavingsBucket[];
 };
 
+export type MemberPermissions = {
+  income: boolean;
+  expense: boolean;
+  savings: boolean;
+  categories: boolean;
+  settings: boolean;
+};
+
+export const DEFAULT_PERMISSIONS: MemberPermissions = {
+  income: true,
+  expense: true,
+  savings: true,
+  categories: true,
+  settings: false,
+};
+
+export type HouseholdMember = {
+  id: string;
+  userId: string;
+  role: "OWNER" | "MEMBER";
+  email: string | null;
+  permissions: MemberPermissions;
+  joinedAt: string;
+};
+
 export type SeriesRow = {
   month: string;
   plannedIncome: number;
