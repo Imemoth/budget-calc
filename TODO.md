@@ -6,8 +6,7 @@
 
 ## 🟢 Jó lenne – bővítések
 
-- [ ] **Household megosztás / meghívó** – jelenleg egy háztartás = egy user. Kell egy
-  meghívó link / email alapú meghívó, hogy más user is csatlakozhassa a háztartáshoz.
+- [x] **Household megosztás / meghívó** – email-alapú meghívó (Edge Function), granulált jogosultságok tagonként, tag-kezelés UI Beállítások → Megosztás (v0.5.20).
 
 - [ ] **Többnyelvűség (i18n)** – az app teljesen magyarul van hardkódolva. Ha bővíteni
   kell más piacra, `i18next` integrációval lehetséges.
@@ -23,11 +22,9 @@
 - [ ] **Recurring → Transaction konverzió** – egykattintásos „megvalósult" gomb:
   a fix tételből létrejön egy tényleges tranzakció az aktuális hónapra.
 
-- [ ] **CI/CD pipeline** – GitHub Actions: typecheck + lint minden PR-on;
-  automatikus Vercel/Netlify deploy main-re push esetén.
+- [x] **CI/CD pipeline** – GitHub Actions: typecheck + lint + unit tesztek minden PR-on és main push-on (v0.5.18).
 
-- [ ] **Supabase RLS policy audit** – ellenőrizni, hogy minden tábla megfelelően
-  van-e levédve RLS-sel (különösen `household_members` és a cascade delete).
+- [x] **Supabase RLS policy audit** – transactions.category_id FK javítva ON DELETE SET NULL-ra, duplikált households SELECT policy eltávolítva (v0.5.19).
 
 ---
 

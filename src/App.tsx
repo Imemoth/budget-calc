@@ -6,11 +6,12 @@ import { Wallet, BarChart3, TrendingUp, TrendingDown, PiggyBank, Users, Settings
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./auth";
 import { AuthScreen } from "./authscreen";
-import { loadFullStateForUser, saveStatePatch, seedDefaultCategories, deletePerson, deleteCategory, deleteAllCategories, deleteRecurring, deleteTransaction, deleteSavings } from "./dataClient";
+import { loadFullStateForUser, saveStatePatch, seedDefaultCategories, deletePerson, deleteCategory, deleteAllCategories, deleteRecurring, deleteTransaction, deleteSavings, getHouseholdMembers, acceptInvite, updateMemberPermissions, removeMember, sendInvite } from "./dataClient";
 
 // Types
-export type { Settings, Person, Category, RecurringItem, Transaction, SavingsBucket, State, MoneyType, TabKey, SeriesRow } from "./types";
-import type { Settings, Person, Category, RecurringItem, Transaction, SavingsBucket, State, MoneyType, TabKey } from "./types";
+export type { Settings, Person, Category, RecurringItem, Transaction, SavingsBucket, State, MoneyType, TabKey, SeriesRow, HouseholdMember, MemberPermissions } from "./types";
+import type { Settings, Person, Category, RecurringItem, Transaction, SavingsBucket, State, MoneyType, TabKey, HouseholdMember, MemberPermissions } from "./types";
+import { DEFAULT_PERMISSIONS } from "./types";
 
 // Components
 import { TabButton, MobileNavBtn, SmallButton, Skeleton } from "./components/ui";
@@ -297,6 +298,7 @@ export default function App() {
       setIsChangelogOpen(false);
       setActiveHouseholdId(null);
       setIsProvisioning(false);
+      setHouseholdMembers([]);
     }
   };
 
@@ -325,6 +327,17 @@ export default function App() {
   const isAdmin = !!user?.email && ADMIN_EMAILS.includes(user.email.toLowerCase());
   const [remoteReady, setRemoteReady] = useState(false);
   const [remoteLoadSuccess, setRemoteLoadSuccess] = useState(false);
+  const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
+
+  // Invite token kiolvasása URL-ből mountkor
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("invite");
+    if (token) {
+      sessionStorage.setItem("pendingInviteToken", token);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
 
   // Téma szinkronizálása a dokumentumra (CSS override strategy)
   useEffect(() => {
@@ -349,12 +362,25 @@ export default function App() {
   // 1) Provisioning
   useEffect(() => {
     const userId = user?.id;
-    if (!userId) { setActiveHouseholdId(null); setRemoteReady(false); setRemoteLoadSuccess(false); setSavingStatus("idle"); setSaveError(null); return; }
+    if (!userId) { setActiveHouseholdId(null); setRemoteReady(false); setRemoteLoadSuccess(false); setSavingStatus("idle"); setSaveError(null); setHouseholdMembers([]); return; }
     let cancelled = false;
     (async () => {
       try {
         setIsProvisioning(true);
-        const hid = await ensureDefaultHousehold(userId);
+        let hid = await ensureDefaultHousehold(userId);
+
+        // Pending invite feldolgozása (pl. meghívó link megnyitása után)
+        const pending = sessionStorage.getItem("pendingInviteToken");
+        if (pending) {
+          sessionStorage.removeItem("pendingInviteToken");
+          try {
+            const invitedHid = await acceptInvite(pending);
+            if (invitedHid) hid = invitedHid; // átváltunk a meghívott háztartásba
+          } catch (err) {
+            console.warn("Meghívó elfogadása sikertelen:", err);
+          }
+        }
+
         if (!cancelled) setActiveHouseholdId(hid);
       } catch (err) {
         console.error("Household provisioning hiba:", err);
@@ -390,6 +416,14 @@ export default function App() {
           // és az autosave (remoteLoadSuccess=true után) visszatölti azt Supabase-be.
         }
         if (!cancelled) { setRemoteLoadSuccess(true); setRemoteReady(true); }
+
+        // Tagok betöltése
+        try {
+          const members = await getHouseholdMembers(activeHouseholdId);
+          if (!cancelled) setHouseholdMembers(members);
+        } catch (err) {
+          console.warn("Tagok betöltése sikertelen:", err);
+        }
       } catch (err) {
         console.error("Nem sikerült betölteni az állapotot Supabase-ből:", err);
         // remoteLoadSuccess=false marad → autosave nem fut; remoteReady=true → skeleton eltűnik
@@ -676,6 +710,37 @@ export default function App() {
     }));
   };
 
+  // Saját jogosultságok
+  const myMember = householdMembers.find((m) => m.userId === user?.id);
+  const isOwner = myMember?.role === "OWNER";
+  const myPermissions: MemberPermissions = myMember?.permissions ?? DEFAULT_PERMISSIONS;
+
+  // Household member handlers
+  const handleUpdateMemberPermissions = async (memberId: string, permissions: MemberPermissions) => {
+    try {
+      await updateMemberPermissions(memberId, permissions);
+      setHouseholdMembers((prev) =>
+        prev.map((m) => m.id === memberId ? { ...m, permissions } : m)
+      );
+    } catch (err) {
+      console.error("Jogosultság frissítése sikertelen:", err);
+    }
+  };
+
+  const handleRemoveMember = async (memberId: string) => {
+    try {
+      await removeMember(memberId);
+      setHouseholdMembers((prev) => prev.filter((m) => m.id !== memberId));
+    } catch (err) {
+      console.error("Tag eltávolítása sikertelen:", err);
+    }
+  };
+
+  const handleSendInvite = async (email: string, permissions: MemberPermissions): Promise<{ error: string | null }> => {
+    if (!activeHouseholdId || !user?.id) return { error: "Nincs bejelentkezve." };
+    return sendInvite(email, activeHouseholdId, user.id, permissions);
+  };
+
   const addSavings = () =>
     setState((s) => ({
       ...s,
@@ -913,7 +978,20 @@ export default function App() {
                     v{APP_VERSION} – frissítések megtekintése
                   </button>
                 </div>
-                <SettingsView settings={state.settings} updateSettings={updateSettings} state={state} series={dashboardSeries} changePassword={changePassword} />
+                <SettingsView
+                  settings={state.settings}
+                  updateSettings={updateSettings}
+                  state={state}
+                  series={dashboardSeries}
+                  changePassword={changePassword}
+                  householdMembers={householdMembers}
+                  isOwner={isOwner}
+                  currentUserId={user?.id ?? null}
+                  myPermissions={myPermissions}
+                  onSendInvite={handleSendInvite}
+                  onUpdateMemberPermissions={handleUpdateMemberPermissions}
+                  onRemoveMember={handleRemoveMember}
+                />
               </motion.div>
             )}
           </AnimatePresence>

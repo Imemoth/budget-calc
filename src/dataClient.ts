@@ -10,6 +10,8 @@ import type {
   Transaction,
   SavingsBucket,
   State,
+  HouseholdMember,
+  MemberPermissions,
 } from "./App";
 
 // =========================
@@ -652,4 +654,79 @@ export async function deleteSavings(id: string): Promise<void> {
     console.error("[dataClient] deleteSavings error:", error);
     throw new Error(`deleteSavings failed: ${error.message}`);
   }
+}
+
+// =========================
+// Household sharing
+// =========================
+
+export async function getHouseholdMembers(householdId: string): Promise<HouseholdMember[]> {
+  const { data, error } = await supabase
+    .from("household_members")
+    .select("id, user_id, role, permissions, created_at, profiles(email)")
+    .eq("household_id", householdId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error("[dataClient] getHouseholdMembers error:", error);
+    throw new Error(`getHouseholdMembers failed: ${error.message}`);
+  }
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    userId: row.user_id,
+    role: (row.role ?? "MEMBER") as "OWNER" | "MEMBER",
+    // profiles is a joined object or null
+    email: (row.profiles as { email?: string } | null)?.email ?? null,
+    permissions: (row.permissions ?? {
+      income: true, expense: true, savings: true, categories: true, settings: false,
+    }) as MemberPermissions,
+    joinedAt: row.created_at,
+  }));
+}
+
+export async function acceptInvite(token: string): Promise<string> {
+  const { data, error } = await supabase.rpc("accept_invite", { p_token: token });
+  if (error) {
+    console.error("[dataClient] acceptInvite error:", error);
+    throw new Error(error.message);
+  }
+  return data as string;
+}
+
+export async function updateMemberPermissions(
+  memberId: string,
+  permissions: MemberPermissions
+): Promise<void> {
+  const { error } = await supabase
+    .from("household_members")
+    .update({ permissions })
+    .eq("id", memberId);
+  if (error) {
+    console.error("[dataClient] updateMemberPermissions error:", error);
+    throw new Error(`updateMemberPermissions failed: ${error.message}`);
+  }
+}
+
+export async function removeMember(memberId: string): Promise<void> {
+  const { error } = await supabase
+    .from("household_members")
+    .delete()
+    .eq("id", memberId);
+  if (error) {
+    console.error("[dataClient] removeMember error:", error);
+    throw new Error(`removeMember failed: ${error.message}`);
+  }
+}
+
+export async function sendInvite(
+  email: string,
+  householdId: string,
+  invitedBy: string,
+  permissions: MemberPermissions
+): Promise<{ error: string | null }> {
+  const { error } = await supabase.functions.invoke("invite-member", {
+    body: { email, householdId, invitedBy, permissions },
+  });
+  return { error: error ? error.message : null };
 }
