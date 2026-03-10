@@ -72,7 +72,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ? error.message : null };
   }
 
-  async function changePassword(newPassword: string) {
+  async function changePassword(currentPassword: string, newPassword: string) {
+    // Jelenlegi jelszó ellenőrzése re-autentikációval
+    if (!user?.email) return { error: "Nem sikerült azonosítani a felhasználót." };
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+    if (signInErr) return { error: "A jelenlegi jelszó helytelen." };
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     return { error: error ? error.message : null };
   }

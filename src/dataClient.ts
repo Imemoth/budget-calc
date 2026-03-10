@@ -663,7 +663,7 @@ export async function deleteSavings(id: string): Promise<void> {
 export async function getHouseholdMembers(householdId: string): Promise<HouseholdMember[]> {
   const { data, error } = await supabase
     .from("household_members")
-    .select("id, user_id, role, permissions, created_at, profiles(email)")
+    .select("id, user_id, role, permissions, created_at, email")
     .eq("household_id", householdId)
     .order("created_at", { ascending: true });
 
@@ -676,8 +676,7 @@ export async function getHouseholdMembers(householdId: string): Promise<Househol
     id: row.id,
     userId: row.user_id,
     role: (row.role ?? "MEMBER") as "OWNER" | "MEMBER",
-    // profiles is a joined object or null
-    email: (row.profiles as { email?: string } | null)?.email ?? null,
+    email: (row as Record<string, unknown>)["email"] as string | null ?? null,
     permissions: (row.permissions ?? {
       income: true, expense: true, savings: true, categories: true, settings: false,
     }) as MemberPermissions,
