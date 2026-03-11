@@ -350,6 +350,7 @@ export default function App() {
   const [remoteLoadSuccess, setRemoteLoadSuccess] = useState(false);
   const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
   const [membersLoadError, setMembersLoadError] = useState<string | null>(null);
+  const [provisioningError, setProvisioningError] = useState<string | null>(null);
 
   // Invite token kiolvasása URL-ből mountkor
   useEffect(() => {
@@ -405,8 +406,9 @@ export default function App() {
 
         if (!cancelled) setActiveHouseholdId(hid);
       } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
         console.error("Household provisioning hiba:", err);
-        if (!cancelled) setActiveHouseholdId(null);
+        if (!cancelled) { setActiveHouseholdId(null); setProvisioningError(msg); }
       } finally {
         if (!cancelled) setIsProvisioning(false);
       }
@@ -998,6 +1000,7 @@ export default function App() {
                 <div className="mt-2 flex items-center justify-between">
                   <div className="text-[10px] text-white/20 font-mono">
                     hid:{activeHouseholdId?.slice(0,8) ?? "–"} | people:{state.people.length} | sync:{remoteLoadSuccess ? "✓" : "✗"}
+                    {provisioningError && <span className="text-rose-400 ml-1">err:{provisioningError.slice(0,60)}</span>}
                   </div>
                   <button type="button" onClick={() => setIsChangelogOpen(true)}
                     className="text-xs text-white/50 hover:text-white/80 underline underline-offset-4">
