@@ -350,7 +350,6 @@ export default function App() {
   const [remoteLoadSuccess, setRemoteLoadSuccess] = useState(false);
   const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
   const [membersLoadError, setMembersLoadError] = useState<string | null>(null);
-  const [provisioningError, setProvisioningError] = useState<string | null>(null);
 
   // Invite token kiolvasása URL-ből mountkor
   useEffect(() => {
@@ -406,11 +405,8 @@ export default function App() {
 
         if (!cancelled) setActiveHouseholdId(hid);
       } catch (err) {
-        const supaErr = err as Record<string, unknown>;
-        const msg = err instanceof Error ? err.message
-          : (supaErr?.message ? `${supaErr.message} [${supaErr.code ?? supaErr.details ?? "?"}]` : JSON.stringify(err));
         console.error("Household provisioning hiba:", err);
-        if (!cancelled) { setActiveHouseholdId(null); setProvisioningError(msg); }
+        if (!cancelled) setActiveHouseholdId(null);
       } finally {
         if (!cancelled) setIsProvisioning(false);
       }
@@ -999,11 +995,7 @@ export default function App() {
             )}
             {tab === "settings" && (
               <motion.div key="settings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
-                <div className="mt-2 flex items-center justify-between">
-                  <div className="text-[10px] text-white/20 font-mono">
-                    hid:{activeHouseholdId?.slice(0,8) ?? "–"} | people:{state.people.length} | sync:{remoteLoadSuccess ? "✓" : "✗"}
-                    {provisioningError && <span className="text-rose-400 ml-1">err:{provisioningError.slice(0,60)}</span>}
-                  </div>
+                <div className="mt-2 flex justify-end">
                   <button type="button" onClick={() => setIsChangelogOpen(true)}
                     className="text-xs text-white/50 hover:text-white/80 underline underline-offset-4">
                     v{APP_VERSION} – frissítések megtekintése
