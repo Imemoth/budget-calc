@@ -661,11 +661,10 @@ export async function deleteSavings(id: string): Promise<void> {
 // =========================
 
 export async function getHouseholdMembers(householdId: string): Promise<HouseholdMember[]> {
-  const { data, error } = await supabase
-    .from("household_members")
-    .select("id, user_id, role, permissions, created_at, email")
-    .eq("household_id", householdId)
-    .order("created_at", { ascending: true });
+  // SECURITY DEFINER RPC – bypasses the RLS cycle on household_members
+  const { data, error } = await supabase.rpc("get_household_members", {
+    p_household_id: householdId,
+  });
 
   if (error) {
     console.error("[dataClient] getHouseholdMembers error:", error);
