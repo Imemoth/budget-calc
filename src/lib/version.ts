@@ -3,9 +3,21 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.20";
+export const APP_VERSION = "0.5.22";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.22": {
+    date: "2026-03-11",
+    changes: [
+      "Témarendszer teljes implementáció: 5 téma (Graphite Emerald, Midnight Purple, Trust Blue, Teal & Slate, Rose Gold), vizuális ThemeSelector kártya a Beállítások oldalon, CSS custom properties alapú séma, összes komponens semantic osztályokra átírva. Bugfix: body background CSS var-ra állítva.",
+    ],
+  },
+  "0.5.21": {
+    date: "2026-03-11",
+    changes: [
+      "Dashboard redesign: hero kártya emerald accent szegéllyel, szemantikus színek (zöld/piros/amber), grafikonok 2–3 sorozatra csökkentve, Y-tengely K/M rövidítéssel.",
+    ],
+  },
   "0.5.20": {
     date: "2026-03-10",
     changes: [

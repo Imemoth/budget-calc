@@ -18,8 +18,8 @@ export const TabButton = ({
     className={
       "flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition " +
       (active
-        ? "bg-white/10 text-white shadow"
-        : "text-white/70 hover:text-white hover:bg-white/5")
+        ? "bg-surface-2 text-text-1 shadow"
+        : "text-text-2 hover:text-text-1 hover:bg-surface-2")
     }
   >
     {Icon ? <Icon className="w-4 h-4" /> : null}
@@ -35,7 +35,7 @@ export const Card = ({
   className?: string;
 }) => (
   <div
-    className={`rounded-2xl bg-white/5 border border-white/10 shadow-sm ${className}`}
+    className={`rounded-2xl bg-surface border border-border shadow-sm ${className}`}
   >
     {children}
   </div>
@@ -51,10 +51,10 @@ export const Field = ({
   hint?: string;
 }) => (
   <label className="block">
-    <div className="text-xs text-white/60 mb-1 flex items-center gap-2">
+    <div className="text-xs text-text-2 mb-1 flex items-center gap-2">
       <span>{label}</span>
       {hint ? (
-        <span className="text-[10px] text-white/40">{hint}</span>
+        <span className="text-[10px] text-text-muted">{hint}</span>
       ) : null}
     </div>
     {children}
@@ -65,7 +65,7 @@ export const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input
     {...props}
     className={
-      "w-full rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-white/10 " +
+      "w-full rounded-xl bg-surface-2 border border-border px-3 py-2 text-sm text-text-1 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-border " +
       (props.className || "")
     }
   />
@@ -75,7 +75,7 @@ export const Select = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => 
   <select
     {...props}
     className={
-      "w-full rounded-xl bg-black/20 border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/10 " +
+      "w-full rounded-xl bg-surface-2 border border-border px-3 py-2 text-sm text-text-1 focus:outline-none focus:ring-2 focus:ring-border " +
       (props.className || "")
     }
   />
@@ -93,10 +93,10 @@ export const SmallButton = ({
     "px-3 py-1.5 rounded-lg text-xs transition inline-flex items-center gap-1";
   const styles =
     variant === "solid"
-      ? "bg-white/10 hover:bg-white/15 text-white"
+      ? "bg-surface-2 hover:bg-border text-text-1"
       : variant === "danger"
-      ? "bg-red-500/10 hover:bg-red-500/20 text-red-200"
-      : "bg-white/0 hover:bg-white/5 text-white/70 hover:text-white";
+      ? "bg-red-500/10 hover:bg-red-500/20 text-red-400"
+      : "hover:bg-surface-2 text-text-2 hover:text-text-1";
   return (
     <button className={`${base} ${styles}`} {...rest}>
       {children}
@@ -118,7 +118,7 @@ export const ConfirmDelete = ({
   if (confirming) {
     return (
       <div className="flex items-center gap-2">
-        <span className="text-xs text-white/60">Biztosan törlöd?</span>
+        <span className="text-xs text-text-2">Biztosan törlöd?</span>
         <SmallButton
           variant="danger"
           onClick={() => { onConfirm(); setConfirming(false); }}
@@ -145,7 +145,7 @@ export const ConfirmDelete = ({
 };
 
 export const Skeleton = ({ className = "" }: { className?: string }) => (
-  <div className={`animate-pulse bg-white/10 rounded-xl ${className}`} />
+  <div className={`animate-pulse bg-surface-2 rounded-xl ${className}`} />
 );
 
 export const CategorySelect = ({
@@ -201,7 +201,7 @@ export function RingProgress({ pct, size = 72 }: { pct: number; size?: number })
   return (
     <svg width={size} height={size} className="-rotate-90" style={{ flexShrink: 0 }}>
       <circle cx={size / 2} cy={size / 2} r={r} fill="none"
-        stroke="rgb(255 255 255 / 0.08)" strokeWidth={6} />
+        stroke="var(--color-border)" strokeWidth={6} />
       <circle cx={size / 2} cy={size / 2} r={r} fill="none"
         stroke={done ? "#34d399" : "#10b981"} strokeWidth={6}
         strokeDasharray={circ} strokeDashoffset={offset}
@@ -225,7 +225,7 @@ export const MobileNavBtn = ({
     onClick={onClick}
     className={
       "flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-xl flex-1 min-h-12 transition " +
-      (active ? "text-white" : "text-white/50")
+      (active ? "text-text-1" : "text-text-muted")
     }
   >
     <Icon className="w-5 h-5 shrink-0" />

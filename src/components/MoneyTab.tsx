@@ -54,20 +54,20 @@ export function MoneyTab({
       <Card className="p-5">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <div className="text-sm text-white/60">
+            <div className="text-sm text-text-2">
               {type === "income" ? "Tervezett és tényleges bevételek" : "Tervezett és tényleges kiadások"}
             </div>
             <div className="text-lg font-semibold">{label}</div>
           </div>
           <div className="flex flex-wrap items-center gap-4 text-sm">
             <div>
-              <span className="text-white/50">Tervezett / hó:</span>{" "}
+              <span className="text-text-muted">Tervezett / hó:</span>{" "}
               <span className={type === "income" ? "text-emerald-300" : "text-rose-300"}>
                 {fmt(plannedTotal)}
               </span>
             </div>
             <div>
-              <span className="text-white/50">Tényleges összesen:</span>{" "}
+              <span className="text-text-muted">Tényleges összesen:</span>{" "}
               <span className={type === "income" ? "text-emerald-300" : "text-rose-300"}>
                 {fmt(actualTotal)}
               </span>
@@ -163,13 +163,13 @@ function PlannedSection({
             <div className="text-lg font-semibold">
               {type === "income" ? "Tervezett fix bevételek" : "Tervezett fix kiadások"}
             </div>
-            <div className="text-xs text-white/40">{items.length} tétel</div>
+            <div className="text-xs text-text-muted">{items.length} tétel</div>
           </div>
         </button>
 
         <div className="flex flex-col md:items-end gap-2">
-          <div className="text-sm text-white/80">
-            <span className="text-white/50">Aktív összesen / hó:</span>{" "}
+          <div className="text-sm text-text-1">
+            <span className="text-text-muted">Aktív összesen / hó:</span>{" "}
             <span className={type === "income" ? "text-emerald-300" : "text-rose-300"}>
               {money(summary.total)}
             </span>
@@ -179,7 +179,7 @@ function PlannedSection({
               {summary.catList.map((c) => (
                 <span
                   key={c.cid}
-                  className="text-xs rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/70"
+                  className="text-xs rounded-full border border-border bg-surface-2 px-2 py-1 text-text-2"
                 >
                   {c.name}: {money(c.sum)}
                 </span>
@@ -190,7 +190,7 @@ function PlannedSection({
       </div>
 
       {!isOpen ? (
-        <div className="mt-3 text-xs text-white/40">Kattints a fejlécre a részletek megnyitásához.</div>
+        <div className="mt-3 text-xs text-text-muted">Kattints a fejlécre a részletek megnyitásához.</div>
       ) : (
         <>
           {/* Quick actions toolbar */}
@@ -225,11 +225,11 @@ function PlannedSection({
           </div>
 
           {items.length === 0 ? (
-            <div className="mt-4 text-sm text-white/40">Még nincs itt semmi.</div>
+            <div className="mt-4 text-sm text-text-muted">Még nincs itt semmi.</div>
           ) : (
             <div className="mt-4 space-y-3">
               {items.map((r) => (
-                <div key={r.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                <div key={r.id} className="rounded-xl border border-border bg-surface-2 p-4">
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                     <div className="md:col-span-4 min-w-0">
                       <Field label="Megnevezés">
@@ -328,9 +328,9 @@ function PlannedSection({
                           }}
                           className="w-full"
                         />
-                        <div className="mt-1 text-[11px] text-white/50">
+                        <div className="mt-1 text-[11px] text-text-muted">
                           Előnézet:{" "}
-                          <span className="text-white/70">
+                          <span className="text-text-2">
                             {dueDateForMonth(previewMonth, r.dayOfMonth ?? 5)}
                           </span>
                         </div>
@@ -453,7 +453,7 @@ function ActualSection({
             <div className="text-lg font-semibold">
               {type === "income" ? "Tényleges bevételek" : "Tényleges kiadások"}
             </div>
-            <div className="text-xs text-white/40">{transactions.length} tétel</div>
+            <div className="text-xs text-text-muted">{transactions.length} tétel</div>
           </div>
         </button>
 
@@ -482,11 +482,11 @@ function ActualSection({
       </div>
 
       {!isOpen ? (
-        <div className="mt-3 text-xs text-white/40">Kattints a fejlécre a tételek megnyitásához.</div>
+        <div className="mt-3 text-xs text-text-muted">Kattints a fejlécre a tételek megnyitásához.</div>
       ) : (
         <div className="mt-4 space-y-3">
           {groups.length === 0 ? (
-            <div className="text-sm text-white/40">Nincs találat.</div>
+            <div className="text-sm text-text-muted">Nincs találat.</div>
           ) : (
             groups.map(({ date, items }) => {
               const isExpanded = !!openDays[date];
@@ -501,7 +501,7 @@ function ActualSection({
                 .slice(0, 3);
 
               return (
-                <div key={date} className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+                <div key={date} className="rounded-xl border border-border bg-surface-2 overflow-hidden">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 p-4">
                     <button
                       type="button"
@@ -512,7 +512,7 @@ function ActualSection({
                         className={`w-4 h-4 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                       />
                       <div>
-                        <div className="text-sm text-white/60">Nap</div>
+                        <div className="text-sm text-text-2">Nap</div>
                         <div className="text-lg font-semibold">
                           {date === "nincs-datum" ? "(nincs dátum)" : date}
                         </div>
@@ -520,7 +520,7 @@ function ActualSection({
                     </button>
                     <div className="flex flex-col items-start md:items-end gap-1">
                       <div className="text-sm">
-                        <span className="text-white/60">Összesen:</span>{" "}
+                        <span className="text-text-2">Összesen:</span>{" "}
                         <span className={type === "income" ? "text-emerald-300" : "text-rose-300"}>
                           {fmt(total)}
                         </span>
@@ -530,7 +530,7 @@ function ActualSection({
                           {topCats.map((c) => (
                             <span
                               key={c.cid}
-                              className="text-xs rounded-full border border-white/10 bg-white/5 px-2 py-1 text-white/70"
+                              className="text-xs rounded-full border border-border bg-surface-2 px-2 py-1 text-text-2"
                             >
                               {c.name}: {fmt(c.sum)}
                             </span>
@@ -541,9 +541,9 @@ function ActualSection({
                   </div>
 
                   {isExpanded && (
-                    <div className="border-t border-white/10 p-4 space-y-3">
+                    <div className="border-t border-border p-4 space-y-3">
                       {items.map((t) => (
-                        <div key={t.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+                        <div key={t.id} className="rounded-xl border border-border bg-surface-2 p-4">
                           <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                             <div className="md:col-span-3 min-w-0">
                               <Field label="Dátum">

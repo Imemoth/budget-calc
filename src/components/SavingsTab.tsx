@@ -54,7 +54,7 @@ export function SavingsView({
       <Card className="p-5">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <div className="text-sm text-white/60">Tervezett megtakarítási célok és keretek</div>
+            <div className="text-sm text-text-2">Tervezett megtakarítási célok és keretek</div>
             <div className="text-lg font-semibold">Megtakarítás</div>
           </div>
           <div className="flex items-center gap-2">
@@ -68,7 +68,7 @@ export function SavingsView({
       <div className="grid grid-cols-1 gap-3">
         {state.savings.length === 0 ? (
           <Card className="p-6">
-            <div className="text-sm text-white/40">Még nincs megtakarítási keret.</div>
+            <div className="text-sm text-text-muted">Még nincs megtakarítási keret.</div>
           </Card>
         ) : (
           state.savings.map((s) => {
@@ -77,13 +77,13 @@ export function SavingsView({
               <Card key={s.id} className="p-4">
                 {/* ---- Progress summary ---- */}
                 {prog && (
-                  <div className="mb-4 pb-4 border-b border-white/10">
+                  <div className="mb-4 pb-4 border-b border-border">
                     <div className="flex items-start gap-4">
                       {/* Ring */}
                       <div className="relative shrink-0">
                         <RingProgress pct={prog.pct} size={72} />
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className={`text-xs font-bold ${prog.pct >= 100 ? "text-emerald-300" : "text-white/70"}`}>
+                          <span className={`text-xs font-bold ${prog.pct >= 100 ? "text-emerald-300" : "text-text-2"}`}>
                             {prog.pct}%
                           </span>
                         </div>
@@ -91,23 +91,23 @@ export function SavingsView({
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-sm truncate">{s.name || "(névtelen)"}</div>
-                        <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                        <div className="mt-2 h-1.5 rounded-full bg-surface-2 overflow-hidden">
                           <div
                             className={`h-full rounded-full transition-all duration-500 ${prog.pct >= 100 ? "bg-emerald-400" : "bg-emerald-500/70"}`}
                             style={{ width: `${prog.pct}%` }}
                           />
                         </div>
-                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-white/50">
+                        <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-text-muted">
                           <span>
-                            <span className="text-white/80">{fmt(prog.accumulated)}</span>
+                            <span className="text-text-1">{fmt(prog.accumulated)}</span>
                             {" / "}
                             {fmt(prog.target)}
                           </span>
                           {prog.monthly > 0 && (
-                            <span>Havi: <span className="text-white/70">{fmt(prog.monthly)}</span></span>
+                            <span>Havi: <span className="text-text-2">{fmt(prog.monthly)}</span></span>
                           )}
                           {prog.projectedTotal !== null && prog.projectedTotal > 0 && (
-                            <span>Végösszeg: <span className="text-white/70">{fmt(prog.projectedTotal)}</span></span>
+                            <span>Végösszeg: <span className="text-text-2">{fmt(prog.projectedTotal)}</span></span>
                           )}
                           {prog.monthsLeft !== null && (
                             <span>
@@ -201,8 +201,8 @@ export function SavingsView({
       </div>
 
       <Card className="p-5">
-        <div className="text-sm text-white/60">Megjegyzés</div>
-        <div className="text-xs text-white/40 mt-1">
+        <div className="text-sm text-text-2">Megjegyzés</div>
+        <div className="text-xs text-text-muted mt-1">
           A haladás a <b>tervezett havi befizetések</b> alapján számolt – tényleges átutalásokat a Kiadások tabban rögzíthetsz külön kategóriában.
         </div>
       </Card>

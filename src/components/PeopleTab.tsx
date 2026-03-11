@@ -33,7 +33,7 @@ export function PeopleCategoriesView({
       <Card className="p-5">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-sm text-white/60">Bevételek bővíthetősége</div>
+            <div className="text-sm text-text-2">Bevételek bővíthetősége</div>
             <div className="text-lg font-semibold">Keresők / személyek</div>
           </div>
           <SmallButton variant="solid" onClick={addPerson}>
@@ -43,7 +43,7 @@ export function PeopleCategoriesView({
 
         <div className="mt-4 space-y-3">
           {state.people.map((p, idx) => (
-            <div key={p.id} className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <div key={p.id} className="rounded-xl border border-border bg-surface-2 p-4">
               <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
                 <div className="md:col-span-8">
                   <Field label={`Név (#${idx + 1})`}>
@@ -65,7 +65,7 @@ export function PeopleCategoriesView({
           ))}
         </div>
 
-        <div className="mt-4 text-[11px] text-white/40">
+        <div className="mt-4 text-[11px] text-text-muted">
           Tipp: ha később 3. jövedelemforrás belép, itt egy kattintással bővítheted a listát, majd a fix bevételeknél hozzárendelheted.
         </div>
       </Card>
@@ -74,7 +74,7 @@ export function PeopleCategoriesView({
       <Card className="p-5">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div>
-            <div className="text-sm text-white/60">Kategória-rendszer</div>
+            <div className="text-sm text-text-2">Kategória-rendszer</div>
             <div className="text-lg font-semibold">Bevétel- és kiadás kategóriák</div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
@@ -149,7 +149,7 @@ function CategorySection({
       <div className="text-sm font-semibold">{title}</div>
 
       {parents.length === 0 && (
-        <div className="text-xs text-white/40">Nincs {title.toLowerCase()} kategória.</div>
+        <div className="text-xs text-text-muted">Nincs {title.toLowerCase()} kategória.</div>
       )}
 
       {parents.map((parent) => {
@@ -158,13 +158,13 @@ function CategorySection({
         const hasChildren = children.length > 0;
 
         return (
-          <div key={parent.id} className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
+          <div key={parent.id} className="rounded-xl border border-border bg-surface-2 overflow-hidden">
             {/* Szülő sor */}
             <div className="flex items-center gap-2 p-2 pl-3">
               <button
                 type="button"
                 onClick={() => toggle(parent.id)}
-                className="shrink-0 text-white/40 hover:text-white/70 transition min-w-9 min-h-9 flex items-center justify-center"
+                className="shrink-0 text-text-muted hover:text-text-2 transition min-w-9 min-h-9 flex items-center justify-center"
                 title={isCollapsed ? "Kinyit" : "Összecsuk"}
               >
                 <ChevronDown
@@ -188,13 +188,13 @@ function CategorySection({
 
             {/* Alkategóriák – csak ha nem összecsukt */}
             {!isCollapsed && hasChildren && (
-              <div className="border-t border-white/10 bg-black/10">
+              <div className="border-t border-border bg-bg">
                 {children.map((child) => (
                   <div
                     key={child.id}
-                    className="flex items-center gap-2 px-3 py-2 pl-9 border-b border-white/5 last:border-b-0"
+                    className="flex items-center gap-2 px-3 py-2 pl-9 border-b border-border last:border-b-0"
                   >
-                    <span className="text-white/30 text-xs shrink-0">↳</span>
+                    <span className="text-text-muted text-xs shrink-0">↳</span>
                     <Input
                       value={child.name}
                       onChange={(e) => updateCategory(child.id, { name: e.target.value })}
@@ -208,11 +208,11 @@ function CategorySection({
 
             {/* Alkategória hozzáadása gomb – összecsukt esetén is látszik ha üres */}
             {!isCollapsed && !hasChildren && (
-              <div className="border-t border-white/10 px-9 py-2">
+              <div className="border-t border-border px-9 py-2">
                 <button
                   type="button"
                   onClick={() => addCategory(type, parent.id)}
-                  className="text-xs text-white/40 hover:text-white/70 transition flex items-center gap-1"
+                  className="text-xs text-text-muted hover:text-text-2 transition flex items-center gap-1"
                 >
                   <Plus className="w-3 h-3" /> alkategória hozzáadása
                 </button>

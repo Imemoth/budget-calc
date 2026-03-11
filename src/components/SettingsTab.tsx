@@ -4,6 +4,7 @@ import { APP_VERSION } from "../lib/version";
 import type { Settings, State, SeriesRow, HouseholdMember, MemberPermissions } from "../types";
 import { DEFAULT_PERMISSIONS } from "../types";
 import { Card, Field, Input, Select, SmallButton, ConfirmDelete } from "./ui";
+import { ThemeSelector } from "./ThemeSelector";
 import { normalizeMonthInput, parseNonNegativeInput } from "../lib/domainHelpers";
 
 // ---- CSV helpers ----
@@ -212,7 +213,7 @@ export function SettingsView({
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
       <Card className="p-5">
-        <div className="text-sm text-white/60">Időtáv és pénznem</div>
+        <div className="text-sm text-text-2">Időtáv és pénznem</div>
         <div className="text-lg font-semibold">Alap beállítások</div>
 
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -250,41 +251,37 @@ export function SettingsView({
               <option value="USD">USD</option>
             </Select>
           </Field>
-          <Field label="Megjelenés">
-            <Select
-              value={settings.theme ?? "dark-neo"}
-              onChange={(e) => updateSettings({ theme: e.target.value })}
-            >
-              <option value="dark-neo">Sötét (Dark Neo)</option>
-              <option value="graphite-emerald">Graphite + Emerald</option>
-              <option value="light">Világos</option>
-              <option value="trust-blue">Trust Blue + Mint</option>
-              <option value="teal-slate">Teal + Slate</option>
-            </Select>
-          </Field>
         </div>
 
-        <div className="mt-4 text-[11px] text-white/40">
+        <div className="mt-4">
+          <div className="text-xs text-text-2 mb-2">Megjelenés</div>
+          <ThemeSelector
+            value={settings.theme ?? "graphite-emerald"}
+            onChange={(id) => updateSettings({ theme: id })}
+          />
+        </div>
+
+        <div className="mt-4 text-[11px] text-text-muted">
           Ha 2026-ra akarsz előretervezni, állítsd a kezdő hónapot 2026-01-re, és a horizontot 12 vagy 18 hónapra.
         </div>
       </Card>
 
       <Card className="p-5 flex flex-col justify-between">
         <div>
-          <div className="text-sm text-white/60">Alkalmazás</div>
+          <div className="text-sm text-text-2">Alkalmazás</div>
           <div className="text-lg font-semibold">Verzió</div>
-          <div className="mt-3 text-sm text-white/80">
+          <div className="mt-3 text-sm text-text-1">
             Budget planner <span className="font-mono">v{APP_VERSION}</span>
           </div>
         </div>
-        <div className="mt-4 text-[11px] text-white/40">
+        <div className="mt-4 text-[11px] text-text-muted">
           Az adataid a böngésző <b>localStorage</b>-ében vannak tárolva.
           Ha törlöd a böngésző adatait, a költségvetés is törlődik.
         </div>
       </Card>
 
       <Card className="p-5 xl:col-span-2">
-        <div className="text-sm text-white/60">Adatok letöltése</div>
+        <div className="text-sm text-text-2">Adatok letöltése</div>
         <div className="text-lg font-semibold">Export (CSV)</div>
         <div className="mt-4 flex flex-wrap gap-3">
           <SmallButton variant="solid" onClick={() => exportTransactions(state)}>
@@ -304,13 +301,13 @@ export function SettingsView({
             Havi összesítő
           </SmallButton>
         </div>
-        <div className="mt-3 text-[11px] text-white/40">
+        <div className="mt-3 text-[11px] text-text-muted">
           UTF-8 BOM, pontosvessző elválasztó – közvetlenül megnyitható Excelben.
         </div>
       </Card>
 
       <Card className="p-5">
-        <div className="text-sm text-white/60">Fiók</div>
+        <div className="text-sm text-text-2">Fiók</div>
         <div className="text-lg font-semibold">Jelszó módosítása</div>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Jelenlegi jelszó">
@@ -325,7 +322,7 @@ export function SettingsView({
               <button
                 type="button"
                 onClick={() => setShowCurrentPw((v) => !v)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-2 transition"
                 tabIndex={-1}
               >
                 {showCurrentPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -345,7 +342,7 @@ export function SettingsView({
               <button
                 type="button"
                 onClick={() => setShowNewPw((v) => !v)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-2 transition"
                 tabIndex={-1}
               >
                 {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -364,7 +361,7 @@ export function SettingsView({
               <button
                 type="button"
                 onClick={() => setShowConfirmPw((v) => !v)}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-2 transition"
                 tabIndex={-1}
               >
                 {showConfirmPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -385,17 +382,17 @@ export function SettingsView({
       </Card>
 
       <Card className="p-5 xl:col-span-2">
-        <div className="text-sm text-white/60">Közös háztartás</div>
+        <div className="text-sm text-text-2">Közös háztartás</div>
         <div className="text-lg font-semibold">Megosztás</div>
 
         {/* Tagok listája */}
         {householdMembers.length > 0 && (
           <div className="mt-4 space-y-2">
             {householdMembers.map((m) => (
-              <div key={m.id} className="flex flex-wrap items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/10">
+              <div key={m.id} className="flex flex-wrap items-start gap-3 p-3 rounded-xl bg-surface-2 border border-border">
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{m.email ?? m.userId}</div>
-                  <div className="text-xs text-white/40 mt-0.5">
+                  <div className="text-xs text-text-muted mt-0.5">
                     {m.role === "OWNER" ? "Tulajdonos" : "Tag"}
                   </div>
                   {m.role === "MEMBER" && isOwner && (
@@ -408,7 +405,7 @@ export function SettingsView({
                           className={`text-xs px-2 py-0.5 rounded-full border transition ${
                             m.permissions[key]
                               ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
-                              : "bg-white/5 border-white/10 text-white/30"
+                              : "bg-surface-2 border-border text-text-muted"
                           }`}
                         >
                           {label}
@@ -432,9 +429,9 @@ export function SettingsView({
 
         {/* Meghívó form – csak tulajdonosnak */}
         {isOwner && (
-          <div className="mt-5 pt-4 border-t border-white/10">
+          <div className="mt-5 pt-4 border-t border-border">
             <div className="text-sm font-medium mb-3 flex items-center gap-2">
-              <Mail className="w-4 h-4 text-white/40" />
+              <Mail className="w-4 h-4 text-text-muted" />
               Meghívó küldése
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -447,7 +444,7 @@ export function SettingsView({
                 />
               </Field>
               <div className="flex flex-col justify-end gap-2">
-                <div className="text-xs text-white/50 mb-1">Jogosultságok az új tagnak:</div>
+                <div className="text-xs text-text-muted mb-1">Jogosultságok az új tagnak:</div>
                 <div className="flex flex-wrap gap-1.5">
                   {permLabels.map(({ key, label }) => (
                     <button
@@ -457,7 +454,7 @@ export function SettingsView({
                       className={`text-xs px-2 py-0.5 rounded-full border transition ${
                         invitePermissions[key]
                           ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
-                          : "bg-white/5 border-white/10 text-white/30"
+                          : "bg-surface-2 border-border text-text-muted"
                       }`}
                     >
                       {label}
@@ -481,7 +478,7 @@ export function SettingsView({
         )}
 
         {!isOwner && householdMembers.length > 0 && (
-          <div className="mt-3 text-xs text-white/40">
+          <div className="mt-3 text-xs text-text-muted">
             Csak a háztartás tulajdonosa küldhet meghívókat.
           </div>
         )}
@@ -493,17 +490,17 @@ export function SettingsView({
         )}
 
         {!membersLoadError && householdMembers.length === 0 && (
-          <div className="mt-3 text-xs text-white/40">
+          <div className="mt-3 text-xs text-text-muted">
             Betöltés folyamatban…
           </div>
         )}
       </Card>
 
       <Card className="p-5">
-        <div className="text-sm text-white/60">Gyors útmutató</div>
+        <div className="text-sm text-text-2">Gyors útmutató</div>
         <div className="text-lg font-semibold">Ajánlott használat</div>
 
-        <ol className="mt-4 space-y-2 text-sm text-white/70 list-decimal list-inside">
+        <ol className="mt-4 space-y-2 text-sm text-text-2 list-decimal list-inside">
           <li>Lépj a <b>Keresők & kategóriák</b> fülre, és állítsd be a 2 (vagy később 3) személyt.</li>
           <li>A <b>Fix tételek</b> fülön add meg a 2026-os fix bevételeket és kiadásokat start: 2026-01, end: 2026-12.</li>
           <li>A <b>Megtakarítás</b> fülön állíts be külön keretet (pl. felújítás), havi tervvel.</li>
