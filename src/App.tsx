@@ -406,7 +406,9 @@ export default function App() {
 
         if (!cancelled) setActiveHouseholdId(hid);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const supaErr = err as Record<string, unknown>;
+        const msg = err instanceof Error ? err.message
+          : (supaErr?.message ? `${supaErr.message} [${supaErr.code ?? supaErr.details ?? "?"}]` : JSON.stringify(err));
         console.error("Household provisioning hiba:", err);
         if (!cancelled) { setActiveHouseholdId(null); setProvisioningError(msg); }
       } finally {
