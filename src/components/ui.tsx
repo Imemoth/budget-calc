@@ -16,10 +16,13 @@ export const TabButton = ({
   <button
     onClick={onClick}
     className={
-      "flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition " +
-      (active
-        ? "bg-surface-2 text-text-1 shadow"
-        : "text-text-2 hover:text-text-1 hover:bg-surface-2")
+      active
+        ? "relative flex items-center gap-1.5 px-3 py-2.5 text-sm font-semibold text-primary " +
+          "after:absolute after:bottom-0 after:inset-x-2 after:h-0.5 after:bg-primary after:rounded-full " +
+          "transition-colors duration-150"
+        : "flex items-center gap-1.5 px-3 py-2.5 text-sm font-medium " +
+          "text-text-2 hover:text-text-1 hover:bg-surface-2 rounded-t-lg " +
+          "transition-colors duration-150"
     }
   >
     {Icon ? <Icon className="w-4 h-4" /> : null}

@@ -3,9 +3,19 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.22";
+export const APP_VERSION = "0.5.23";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.23": {
+    date: "2026-03-11",
+    changes: [
+      "Nav fülek redesign: sticky border-b nav, aktív tab emerald underline (after: pseudo-elem), inaktív tab hover bg-surface-2.",
+      "MoneyTab hero kártya: accent border-l-4 (emerald/rose), nagy tervezett összeg, tényleges + különbség sor.",
+      "Fix tételek collapsed/expanded kártyák: összesített fejléc (szín-dot, név, meta, összeg, chevron) + expand-on-click form.",
+      "Form hierarchia: elsődleges (név+összeg), másodlagos (kat/személy/cadence/dátumok 3-col grid), akciók (Törlés bal, Rögzít jobb).",
+      "Dashed CTA gomb: teljes szélességű szaggatott keret, hover emerald tint, Plus ikon rotate-90 animáció.",
+    ],
+  },
   "0.5.22": {
     date: "2026-03-11",
     changes: [
