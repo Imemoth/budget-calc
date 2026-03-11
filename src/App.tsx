@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useTheme } from "./context/ThemeContext";
+import { DEFAULT_THEME, type ThemeId } from "./lib/themes";
 import { APP_VERSION } from "./lib/version";
 import { AnimatePresence, motion } from "framer-motion";
 import { uid, isUUID, monthKey, monthsBetweenInclusive } from "./lib/utils";
@@ -361,13 +363,11 @@ export default function App() {
     }
   }, []);
 
-  // Téma szinkronizálása a dokumentumra (CSS override strategy)
+  // Téma szinkronizálása a dokumentumra
+  const { setTheme } = useTheme();
   useEffect(() => {
-    document.documentElement.setAttribute(
-      'data-theme',
-      state.settings.theme === 'light' ? 'light' : 'dark'
-    );
-  }, [state.settings.theme]);
+    setTheme((state.settings.theme as ThemeId) ?? DEFAULT_THEME);
+  }, [state.settings.theme]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { start, end } = useMemo(() => monthBoundsFromSettings(state.settings), [state.settings]);
   const monthList = useMemo(() => monthsBetweenInclusive(start, end).map(monthKey), [start, end]);
@@ -836,8 +836,8 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
-        <div className="text-sm text-white/60">Betöltés...</div>
+      <div className="min-h-screen flex items-center justify-center bg-bg text-text-1">
+        <div className="text-sm text-text-2">Betöltés...</div>
       </div>
     );
   }
@@ -846,15 +846,7 @@ export default function App() {
 
   // -------------------- layout --------------------
 
-  const rootClass = (() => {
-    switch (state.settings.theme) {
-      case 'light':            return "min-h-screen bg-linear-to-b from-slate-100 via-white to-slate-50 text-slate-900";
-      case 'trust-blue':       return "min-h-screen bg-linear-to-b from-[#F8FAFC] via-[#EFF6FF] to-[#DBEAFE] text-slate-900";
-      case 'teal-slate':       return "min-h-screen bg-linear-to-b from-[#F5F7F8] via-[#EEF2F5] to-[#E8EDF2] text-gray-900";
-      case 'graphite-emerald': return "min-h-screen bg-linear-to-b from-[#0B1220] via-[#0B1220] to-[#060D18] text-white";
-      default:                 return "min-h-screen bg-linear-to-b from-[#0b0f14] via-[#0b0f14] to-black text-white";
-    }
-  })();
+  const rootClass = "min-h-screen bg-bg text-text-1";
 
   return (
     <div className={rootClass}>
@@ -862,12 +854,12 @@ export default function App() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-surface-2 border border-border flex items-center justify-center">
               <Wallet className="w-5 h-5" />
             </div>
             <div>
               <div className="text-xl font-semibold tracking-tight">Háztartási költségvetés</div>
-              <div className="text-xs text-white/50">Több kereső • Fix tételek • Megtakarítási keretek • 2026 előretervezés</div>
+              <div className="text-xs text-text-muted">Több kereső • Fix tételek • Megtakarítási keretek • 2026 előretervezés</div>
             </div>
           </div>
 
@@ -890,8 +882,8 @@ export default function App() {
               </SmallButton>
             )}
             {user && (
-              <div className="hidden lg:flex items-center gap-2 pl-2 ml-2 border-l border-white/10">
-                <div className="text-xs text-white/50 max-w-55 truncate" title={user.email ?? ""}>{user.email}</div>
+              <div className="hidden lg:flex items-center gap-2 pl-2 ml-2 border-l border-border">
+                <div className="text-xs text-text-muted max-w-55 truncate" title={user.email ?? ""}>{user.email}</div>
                 <SmallButton variant="ghost" onClick={handleLogout} title="Kijelentkezés">
                   <LogOut className="w-3.5 h-3.5" /> Kilépés
                 </SmallButton>
@@ -933,7 +925,7 @@ export default function App() {
         <div className="mt-6 pb-20 md:pb-0">
           {(isProvisioning || (!!activeHouseholdId && !remoteReady)) && (
             <div className="space-y-4">
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 space-y-3">
+              <div className="rounded-2xl bg-surface border border-border p-5 space-y-3">
                 <Skeleton className="h-4 w-48" />
                 <Skeleton className="h-6 w-72" />
                 <div className="flex gap-3 mt-2">
@@ -941,13 +933,13 @@ export default function App() {
                   <Skeleton className="h-8 w-32" />
                 </div>
               </div>
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 space-y-3">
+              <div className="rounded-2xl bg-surface border border-border p-5 space-y-3">
                 <Skeleton className="h-5 w-56" />
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-5/6" />
                 <Skeleton className="h-4 w-4/6" />
               </div>
-              <div className="rounded-2xl bg-white/5 border border-white/10 p-5 space-y-3">
+              <div className="rounded-2xl bg-surface border border-border p-5 space-y-3">
                 <Skeleton className="h-5 w-44" />
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-3/4" />
@@ -997,7 +989,7 @@ export default function App() {
               <motion.div key="settings" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
                 <div className="mt-2 flex justify-end">
                   <button type="button" onClick={() => setIsChangelogOpen(true)}
-                    className="text-xs text-white/50 hover:text-white/80 underline underline-offset-4">
+                    className="text-xs text-text-muted hover:text-text-2 underline underline-offset-4">
                     v{APP_VERSION} – frissítések megtekintése
                   </button>
                 </div>
@@ -1024,7 +1016,7 @@ export default function App() {
         <ChangelogModal open={isChangelogOpen} onClose={() => setIsChangelogOpen(false)} />
 
         {/* Bottom nav – mobile only */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-slate-950/95 backdrop-blur border-t border-white/10 flex justify-around px-1 py-1 z-50">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur border-t border-border flex justify-around px-1 py-1 z-50">
           <MobileNavBtn active={tab === "dashboard"} icon={BarChart3} label="Dashboard" onClick={() => setTab("dashboard")} />
           <MobileNavBtn active={tab === "income"} icon={TrendingUp} label="Bevétel" onClick={() => setTab("income")} />
           <MobileNavBtn active={tab === "expense"} icon={TrendingDown} label="Kiadás" onClick={() => setTab("expense")} />
@@ -1034,7 +1026,7 @@ export default function App() {
         </div>
 
         {/* Footer */}
-        <div className="mt-10 text-[11px] text-white/40 space-y-1">
+        <div className="mt-10 text-[11px] text-text-muted space-y-1">
           <div>Tipp: a fix tételeket a "Bevétel" és "Kiadás" füleken vedd fel, és állítsd be a start/end hónapot. Így a 2026-os bevételek/kiadások előre modellezhetők a dashboardon.</div>
           {user && (
             <div>

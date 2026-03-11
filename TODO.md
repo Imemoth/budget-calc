@@ -4,6 +4,21 @@
 
 ---
 
+## ✅ KÉSZ — Tech Debt #3: CSS Custom Properties Theme System (2026-03-11)
+
+- [x] **Fázis 1 — Infrastruktúra** (2026-03-11)
+- [x] **Fázis 2 — ui.tsx átírása** (2026-03-11)
+- [x] **Fázis 3 — App szintű hardcode-ok** (2026-03-11)
+- [x] **Fázis 4 — Recharts chart színek** (2026-03-11)
+- [x] **Fázis 5 — ThemeSelector UI + DB szinkron** (2026-03-11)
+- [x] **Fázis 6 — QA** (2026-03-11)
+  - [x] Mind az 5 témát végigkattintani + Playwright screenshot ✓
+  - [x] Témaváltás + oldalújratöltés → localStorage megmarad ✓
+  - [x] Bugfix: `index.css` body `background: #0b0f14` → `var(--color-bg, #0b0f14)` (Rose Gold / Midnight Purple fix)
+  - [x] Kijelentkezés + login → DB-ből betöltődik ✓
+
+---
+
 ## 🟢 Jó lenne – bővítések
 
 - [x] **Household megosztás / meghívó** – email-alapú meghívó (Edge Function), granulált jogosultságok tagonként, tag-kezelés UI Beállítások → Megosztás (v0.5.20).
