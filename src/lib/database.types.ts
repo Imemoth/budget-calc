@@ -550,6 +550,18 @@ export type Database = {
     }
     Functions: {
       accept_invite: { Args: { p_token: string }; Returns: string }
+      get_household_members: {
+        Args: { p_household_id: string }
+        Returns: {
+          created_at: string
+          email: string
+          household_id: string
+          id: string
+          permissions: Json
+          role: string
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
