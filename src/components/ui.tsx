@@ -228,7 +228,7 @@ export const MobileNavBtn = ({
     onClick={onClick}
     className={
       "flex flex-col items-center justify-center gap-0.5 px-1 py-2 rounded-xl flex-1 min-h-12 transition " +
-      (active ? "text-text-1" : "text-text-muted")
+      (active ? "text-primary" : "text-text-muted")
     }
   >
     <Icon className="w-5 h-5 shrink-0" />
