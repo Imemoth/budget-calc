@@ -3,9 +3,18 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.26";
+export const APP_VERSION = "0.5.27";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.27": {
+    date: "2026-03-12",
+    changes: [
+      "DashboardTab PR 3: pie chart-ok eltávolítva, helyettük ranked progress bar listák (kiadás + bevétel kategória bontás).",
+      "DashboardTab: Keresők szerinti bevétel bar chart → ranked progress bar lista (CSS var szín).",
+      "DashboardTab: 'Legutolsó hónap' kártya eltávolítva (duplikált info a hero kártyán).",
+      "DashboardTab: Bar chart 3 sorozat → 2 (plannedIncome + plannedExpense, actualNet eltávolítva).",
+    ],
+  },
   "0.5.26": {
     date: "2026-03-12",
     changes: [
