@@ -392,7 +392,7 @@ function PlannedSection({
                         <div className="flex items-center justify-between gap-2 pt-1">
                           <ConfirmDelete onConfirm={() => removeRecurring(r.id)} />
                           <SmallButton
-                            variant="solid"
+                            variant="primary"
                             title={`Rögzít tényleges tételként: ${previewMonth}`}
                             onClick={() => convertRecurring(r, previewMonth)}
                           >

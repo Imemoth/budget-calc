@@ -3,9 +3,18 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.27";
+export const APP_VERSION = "0.5.28";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.28": {
+    date: "2026-03-12",
+    changes: [
+      "SmallButton: új 'primary' variant (bg-primary/10 text-primary hover:bg-primary/20).",
+      "MoneyTab: 'Rögzít' gomb solid → primary variant (tonal kiemelés).",
+      "RingProgress: color prop hozzáadva, CSS var alapú alapszín (var(--color-primary)).",
+      "SavingsTab: cirkuláris progress + bar color-coded állapot (done=positive, missed=negative, alacsony=warning).",
+    ],
+  },
   "0.5.27": {
     date: "2026-03-12",
     changes: [

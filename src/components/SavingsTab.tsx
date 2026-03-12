@@ -89,6 +89,16 @@ export function SavingsView({
         ) : (
           state.savings.map((s) => {
             const prog = calcProgress(s);
+            const statusColor = !prog ? "var(--color-primary)"
+              : prog.pct >= 100 ? "var(--color-positive)"
+              : (prog.monthsLeft === 0 && prog.pct < 100) ? "var(--color-negative)"
+              : prog.pct < 40 ? "var(--color-warning)"
+              : "var(--color-primary)";
+            const pctTextClass = !prog ? "text-text-2"
+              : prog.pct >= 100 ? "text-positive"
+              : (prog.monthsLeft === 0 && prog.pct < 100) ? "text-negative"
+              : prog.pct < 40 ? "text-warning"
+              : "text-text-2";
             return (
               <Card key={s.id} className="p-4">
                 {/* ---- Progress summary ---- */}
@@ -97,9 +107,9 @@ export function SavingsView({
                     <div className="flex items-start gap-4">
                       {/* Ring */}
                       <div className="relative shrink-0">
-                        <RingProgress pct={prog.pct} size={72} />
+                        <RingProgress pct={prog.pct} size={72} color={statusColor} />
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className={`text-xs font-bold ${prog.pct >= 100 ? "text-emerald-300" : "text-text-2"}`}>
+                          <span className={`text-xs font-bold ${pctTextClass}`}>
                             {prog.pct}%
                           </span>
                         </div>
@@ -109,8 +119,8 @@ export function SavingsView({
                         <div className="font-semibold text-sm truncate">{s.name || "(névtelen)"}</div>
                         <div className="mt-2 h-1.5 rounded-full bg-surface-2 overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all duration-500 ${prog.pct >= 100 ? "bg-emerald-400" : "bg-emerald-500/70"}`}
-                            style={{ width: `${prog.pct}%` }}
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${prog.pct}%`, backgroundColor: statusColor }}
                           />
                         </div>
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-text-muted">
