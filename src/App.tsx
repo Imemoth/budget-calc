@@ -1010,7 +1010,7 @@ export default function App() {
               <motion.div key="people" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
                 <PeopleCategoriesView state={state} addPerson={addPerson} updatePerson={updatePerson} removePerson={removePerson}
                   addCategory={addCategory} updateCategory={updateCategory} removeCategory={removeCategory}
-                  reseedCategories={reseedCategories} />
+                  reseedCategories={reseedCategories} onNavigate={setTab} />
               </motion.div>
             )}
             {tab === "settings" && (

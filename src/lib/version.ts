@@ -3,9 +3,19 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.25";
+export const APP_VERSION = "0.5.26";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.26": {
+    date: "2026-03-12",
+    changes: [
+      "PeopleTab PR 2: per-person collapsed kártyák (avatar initial + név + bevétel/kiadás összefoglaló + chevron).",
+      "PeopleTab: emerald hero kártya (tervezett havi bevétel + személyek száma).",
+      "PeopleTab: dashed CTA 'Új kereső hozzáadása' gomb.",
+      "PeopleTab: '+ Fix bevétel' / '+ Fix kiadás' navigációs gombok expanded kártyán.",
+      "CategorySection: érintetlen maradt.",
+    ],
+  },
   "0.5.25": {
     date: "2026-03-12",
     changes: [
