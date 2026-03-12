@@ -1,8 +1,10 @@
+import { useMemo } from "react";
 import { Plus } from "lucide-react";
 import type { State, SavingsBucket } from "../types";
-import { Card, Field, Input, SmallButton, ConfirmDelete, RingProgress } from "./ui";
+import { Card, Field, Input, ConfirmDelete, RingProgress } from "./ui";
 import { normalizeMonthInput, parseNonNegativeInput } from "../lib/domainHelpers";
-import { formatHUF, monthKey } from "../lib/utils";
+import { monthKey } from "../lib/utils";
+import { formatHuf } from "../lib/format";
 
 // ym string "YYYY-MM" → integer for arithmetic
 function ymToInt(ym: string): number {
@@ -46,24 +48,38 @@ export function SavingsView({
   updateSavings: (id: string, patch: Partial<SavingsBucket>) => void;
   removeSavings: (id: string) => void;
 }) {
-  const currency = state.settings.currency;
-  const fmt = (n: number) => `${formatHUF(n)} ${currency}`;
+  const hero = useMemo(() => {
+    const totalTarget = state.savings.reduce((s, b) => s + (b.targetAmount ?? 0), 0);
+    const totalMonthly = state.savings.reduce((s, b) => s + (b.monthlyPlanned ?? 0), 0);
+    const activeCount = state.savings.length;
+    return { totalTarget, totalMonthly, activeCount };
+  }, [state.savings]);
 
   return (
     <div className="space-y-4">
-      <Card className="p-5">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      {/* Hero kártya */}
+      <div className="rounded-2xl border border-amber-500/30 border-l-4 border-l-amber-500 bg-amber-950/20 p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <div className="text-sm text-text-2">Tervezett megtakarítási célok és keretek</div>
-            <div className="text-lg font-semibold">Megtakarítás</div>
+            <div className="text-xs text-text-muted mb-1">Összes megtakarítási cél</div>
+            <div className="text-3xl font-bold tabular-nums text-amber-300">
+              {formatHuf(hero.totalTarget)}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <SmallButton variant="solid" onClick={addSavings}>
-              <Plus className="w-3.5 h-3.5" /> Új megtakarítási keret
-            </SmallButton>
+          <div className="flex gap-6">
+            <div>
+              <div className="text-[11px] text-text-muted">Havi terv összesen</div>
+              <div className="text-sm font-semibold tabular-nums text-amber-400">
+                {formatHuf(hero.totalMonthly)}
+              </div>
+            </div>
+            <div>
+              <div className="text-[11px] text-text-muted">Aktív keretek</div>
+              <div className="text-sm font-semibold text-text-1">{hero.activeCount} db</div>
+            </div>
           </div>
         </div>
-      </Card>
+      </div>
 
       <div className="grid grid-cols-1 gap-3">
         {state.savings.length === 0 ? (
@@ -99,15 +115,15 @@ export function SavingsView({
                         </div>
                         <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-text-muted">
                           <span>
-                            <span className="text-text-1">{fmt(prog.accumulated)}</span>
+                            <span className="text-text-1">{formatHuf(prog.accumulated)}</span>
                             {" / "}
-                            {fmt(prog.target)}
+                            {formatHuf(prog.target)}
                           </span>
                           {prog.monthly > 0 && (
-                            <span>Havi: <span className="text-text-2">{fmt(prog.monthly)}</span></span>
+                            <span>Havi: <span className="text-text-2">{formatHuf(prog.monthly)}</span></span>
                           )}
                           {prog.projectedTotal !== null && prog.projectedTotal > 0 && (
-                            <span>Végösszeg: <span className="text-text-2">{fmt(prog.projectedTotal)}</span></span>
+                            <span>Végösszeg: <span className="text-text-2">{formatHuf(prog.projectedTotal)}</span></span>
                           )}
                           {prog.monthsLeft !== null && (
                             <span>
@@ -199,6 +215,15 @@ export function SavingsView({
           })
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={addSavings}
+        className="group w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-2.5 text-sm text-text-muted hover:border-primary hover:bg-primary/5 hover:text-primary transition-colors"
+      >
+        <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
+        Új megtakarítási keret
+      </button>
 
       <Card className="p-5">
         <div className="text-sm text-text-2">Megjegyzés</div>

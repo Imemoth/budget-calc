@@ -3,9 +3,26 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.23";
+export const APP_VERSION = "0.5.25";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.25": {
+    date: "2026-03-12",
+    changes: [
+      "Header: email + Kilépés gomb → kör avatar (email initial) + dropdown (Bejelentkezve info + Kijelentkezés).",
+      "SmallButton: rounded-lg → rounded-xl (konzisztens lekerekítés).",
+      "Input + Select focus ring: focus:ring-border → focus:ring-primary/40 (téma-szín).",
+    ],
+  },
+  "0.5.24": {
+    date: "2026-03-12",
+    changes: [
+      "SavingsTab hero kártya: amber accent border-l-4, összes célösszeg + havi terv + aktív keretek száma.",
+      "Mobil nav aktív tint: text-primary (emerald/téma szín) — korábban text-text-1 volt.",
+      "SavingsTab: formatHuf migrálva (formatHUF+currency → Intl.NumberFormat).",
+      "Új megtakarítási keret: dashed CTA gomb (konzisztens MoneyTab-bal).",
+    ],
+  },
   "0.5.23": {
     date: "2026-03-11",
     changes: [
