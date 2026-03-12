@@ -912,14 +912,14 @@ export default function App() {
         )}
 
         {/* Tabs – desktop */}
-        <div className="mt-6 hidden md:flex flex-wrap gap-2">
+        <nav className="mt-6 hidden md:flex gap-0.5 border-b border-border bg-surface px-2 sticky top-0 z-10 overflow-x-auto">
           <TabButton active={tab === "dashboard"} onClick={() => setTab("dashboard")} icon={BarChart3}>Dashboard</TabButton>
           <TabButton active={tab === "income"} onClick={() => setTab("income")} icon={TrendingUp}>Bevétel</TabButton>
           <TabButton active={tab === "expense"} onClick={() => setTab("expense")} icon={TrendingDown}>Kiadás</TabButton>
           <TabButton active={tab === "savings"} onClick={() => setTab("savings")} icon={PiggyBank}>Megtakarítás</TabButton>
           <TabButton active={tab === "people"} onClick={() => setTab("people")} icon={Users}>Keresők & kategóriák</TabButton>
           <TabButton active={tab === "settings"} onClick={() => setTab("settings")} icon={Settings2}>Beállítások</TabButton>
-        </div>
+        </nav>
 
         {/* Content */}
         <div className="mt-6 pb-20 md:pb-0">

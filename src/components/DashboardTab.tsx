@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   LineChart, Line, PieChart, Pie, ResponsiveContainer, Cell,
 } from "recharts";
-import { formatHUF, fmtMoney } from "../lib/utils";
+import { formatHuf } from "../lib/format";
 import { percent, roundTo } from "../lib/utils";
 import type { SeriesRow } from "../types";
 import { Card, Field, Select } from "./ui";
@@ -27,7 +27,6 @@ export function DashboardView({
   categoryBreakdown,
   incomeCategoryBreakdown,
   peopleIncomePlanned,
-  currency,
 }: {
   monthList: string[];
   focusMonth: string;
@@ -36,7 +35,7 @@ export function DashboardView({
   categoryBreakdown: { category: string; value: number }[];
   incomeCategoryBreakdown: { category: string; value: number }[];
   peopleIncomePlanned: { name: string; value: number }[];
-  currency: string;
+  currency?: string;
 }) {
   useTheme(); // subscribe to theme changes → triggers re-render → CSS vars re-read
   const c1 = readVar("--color-chart-1");
@@ -54,7 +53,6 @@ export function DashboardView({
 
   const latest = series.length ? series[series.length - 1] : undefined;
   const current = series.find((s) => s.month === focusMonth) ?? (series.length ? series[0] : undefined);
-  const money = (n: number) => fmtMoney(n, currency);
   const totalExpense = categoryBreakdown.reduce((s, x) => s + (x.value || 0), 0);
   const totalIncome = incomeCategoryBreakdown.reduce((s, x) => s + (x.value || 0), 0);
 
@@ -66,32 +64,32 @@ export function DashboardView({
           <div>
             <div className="text-xs text-text-muted mb-1">Tervezett nettó · {focusMonth}</div>
             <div className={`text-3xl font-bold tabular-nums ${(current?.plannedNet ?? 0) >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
-              {money(current?.plannedNet ?? 0)}
+              {formatHuf(current?.plannedNet ?? 0)}
             </div>
           </div>
           <div className="flex gap-6">
             <div>
               <div className="text-[11px] text-text-muted">Bevétel</div>
-              <div className="text-sm font-semibold text-emerald-400">{money(current?.plannedIncome ?? 0)}</div>
+              <div className="text-sm font-semibold text-emerald-400">{formatHuf(current?.plannedIncome ?? 0)}</div>
             </div>
             <div>
               <div className="text-[11px] text-text-muted">Kiadás</div>
-              <div className="text-sm font-semibold text-red-400">{money(current?.plannedExpense ?? 0)}</div>
+              <div className="text-sm font-semibold text-red-400">{formatHuf(current?.plannedExpense ?? 0)}</div>
             </div>
             <div>
               <div className="text-[11px] text-text-muted">Megtakarítás</div>
-              <div className="text-sm font-semibold text-amber-400">{money(current?.plannedSavings ?? 0)}</div>
+              <div className="text-sm font-semibold text-amber-400">{formatHuf(current?.plannedSavings ?? 0)}</div>
             </div>
           </div>
         </div>
         {(current?.actualIncome || current?.actualExpense) ? (
           <div className="mt-3 pt-3 border-t border-emerald-500/20 flex flex-wrap gap-x-6 gap-y-1 text-xs text-text-muted">
-            <span>Tényleges bevétel: <span className="text-emerald-400">{money(current.actualIncome)}</span></span>
-            <span>Tényleges kiadás: <span className="text-red-400">{money(current.actualExpense)}</span></span>
+            <span>Tényleges bevétel: <span className="text-emerald-400">{formatHuf(current.actualIncome)}</span></span>
+            <span>Tényleges kiadás: <span className="text-red-400">{formatHuf(current.actualExpense)}</span></span>
             <span>
               Tényleges nettó:{" "}
               <span className={`font-semibold ${current.actualNet >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
-                {money(current.actualNet)}
+                {formatHuf(current.actualNet)}
               </span>
             </span>
           </div>
@@ -121,7 +119,7 @@ export function DashboardView({
                   <CartesianGrid strokeDasharray="3 3" stroke={C.border} opacity={0.5} />
                   <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={yFmt} />
-                  <Tooltip formatter={(v) => `${formatHUF(Number(v))} ${currency}`} />
+                  <Tooltip formatter={(v) => formatHuf(Number(v))} />
                   <Legend />
                   <Bar dataKey="plannedIncome" name="Tervezett bevétel" fill={C.income} />
                   <Bar dataKey="plannedExpense" name="Tervezett kiadás" fill={C.expense} />
@@ -145,7 +143,7 @@ export function DashboardView({
                   <CartesianGrid strokeDasharray="3 3" stroke={C.border} opacity={0.5} />
                   <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={yFmt} />
-                  <Tooltip formatter={(v) => `${formatHUF(Number(v))} ${currency}`} />
+                  <Tooltip formatter={(v) => formatHuf(Number(v))} />
                   <Legend />
                   <Line type="monotone" dataKey="plannedNet" name="Tervezett nettó" stroke={C.blue} strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="actualNet" name="Tényleges nettó" stroke={C.net} strokeWidth={2} dot={false} />
@@ -170,7 +168,7 @@ export function DashboardView({
               <div className="mt-4 h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Tooltip formatter={(v) => `${formatHUF(Number(v))} ${currency}`} />
+                    <Tooltip formatter={(v) => formatHuf(Number(v))} />
                     <Pie data={categoryBreakdown} dataKey="value" nameKey="category" innerRadius={45} outerRadius={75} paddingAngle={2}>
                       {categoryBreakdown.map((_, i) => (
                         <Cell key={i} fill={C.pie[i % C.pie.length]} />
@@ -190,7 +188,7 @@ export function DashboardView({
                       <span className="truncate">{c.category}</span>
                     </span>
                     <span className="flex items-center gap-2 shrink-0">
-                      <span className="text-text-1">{money(c.value)}</span>
+                      <span className="text-text-1">{formatHuf(c.value)}</span>
                       <span className="text-text-muted w-8 text-right">{roundTo(percent(c.value, totalExpense), 1)}%</span>
                     </span>
                   </div>
@@ -220,7 +218,7 @@ export function DashboardView({
               <div className="mt-4 h-48">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Tooltip formatter={(v) => `${formatHUF(Number(v))} ${currency}`} />
+                    <Tooltip formatter={(v) => formatHuf(Number(v))} />
                     <Pie data={incomeCategoryBreakdown} dataKey="value" nameKey="category" innerRadius={45} outerRadius={75} paddingAngle={2}>
                       {incomeCategoryBreakdown.map((_, i) => (
                         <Cell key={i} fill={C.pie[i % C.pie.length]} />
@@ -240,7 +238,7 @@ export function DashboardView({
                       <span className="truncate">{c.category}</span>
                     </span>
                     <span className="flex items-center gap-2 shrink-0">
-                      <span className="text-text-1">{money(c.value)}</span>
+                      <span className="text-text-1">{formatHuf(c.value)}</span>
                       <span className="text-text-muted w-8 text-right">{roundTo(percent(c.value, totalIncome), 1)}%</span>
                     </span>
                   </div>
@@ -268,7 +266,7 @@ export function DashboardView({
                     <CartesianGrid strokeDasharray="3 3" stroke={C.border} opacity={0.5} />
                     <XAxis type="number" tick={{ fontSize: 10 }} tickFormatter={yFmt} />
                     <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={80} />
-                    <Tooltip formatter={(v) => `${formatHUF(Number(v))} ${currency}`} />
+                    <Tooltip formatter={(v) => formatHuf(Number(v))} />
                     <Bar dataKey="value" name="Tervezett bevétel" fill={C.income} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -283,13 +281,13 @@ export function DashboardView({
               <div>
                 <div className="text-[11px] text-text-muted">Tervezett nettó</div>
                 <div className={`text-sm font-semibold tabular-nums ${(latest?.plannedNet ?? 0) >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
-                  {money(latest?.plannedNet ?? 0)}
+                  {formatHuf(latest?.plannedNet ?? 0)}
                 </div>
               </div>
               <div>
                 <div className="text-[11px] text-text-muted">Tényleges nettó</div>
                 <div className={`text-sm font-semibold tabular-nums ${(latest?.actualNet ?? 0) >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
-                  {money(latest?.actualNet ?? 0)}
+                  {formatHuf(latest?.actualNet ?? 0)}
                 </div>
               </div>
             </div>
