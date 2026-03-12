@@ -302,6 +302,48 @@ async function ensureDefaultHousehold(userId: string, userEmail?: string | null)
   return householdId!;
 }
 
+// -------------------- user menu --------------------
+
+function UserMenu({ email, onLogout }: { email: string; onLogout: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+  const initial = email.charAt(0).toUpperCase();
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-sm font-semibold text-primary hover:bg-primary/30 transition-colors"
+        title={email}
+      >
+        {initial}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-52 rounded-xl bg-surface border border-border shadow-lg py-1.5 z-50">
+          <div className="px-3 py-2">
+            <div className="text-[11px] text-text-muted">Bejelentkezve</div>
+            <div className="text-xs text-text-2 truncate mt-0.5" title={email}>{email}</div>
+          </div>
+          <div className="border-t border-border my-1" />
+          <button
+            onClick={() => { setOpen(false); onLogout(); }}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-2 hover:bg-surface-2 hover:text-text-1 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Kijelentkezés
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // -------------------- main app --------------------
 
 export default function App() {
@@ -881,21 +923,7 @@ export default function App() {
                 Reset
               </SmallButton>
             )}
-            {user && (
-              <div className="hidden lg:flex items-center gap-2 pl-2 ml-2 border-l border-border">
-                <div className="text-xs text-text-muted max-w-55 truncate" title={user.email ?? ""}>{user.email}</div>
-                <SmallButton variant="ghost" onClick={handleLogout} title="Kijelentkezés">
-                  <LogOut className="w-3.5 h-3.5" /> Kilépés
-                </SmallButton>
-              </div>
-            )}
-            {user && (
-              <div className="lg:hidden">
-                <SmallButton variant="ghost" onClick={handleLogout} title="Kijelentkezés">
-                  <LogOut className="w-3.5 h-3.5" />
-                </SmallButton>
-              </div>
-            )}
+            {user && <UserMenu email={user.email ?? ""} onLogout={handleLogout} />}
             <input ref={fileInputRef} type="file" accept="application/json" className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) importJson(f); e.target.value = ""; }} />
           </div>

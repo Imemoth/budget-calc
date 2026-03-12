@@ -3,9 +3,17 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.24";
+export const APP_VERSION = "0.5.25";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.25": {
+    date: "2026-03-12",
+    changes: [
+      "Header: email + Kilépés gomb → kör avatar (email initial) + dropdown (Bejelentkezve info + Kijelentkezés).",
+      "SmallButton: rounded-lg → rounded-xl (konzisztens lekerekítés).",
+      "Input + Select focus ring: focus:ring-border → focus:ring-primary/40 (téma-szín).",
+    ],
+  },
   "0.5.24": {
     date: "2026-03-12",
     changes: [
