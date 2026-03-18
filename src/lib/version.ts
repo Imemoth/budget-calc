@@ -3,9 +3,18 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.34";
+export const APP_VERSION = "0.5.35";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.35": {
+    date: "2026-03-18",
+    changes: [
+      "PeopleTab: RecurringModal — inline modal tétel létrehozáshoz/szerkesztéshez.",
+      "PeopleTab '+' CTA: addRecurringFull → modal nyílik (personId előtöltve), nem navigál a MoneyTab-ra.",
+      "PeopleTab Inspector 'Szerkesztés': modal nyílik a kiválasztott tétellel (nem navigál).",
+      "App.tsx: addRecurringFull(patch) — visszaadja az új tétel ID-ját, personId előtölthető.",
+    ],
+  },
   "0.5.34": {
     date: "2026-03-18",
     changes: [

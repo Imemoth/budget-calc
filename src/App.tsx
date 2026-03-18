@@ -727,6 +727,24 @@ export default function App() {
       }],
     }));
 
+  const addRecurringFull = (patch: Partial<RecurringItem> & { type: MoneyType }): string => {
+    const id = uid();
+    setState((s) => ({
+      ...s,
+      recurring: [...s.recurring, {
+        name: patch.type === "income" ? "Fix bevétel" : "Fix kiadás",
+        amount: 0,
+        categoryId: s.categories.find((c) => c.type === patch.type)?.id || null,
+        cadence: "monthly" as const,
+        startMonth: monthKey(new Date(new Date().getFullYear(), 0, 1)),
+        endMonth: null, dayOfMonth: 5, personId: null, enabled: true, notes: "",
+        ...patch,
+        id,
+      }],
+    }));
+    return id;
+  };
+
   const updateRecurring = (id: string, patch: Partial<RecurringItem>) =>
     setState((s) => ({ ...s, recurring: s.recurring.map((r) => r.id === id ? { ...r, ...patch } : r) }));
 
@@ -1072,7 +1090,8 @@ export default function App() {
               <motion.div key="people" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
                 <PeopleCategoriesView state={state} addPerson={addPerson} updatePerson={updatePerson} removePerson={removePerson}
                   addCategory={addCategory} updateCategory={updateCategory} removeCategory={removeCategory}
-                  reseedCategories={reseedCategories} onNavigate={setTab} />
+                  reseedCategories={reseedCategories} onNavigate={setTab}
+                  addRecurringFull={addRecurringFull} updateRecurring={updateRecurring} removeRecurring={removeRecurring} />
               </motion.div>
             )}
             {tab === "settings" && (

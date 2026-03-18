@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
-import { Plus, ChevronDown, RotateCcw, TrendingUp, TrendingDown, Info } from "lucide-react";
+import { Plus, ChevronDown, RotateCcw, TrendingUp, TrendingDown, Info, X } from "lucide-react";
 import type { State, MoneyType, Person, Category, TabKey, RecurringItem } from "../types";
-import { Card, Field, Input, SmallButton, ConfirmDelete } from "./ui";
+import { Card, Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect } from "./ui";
 import { formatHuf } from "../lib/format";
+import { normalizeMonthInput, parseNumberInput, parseNonNegativeInput } from "../lib/domainHelpers";
+import { monthKey } from "../lib/utils";
 
 // Accent palette derived from person.colorIndex
 const PERSON_ACCENTS = [
@@ -24,6 +26,9 @@ export function PeopleCategoriesView({
   removeCategory,
   reseedCategories,
   onNavigate,
+  addRecurringFull,
+  updateRecurring,
+  removeRecurring,
 }: {
   state: State;
   addPerson: () => void;
@@ -34,12 +39,46 @@ export function PeopleCategoriesView({
   removeCategory: (id: string) => void;
   reseedCategories: () => void;
   onNavigate?: (tab: TabKey) => void;
+  addRecurringFull?: (patch: Partial<RecurringItem> & { type: MoneyType }) => string;
+  updateRecurring?: (id: string, patch: Partial<RecurringItem>) => void;
+  removeRecurring?: (id: string) => void;
 }) {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(
     state.people[0]?.id ?? null
   );
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [activeMoneyTab, setActiveMoneyTab] = useState<MoneyType>("income");
+  const [modalItem, setModalItem] = useState<RecurringItem | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  const openNewModal = (type: MoneyType) => {
+    if (!addRecurringFull) { onNavigate?.(type); return; }
+    const id = addRecurringFull({ type, personId: selectedPersonId });
+    const newItem = { ...state.recurring.find((r) => r.id === id) } as RecurringItem;
+    // Fallback: construct a default since state hasn't re-rendered yet
+    const fallback: RecurringItem = {
+      id, type, name: type === "income" ? "Fix bevétel" : "Fix kiadás",
+      amount: 0, categoryId: null, cadence: "monthly",
+      startMonth: monthKey(new Date(new Date().getFullYear(), 0, 1)),
+      endMonth: null, dayOfMonth: 5, personId: selectedPersonId, enabled: true, notes: "",
+    };
+    setModalItem(newItem.id ? newItem : fallback);
+    setModalOpen(true);
+  };
+
+  const openEditModal = (item: RecurringItem) => {
+    setModalItem({ ...item });
+    setModalOpen(true);
+  };
+
+  const closeModal = () => { setModalOpen(false); setModalItem(null); };
+
+  const saveModal = () => {
+    if (!modalItem || !updateRecurring) return;
+    updateRecurring(modalItem.id, modalItem);
+    setSelectedItemId(modalItem.id);
+    closeModal();
+  };
 
   const catById = useMemo(
     () => Object.fromEntries(state.categories.map((c) => [c.id, c])) as Record<string, Category>,
@@ -315,7 +354,7 @@ export function PeopleCategoriesView({
                 {/* Dashed CTA */}
                 <button
                   type="button"
-                  onClick={() => onNavigate?.(activeMoneyTab)}
+                  onClick={() => openNewModal(activeMoneyTab)}
                   className="group w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-border py-2.5 text-sm text-text-muted hover:border-primary hover:bg-primary/5 hover:text-primary transition-colors"
                 >
                   <Plus className="w-4 h-4 transition-transform group-hover:rotate-90" />
@@ -362,10 +401,10 @@ export function PeopleCategoriesView({
               <div className="mt-4 pt-3 border-t border-border">
                 <button
                   type="button"
-                  onClick={() => onNavigate?.(selectedItem.type)}
+                  onClick={() => openEditModal(selectedItem)}
                   className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
                 >
-                  Szerkesztés megnyitása →
+                  Szerkesztés →
                 </button>
               </div>
             </Card>
@@ -422,6 +461,150 @@ export function PeopleCategoriesView({
           />
         </div>
       </Card>
+
+      {/* RecurringModal */}
+      {modalOpen && modalItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-bg/80 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-2xl bg-surface border border-border shadow-xl">
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <div>
+                <div className="text-xs text-text-muted uppercase tracking-wide">
+                  {modalItem.type === "income" ? "Fix bevétel" : "Fix kiadás"}
+                </div>
+                <h2 className="text-base font-semibold text-text-1 mt-0.5">
+                  {modalItem.name || "Új tétel"}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="p-1.5 rounded-lg text-text-muted hover:text-text-1 hover:bg-surface-2 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <div className="p-5 space-y-4">
+              {/* Primary */}
+              <div className="grid grid-cols-[1fr_140px] gap-3">
+                <Field label="Megnevezés">
+                  <Input
+                    value={modalItem.name || ""}
+                    onChange={(e) => setModalItem((m) => m ? { ...m, name: e.target.value } : m)}
+                    className="text-base font-medium"
+                  />
+                </Field>
+                <Field label="Összeg / hó">
+                  <Input
+                    type="number"
+                    value={modalItem.amount ?? 0}
+                    onChange={(e) => setModalItem((m) => m ? { ...m, amount: parseNumberInput(e.target.value) } : m)}
+                    className="text-base font-semibold text-right"
+                  />
+                </Field>
+              </div>
+
+              {/* Secondary */}
+              <div className="border-t border-border pt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <Field label="Kategória">
+                  <CategorySelect
+                    value={modalItem.categoryId || ""}
+                    onChange={(id) => setModalItem((m) => m ? { ...m, categoryId: id || null } : m)}
+                    categories={state.categories.filter((c) => c.type === modalItem.type)}
+                    className="w-full"
+                  />
+                </Field>
+                <Field label="Személy">
+                  <Select
+                    value={modalItem.personId || ""}
+                    onChange={(e) => setModalItem((m) => m ? { ...m, personId: e.target.value || null } : m)}
+                    className="w-full"
+                  >
+                    <option value="">Háztartás</option>
+                    {state.people.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Aktív">
+                  <Select
+                    value={modalItem.enabled ? "yes" : "no"}
+                    onChange={(e) => setModalItem((m) => m ? { ...m, enabled: e.target.value === "yes" } : m)}
+                    className="w-full"
+                  >
+                    <option value="yes">Aktív</option>
+                    <option value="no">Draft</option>
+                  </Select>
+                </Field>
+                <Field label="Gyakoriság">
+                  <Select
+                    value={modalItem.cadence}
+                    onChange={(e) => setModalItem((m) => m ? { ...m, cadence: e.target.value as RecurringItem["cadence"] } : m)}
+                    className="w-full"
+                  >
+                    <option value="monthly">Havi</option>
+                    <option value="quarterly">Negyedéves</option>
+                    <option value="yearly">Éves</option>
+                  </Select>
+                </Field>
+                <Field label="Kezdő hónap">
+                  <Input
+                    type="month"
+                    value={modalItem.startMonth || ""}
+                    onChange={(e) => setModalItem((m) => m ? { ...m, startMonth: normalizeMonthInput(e.target.value) } : m)}
+                    className="w-full"
+                  />
+                </Field>
+                <Field label="Záró hónap">
+                  <Input
+                    type="month"
+                    value={modalItem.endMonth || ""}
+                    onChange={(e) => setModalItem((m) => m ? { ...m, endMonth: normalizeMonthInput(e.target.value) || null } : m)}
+                    className="w-full"
+                  />
+                </Field>
+                <div className="col-span-2">
+                  <Field label="Esedékes nap">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={31}
+                      value={modalItem.dayOfMonth ?? 5}
+                      onChange={(e) => {
+                        const n = parseNonNegativeInput(e.target.value);
+                        setModalItem((m) => m ? { ...m, dayOfMonth: Math.min(31, Math.max(1, n || 1)) } : m);
+                      }}
+                      className="w-full"
+                    />
+                  </Field>
+                </div>
+                <div className="col-span-2 sm:col-span-3">
+                  <Field label="Megjegyzés">
+                    <Input
+                      value={modalItem.notes || ""}
+                      onChange={(e) => setModalItem((m) => m ? { ...m, notes: e.target.value } : m)}
+                      className="w-full"
+                    />
+                  </Field>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-between px-5 py-4 border-t border-border">
+              {removeRecurring ? (
+                <ConfirmDelete onConfirm={() => { removeRecurring(modalItem.id); closeModal(); }} />
+              ) : <div />}
+              <div className="flex gap-2">
+                <SmallButton variant="ghost" onClick={closeModal}>Mégsem</SmallButton>
+                <SmallButton variant="primary" onClick={saveModal}>Mentés</SmallButton>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
