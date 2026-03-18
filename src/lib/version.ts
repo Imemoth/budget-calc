@@ -3,9 +3,19 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.28";
+export const APP_VERSION = "0.5.29";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.29": {
+    date: "2026-03-18",
+    changes: [
+      "FÁZIS 0 — Desktop sidebar layout: App.tsx top tab bar → lg:grid-cols-[220px_1fr] sidebar + main.",
+      "Sidebar: Kostségradar logo + nav itemek aktív stílussal (bg-primary/12 + outline), inaktív hover:bg-surface-2.",
+      "Sidebar footer: export/import gombok + UserMenu + mentési státusz.",
+      "Sticky header a main-ben: tab cím + alcím + UserMenu avatar.",
+      "Mobil: bottom tab bar változatlan (lg:hidden), export/import a header-ben megjelenik mobilon.",
+    ],
+  },
   "0.5.28": {
     date: "2026-03-12",
     changes: [

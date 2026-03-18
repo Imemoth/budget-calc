@@ -16,7 +16,7 @@ import type { Settings, Person, Category, RecurringItem, Transaction, SavingsBuc
 import { DEFAULT_PERMISSIONS } from "./types";
 
 // Components
-import { TabButton, MobileNavBtn, SmallButton, Skeleton } from "./components/ui";
+import { MobileNavBtn, SmallButton, Skeleton } from "./components/ui";
 import { ChangelogModal } from "./components/ChangelogModal";
 import { DashboardView } from "./components/DashboardTab";
 import { MoneyTab } from "./components/MoneyTab";
@@ -888,29 +888,66 @@ export default function App() {
 
   // -------------------- layout --------------------
 
-  const rootClass = "min-h-screen bg-bg text-text-1";
+  const NAV_ITEMS: { key: TabKey; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
+    { key: "dashboard", label: "Dashboard", Icon: BarChart3 },
+    { key: "income", label: "Bevétel", Icon: TrendingUp },
+    { key: "expense", label: "Kiadás", Icon: TrendingDown },
+    { key: "savings", label: "Megtakarítás", Icon: PiggyBank },
+    { key: "people", label: "Keresők & kategóriák", Icon: Users },
+    { key: "settings", label: "Beállítások", Icon: Settings2 },
+  ];
+
+  const TAB_META: Record<TabKey, { title: string; subtitle: string }> = {
+    dashboard: { title: "Dashboard", subtitle: "Áttekintés" },
+    income: { title: "Bevétel", subtitle: "Fix tételek & tranzakciók" },
+    expense: { title: "Kiadás", subtitle: "Fix tételek & tranzakciók" },
+    savings: { title: "Megtakarítás", subtitle: "Célok & keretek" },
+    people: { title: "Keresők & kategóriák", subtitle: "Személyek & csoportok" },
+    settings: { title: "Beállítások", subtitle: "Fiók & preferenciák" },
+  };
 
   return (
-    <div className={rootClass}>
-      <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-surface-2 border border-border flex items-center justify-center">
-              <Wallet className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-xl font-semibold tracking-tight">Háztartási költségvetés</div>
-              <div className="text-xs text-text-muted">Több kereső • Fix tételek • Megtakarítási keretek • 2026 előretervezés</div>
-            </div>
+    <div className="min-h-screen bg-bg text-text-1 lg:grid lg:grid-cols-[220px_1fr]">
+      {/* Sidebar — desktop only */}
+      <aside className="hidden lg:flex flex-col bg-surface border-r border-border p-4 sticky top-0 h-screen">
+        {/* Logo */}
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center">
+            <Wallet className="w-4 h-4 text-primary" />
           </div>
+          <div>
+            <div className="text-sm font-bold text-text-1">Költségradar</div>
+            <div className="text-xs text-text-muted">háztartási tervező</div>
+          </div>
+        </div>
 
-          <div className="flex items-center gap-2">
+        {/* Nav items */}
+        <nav className="flex flex-col gap-1 flex-1 overflow-y-auto">
+          {NAV_ITEMS.map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setTab(key)}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
+                tab === key
+                  ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
+                  : "text-text-2 hover:bg-surface-2 hover:text-text-1"
+              }`}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        {/* Sidebar footer */}
+        <div className="border-t border-border pt-3 mt-3 space-y-2">
+          <div className="flex items-center gap-1.5">
             <SmallButton variant="ghost" onClick={exportJson} title="Exportálás JSON-ba">
-              <Download className="w-3.5 h-3.5" /> Export
+              <Download className="w-3.5 h-3.5" />
             </SmallButton>
-            <SmallButton variant="ghost" onClick={() => fileInputRef.current?.click()} title="Importálás korábbi JSON mentésből">
-              <Upload className="w-3.5 h-3.5" /> Import
+            <SmallButton variant="ghost" onClick={() => fileInputRef.current?.click()} title="Importálás">
+              <Upload className="w-3.5 h-3.5" />
             </SmallButton>
             {isAdmin && (
               <SmallButton variant="danger" onClick={() => {
@@ -923,34 +960,57 @@ export default function App() {
                 Reset
               </SmallButton>
             )}
-            {user && <UserMenu email={user.email ?? ""} onLogout={handleLogout} />}
-            <input ref={fileInputRef} type="file" accept="application/json" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) importJson(f); e.target.value = ""; }} />
           </div>
-        </div>
-
-        {importError && (
-          <div className="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-100 flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 mt-0.5" />
-            <div className="flex-1">
-              {importError}
-              <button type="button" className="ml-3 underline decoration-rose-300/80 hover:decoration-rose-100" onClick={() => setImportError(null)}>Bezár</button>
+          {user && <UserMenu email={user.email ?? ""} onLogout={handleLogout} />}
+          {user && (
+            <div className="text-[10px] text-text-muted leading-tight">
+              {isProvisioning && "Household előkészítés..."}
+              {!isProvisioning && activeHouseholdId && !remoteReady && "Betöltés..."}
+              {!isProvisioning && activeHouseholdId && remoteReady && savingStatus === "saving" && "Mentés..."}
+              {!isProvisioning && activeHouseholdId && remoteReady && savingStatus === "idle" && !saveError && "Mentve ✓"}
+              {!isProvisioning && activeHouseholdId && remoteReady && savingStatus === "error" && (
+                <span className="text-[var(--color-negative)]">Mentési hiba</span>
+              )}
             </div>
+          )}
+        </div>
+      </aside>
+
+      {/* Main */}
+      <main className="min-h-screen flex flex-col">
+        {/* Sticky header */}
+        <header className="sticky top-0 z-20 border-b border-border bg-surface/90 backdrop-blur px-6 py-3 flex items-center justify-between">
+          <div>
+            <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5">
+              {TAB_META[tab].subtitle}
+            </div>
+            <h1 className="text-lg font-bold text-text-1">{TAB_META[tab].title}</h1>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <div className="flex lg:hidden items-center gap-1">
+              <SmallButton variant="ghost" onClick={exportJson} title="Exportálás">
+                <Download className="w-3.5 h-3.5" />
+              </SmallButton>
+              <SmallButton variant="ghost" onClick={() => fileInputRef.current?.click()} title="Importálás">
+                <Upload className="w-3.5 h-3.5" />
+              </SmallButton>
+            </div>
+            {user && <UserMenu email={user.email ?? ""} onLogout={handleLogout} />}
+          </div>
+        </header>
 
-        {/* Tabs – desktop */}
-        <nav className="mt-6 hidden md:flex gap-0.5 border-b border-border bg-surface px-2 sticky top-0 z-10 overflow-x-auto">
-          <TabButton active={tab === "dashboard"} onClick={() => setTab("dashboard")} icon={BarChart3}>Dashboard</TabButton>
-          <TabButton active={tab === "income"} onClick={() => setTab("income")} icon={TrendingUp}>Bevétel</TabButton>
-          <TabButton active={tab === "expense"} onClick={() => setTab("expense")} icon={TrendingDown}>Kiadás</TabButton>
-          <TabButton active={tab === "savings"} onClick={() => setTab("savings")} icon={PiggyBank}>Megtakarítás</TabButton>
-          <TabButton active={tab === "people"} onClick={() => setTab("people")} icon={Users}>Keresők & kategóriák</TabButton>
-          <TabButton active={tab === "settings"} onClick={() => setTab("settings")} icon={Settings2}>Beállítások</TabButton>
-        </nav>
+        {/* Page content */}
+        <div className="flex-1 px-4 lg:px-6 py-6 pb-20 lg:pb-6">
+          {importError && (
+            <div className="mb-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-100 flex items-start gap-2">
+              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <div className="flex-1">
+                {importError}
+                <button type="button" className="ml-3 underline decoration-rose-300/80 hover:decoration-rose-100" onClick={() => setImportError(null)}>Bezár</button>
+              </div>
+            </div>
+          )}
 
-        {/* Content */}
-        <div className="mt-6 pb-20 md:pb-0">
           {(isProvisioning || (!!activeHouseholdId && !remoteReady)) && (
             <div className="space-y-4">
               <div className="rounded-2xl bg-surface border border-border p-5 space-y-3">
@@ -974,6 +1034,7 @@ export default function App() {
               </div>
             </div>
           )}
+
           <AnimatePresence mode="wait">
             {tab === "dashboard" && (
               <motion.div key="dash" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
@@ -1040,35 +1101,21 @@ export default function App() {
             )}
           </AnimatePresence>
         </div>
+      </main>
 
-        <ChangelogModal open={isChangelogOpen} onClose={() => setIsChangelogOpen(false)} />
-
-        {/* Bottom nav – mobile only */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur border-t border-border flex justify-around px-1 py-1 z-50">
-          <MobileNavBtn active={tab === "dashboard"} icon={BarChart3} label="Dashboard" onClick={() => setTab("dashboard")} />
-          <MobileNavBtn active={tab === "income"} icon={TrendingUp} label="Bevétel" onClick={() => setTab("income")} />
-          <MobileNavBtn active={tab === "expense"} icon={TrendingDown} label="Kiadás" onClick={() => setTab("expense")} />
-          <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Megtakrítás" onClick={() => setTab("savings")} />
-          <MobileNavBtn active={tab === "people"} icon={Users} label="Kategóriák" onClick={() => setTab("people")} />
-          <MobileNavBtn active={tab === "settings"} icon={Settings2} label="Beállítások" onClick={() => setTab("settings")} />
-        </div>
-
-        {/* Footer */}
-        <div className="mt-10 text-[11px] text-text-muted space-y-1">
-          <div>Tipp: a fix tételeket a "Bevétel" és "Kiadás" füleken vedd fel, és állítsd be a start/end hónapot. Így a 2026-os bevételek/kiadások előre modellezhetők a dashboardon.</div>
-          {user && (
-            <div>
-              {isProvisioning && "Household előkészítés..."}
-              {!isProvisioning && activeHouseholdId && !remoteReady && "Betöltés Supabase-ből..."}
-              {!isProvisioning && activeHouseholdId && remoteReady && savingStatus === "saving" && "Mentés Supabase-be..."}
-              {!isProvisioning && activeHouseholdId && remoteReady && savingStatus === "idle" && !saveError && "Mentve Supabase-be."}
-              {!isProvisioning && activeHouseholdId && remoteReady && savingStatus === "error" && (
-                <span className="text-rose-300">Nem sikerült menteni Supabase-be – az adataid most csak a böngészőben vannak elmentve.</span>
-              )}
-            </div>
-          )}
-        </div>
+      {/* Bottom nav – mobile only */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur border-t border-border flex justify-around px-1 py-1 z-50">
+        <MobileNavBtn active={tab === "dashboard"} icon={BarChart3} label="Dashboard" onClick={() => setTab("dashboard")} />
+        <MobileNavBtn active={tab === "income"} icon={TrendingUp} label="Bevétel" onClick={() => setTab("income")} />
+        <MobileNavBtn active={tab === "expense"} icon={TrendingDown} label="Kiadás" onClick={() => setTab("expense")} />
+        <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Megtakarítás" onClick={() => setTab("savings")} />
+        <MobileNavBtn active={tab === "people"} icon={Users} label="Kategóriák" onClick={() => setTab("people")} />
+        <MobileNavBtn active={tab === "settings"} icon={Settings2} label="Beállítások" onClick={() => setTab("settings")} />
       </div>
+
+      <input ref={fileInputRef} type="file" accept="application/json" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) importJson(f); e.target.value = ""; }} />
+      <ChangelogModal open={isChangelogOpen} onClose={() => setIsChangelogOpen(false)} />
     </div>
   );
 }
