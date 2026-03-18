@@ -1041,7 +1041,8 @@ export default function App() {
                 <DashboardView monthList={monthList} focusMonth={focusMonth} setFocusMonth={setFocusMonth}
                   series={dashboardSeries} categoryBreakdown={categoryBreakdown}
                   incomeCategoryBreakdown={incomeCategoryBreakdown} peopleIncomePlanned={peopleIncomePlanned}
-                  currency={state.settings.currency} />
+                  currency={state.settings.currency}
+                  activeSavingsCount={state.savings.filter((s) => (s.targetAmount ?? 0) > 0 && s.startMonth).length} />
               </motion.div>
             )}
             {tab === "income" && (

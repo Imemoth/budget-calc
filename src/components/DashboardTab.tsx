@@ -27,6 +27,7 @@ export function DashboardView({
   categoryBreakdown,
   incomeCategoryBreakdown,
   peopleIncomePlanned,
+  activeSavingsCount = 0,
 }: {
   monthList: string[];
   focusMonth: string;
@@ -36,6 +37,7 @@ export function DashboardView({
   incomeCategoryBreakdown: { category: string; value: number }[];
   peopleIncomePlanned: { name: string; value: number }[];
   currency?: string;
+  activeSavingsCount?: number;
 }) {
   useTheme(); // subscribe to theme changes → triggers re-render → CSS vars re-read
   const c1 = readVar("--color-chart-1");
@@ -55,44 +57,48 @@ export function DashboardView({
   const totalExpense = categoryBreakdown.reduce((s, x) => s + (x.value || 0), 0);
   const totalIncome = incomeCategoryBreakdown.reduce((s, x) => s + (x.value || 0), 0);
 
+  const plannedNet = current?.plannedNet ?? 0;
+
   return (
     <div>
-      {/* ---- Hero summary card ---- */}
-      <div className="mb-4 rounded-2xl bg-emerald-950/20 border border-emerald-500/30 border-l-4 border-l-emerald-500 p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <div className="text-xs text-text-muted mb-1">Tervezett nettó · {focusMonth}</div>
-            <div className={`text-3xl font-bold tabular-nums ${(current?.plannedNet ?? 0) >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
-              {formatHuf(current?.plannedNet ?? 0)}
-            </div>
-          </div>
-          <div className="flex gap-6">
-            <div>
-              <div className="text-[11px] text-text-muted">Bevétel</div>
-              <div className="text-sm font-semibold text-emerald-400">{formatHuf(current?.plannedIncome ?? 0)}</div>
-            </div>
-            <div>
-              <div className="text-[11px] text-text-muted">Kiadás</div>
-              <div className="text-sm font-semibold text-red-400">{formatHuf(current?.plannedExpense ?? 0)}</div>
-            </div>
-            <div>
-              <div className="text-[11px] text-text-muted">Megtakarítás</div>
-              <div className="text-sm font-semibold text-amber-400">{formatHuf(current?.plannedSavings ?? 0)}</div>
-            </div>
-          </div>
+      {/* ---- 4 KPI kártya ---- */}
+      <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* Bevétel */}
+        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-positive)" }}>
+          <div className="text-xs text-text-muted mb-1">Fix bevétel / hó</div>
+          <div className="text-xl font-bold tabular-nums text-positive">{formatHuf(current?.plannedIncome ?? 0)}</div>
+          {(current?.actualIncome ?? 0) > 0 && (
+            <div className="text-xs text-text-muted mt-1">Tényleges: <span className="text-positive">{formatHuf(current!.actualIncome)}</span></div>
+          )}
         </div>
-        {(current?.actualIncome || current?.actualExpense) ? (
-          <div className="mt-3 pt-3 border-t border-emerald-500/20 flex flex-wrap gap-x-6 gap-y-1 text-xs text-text-muted">
-            <span>Tényleges bevétel: <span className="text-emerald-400">{formatHuf(current.actualIncome)}</span></span>
-            <span>Tényleges kiadás: <span className="text-red-400">{formatHuf(current.actualExpense)}</span></span>
-            <span>
-              Tényleges nettó:{" "}
-              <span className={`font-semibold ${current.actualNet >= 0 ? "text-emerald-300" : "text-rose-300"}`}>
-                {formatHuf(current.actualNet)}
-              </span>
-            </span>
+        {/* Kiadás */}
+        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-negative)" }}>
+          <div className="text-xs text-text-muted mb-1">Fix kiadás / hó</div>
+          <div className="text-xl font-bold tabular-nums text-negative">{formatHuf(current?.plannedExpense ?? 0)}</div>
+          {(current?.actualExpense ?? 0) > 0 && (
+            <div className="text-xs text-text-muted mt-1">Tényleges: <span className="text-negative">{formatHuf(current!.actualExpense)}</span></div>
+          )}
+        </div>
+        {/* Nettó */}
+        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: plannedNet >= 0 ? "var(--color-positive)" : "var(--color-negative)" }}>
+          <div className="text-xs text-text-muted mb-1">Várható nettó · {focusMonth}</div>
+          <div className={`text-xl font-bold tabular-nums ${plannedNet >= 0 ? "text-positive" : "text-negative"}`}>
+            {formatHuf(plannedNet)}
           </div>
-        ) : null}
+          {(current?.actualIncome || current?.actualExpense) ? (
+            <div className={`text-xs mt-1 ${(current?.actualNet ?? 0) >= 0 ? "text-positive" : "text-negative"}`}>
+              Tényleges: {formatHuf(current?.actualNet ?? 0)}
+            </div>
+          ) : null}
+        </div>
+        {/* Megtakarítás */}
+        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-warning)" }}>
+          <div className="text-xs text-text-muted mb-1">Megtakarítás / hó</div>
+          <div className="text-xl font-bold tabular-nums text-warning">{formatHuf(current?.plannedSavings ?? 0)}</div>
+          {activeSavingsCount > 0 && (
+            <div className="text-xs text-text-muted mt-1">{activeSavingsCount} aktív keret</div>
+          )}
+        </div>
       </div>
 
       {/* ---- Charts + sidebar grid ---- */}
@@ -237,8 +243,11 @@ export function DashboardView({
                 <div className="mt-4 space-y-3">
                   {peopleIncomePlanned.map((p, i) => (
                     <div key={i} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs text-text-2">
-                        <span className="truncate mr-2">{p.name}</span>
+                      <div className="flex items-center gap-2 text-xs text-text-2">
+                        <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold shrink-0 uppercase">
+                          {(p.name || "?")[0]}
+                        </span>
+                        <span className="flex-1 truncate">{p.name}</span>
                         <span className="text-text-1 shrink-0 tabular-nums">{formatHuf(p.value)}</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden">

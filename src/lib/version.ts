@@ -3,9 +3,19 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.32";
+export const APP_VERSION = "0.5.33";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.33": {
+    date: "2026-03-18",
+    changes: [
+      "FÁZIS 5 — DashboardTab: hero kártya → 4 KPI kártya grid (2×2 mobilon, 1×4 desktopron).",
+      "DashboardTab KPI kártyák: fix bevétel/kiadás/nettó/megtakarítás — CSS var border-l-4 accent, tényleges másodlagos sor.",
+      "DashboardTab: Személyek szekció avatar initial (rounded-full bg-primary/20 text-primary).",
+      "DashboardTab: activeSavingsCount prop App.tsx-ből átadva (aktív keretek száma).",
+      "Hardcoded emerald-950/emerald-500/rose-300/red-400/amber-400 → CSS vars (text-positive, text-negative, text-warning).",
+    ],
+  },
   "0.5.32": {
     date: "2026-03-18",
     changes: [
