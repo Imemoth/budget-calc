@@ -3,9 +3,19 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.30";
+export const APP_VERSION = "0.5.31";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.31": {
+    date: "2026-03-18",
+    changes: [
+      "FÁZIS 3 — MoneyTab hero kártya: CSS var alapú border-l accent, 3-stat grid (aktív fix/hó + tényleges + draft count).",
+      "MoneyTab PlannedSection: Mind/Aktív/Draft szűrő tab bar (pill-style bg-surface-2 rounded-xl).",
+      "Draft tételek: border-warning/30 bg-warning/5 opacity-80 + 'Nem számít be' badge.",
+      "Aktív/Draft info box: border-l-4 border-l-warning magyarázó szöveg.",
+      "Hardcoded emerald/rose színek → CSS var (text-positive, text-negative, var(--color-positive/negative)).",
+    ],
+  },
   "0.5.30": {
     date: "2026-03-18",
     changes: [

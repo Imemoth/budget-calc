@@ -49,40 +49,42 @@ export function MoneyTab({
   const diff = actualTotal - plannedTotal;
   const isIncome = type === "income";
   const diffGood = isIncome ? diff >= 0 : diff <= 0;
+  const accentColor = isIncome ? "var(--color-positive)" : "var(--color-negative)";
+  const draftCount = recurringItems.filter((r) => !r.enabled).length;
 
   return (
     <div className="space-y-4">
       {/* Hero summary */}
-      <div className={
-        "rounded-2xl border border-l-4 p-5 " +
-        (isIncome
-          ? "bg-emerald-950/20 border-emerald-500/30 border-l-emerald-500"
-          : "bg-rose-950/20 border-rose-500/30 border-l-rose-500")
-      }>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div
+        className="rounded-2xl border border-border p-5"
+        style={{ borderLeftWidth: 4, borderLeftColor: accentColor }}
+      >
+        <p className="text-xs text-text-muted uppercase tracking-wide mb-3">
+          {isIncome ? "Bevételek" : "Kiadások"}
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div>
             <div className="text-xs text-text-muted mb-1">
-              {isIncome ? "Tervezett havi bevétel" : "Tervezett havi kiadás"}
+              {isIncome ? "Aktív fix / hó" : "Aktív fix kiadás / hó"}
             </div>
-            <div className={`text-3xl font-bold tabular-nums ${isIncome ? "text-emerald-300" : "text-rose-300"}`}>
+            <div className="text-2xl font-bold tabular-nums" style={{ color: accentColor }}>
               {formatHuf(plannedTotal)}
             </div>
           </div>
-          <div className="flex gap-6">
-            <div>
-              <div className="text-[11px] text-text-muted">Tényleges összesen</div>
-              <div className={`text-sm font-semibold tabular-nums ${isIncome ? "text-emerald-400" : "text-red-400"}`}>
-                {formatHuf(actualTotal)}
-              </div>
+          <div>
+            <div className="text-xs text-text-muted mb-1">Tényleges összesen</div>
+            <div className="text-xl font-semibold tabular-nums" style={{ color: accentColor }}>
+              {formatHuf(actualTotal)}
             </div>
             {actualTotal > 0 && (
-              <div>
-                <div className="text-[11px] text-text-muted">Különbség</div>
-                <div className={`text-sm font-semibold tabular-nums ${diffGood ? "text-emerald-300" : "text-rose-300"}`}>
-                  {diff >= 0 ? "+" : ""}{formatHuf(diff)}
-                </div>
+              <div className={`text-xs tabular-nums mt-0.5 ${diffGood ? "text-positive" : "text-negative"}`}>
+                {diff >= 0 ? "+" : ""}{formatHuf(diff)}
               </div>
             )}
+          </div>
+          <div>
+            <div className="text-xs text-text-muted mb-1">Draft tételek</div>
+            <div className="text-xl font-semibold text-warning tabular-nums">{draftCount} db</div>
           </div>
         </div>
       </div>
@@ -137,6 +139,7 @@ function PlannedSection({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [yearQuick, setYearQuick] = useState<number>(2026);
   const [previewMonth, setPreviewMonth] = useState(state.settings.startMonth || monthKey(new Date()));
+  const [recurringFilter, setRecurringFilter] = useState<"all" | "active" | "draft">("all");
 
   const cats = state.categories.filter((c) => c.type === type);
 
@@ -181,7 +184,7 @@ function PlannedSection({
         <div className="flex flex-col md:items-end gap-2">
           <div className="text-sm text-text-1">
             <span className="text-text-muted">Aktív összesen / hó:</span>{" "}
-            <span className={type === "income" ? "text-emerald-300" : "text-rose-300"}>
+            <span className={type === "income" ? "text-positive" : "text-negative"}>
               {formatHuf(summary.total)}
             </span>
           </div>
@@ -198,6 +201,33 @@ function PlannedSection({
             </div>
           )}
         </div>
+      </div>
+
+      {/* Filter tab bar */}
+      <div className="mt-4 flex bg-surface-2 rounded-xl p-1 gap-1 w-fit">
+        {(["all", "active", "draft"] as const).map((f) => (
+          <button
+            key={f}
+            type="button"
+            onClick={() => setRecurringFilter(f)}
+            className={
+              "px-3 py-1 rounded-lg text-xs font-medium transition-colors " +
+              (recurringFilter === f
+                ? "bg-surface text-text-1 shadow-sm"
+                : "text-text-2 hover:text-text-1")
+            }
+          >
+            {f === "all" ? "Mind" : f === "active" ? "Aktív" : "Draft"}
+          </button>
+        ))}
+      </div>
+
+      {/* Active/Draft info box */}
+      <div className="mt-3 rounded-xl border border-warning/30 border-l-4 border-l-warning bg-warning/5 p-3">
+        <p className="text-xs text-text-2">
+          <strong className="text-text-1">Aktív</strong> — beleszámít a havi tervbe, tranzakciót generálhat.{" "}
+          <strong className="text-text-1">Draft</strong> — mentve van, de nem hat az egyenlegre.
+        </p>
       </div>
 
       {!isOpen ? (
@@ -241,30 +271,53 @@ function PlannedSection({
             {type === "income" ? "Új fix bevétel" : "Új fix kiadás"}
           </button>
 
-          {items.length === 0 ? (
-            <div className="mt-2 text-sm text-text-muted">Még nincs itt semmi.</div>
-          ) : (
+          {(() => {
+            const visibleItems = items.filter((r) =>
+              recurringFilter === "all" ? true : recurringFilter === "active" ? r.enabled : !r.enabled
+            );
+            return visibleItems.length === 0 ? (
+              <div className="mt-2 text-sm text-text-muted">
+                {items.length === 0 ? "Még nincs itt semmi." : "Nincs találat a szűrőre."}
+              </div>
+            ) : (
             <div className="mt-4 space-y-2">
-              {items.map((r) => {
+              {visibleItems.map((r) => {
                 const isExpanded = expandedId === r.id;
+                const isDraft = !r.enabled;
                 const catName = state.categories.find((c) => c.id === r.categoryId)?.name;
                 const cadenceLabel = r.cadence === "quarterly" ? "Negyedéves" : r.cadence === "yearly" ? "Éves" : "Havi";
                 return (
-                  <div key={r.id} className="rounded-xl border border-border bg-surface-2 overflow-hidden">
+                  <div
+                    key={r.id}
+                    className={
+                      "rounded-xl border overflow-hidden transition-opacity " +
+                      (isDraft
+                        ? "border-warning/30 bg-warning/5 opacity-80"
+                        : "border-border bg-surface-2")
+                    }
+                  >
                     {/* Collapsed header — always visible */}
                     <button
                       type="button"
                       onClick={() => setExpandedId(isExpanded ? null : r.id)}
-                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface transition-colors"
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-surface/50 transition-colors"
                     >
-                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${r.enabled ? (type === "income" ? "bg-emerald-400" : "bg-rose-400") : "bg-border"}`} />
+                      <span
+                        className="w-2.5 h-2.5 rounded-full shrink-0"
+                        style={{ backgroundColor: isDraft ? "var(--color-warning)" : (type === "income" ? "var(--color-positive)" : "var(--color-negative)") }}
+                      />
                       <div className="flex-1 min-w-0">
                         <div className="text-sm font-medium text-text-1 truncate">{r.name || "(névtelen)"}</div>
                         <div className="text-xs text-text-muted truncate">
-                          {cadenceLabel}{catName ? ` · ${catName}` : ""}{!r.enabled ? " · inaktív" : ""}
+                          {cadenceLabel}{catName ? ` · ${catName}` : ""}
                         </div>
                       </div>
-                      <span className={`text-sm font-semibold tabular-nums shrink-0 ${type === "income" ? "text-emerald-300" : "text-rose-300"}`}>
+                      {isDraft && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full border border-warning/40 text-warning shrink-0">
+                          Nem számít be
+                        </span>
+                      )}
+                      <span className="text-sm font-semibold tabular-nums shrink-0 text-text-2">
                         {formatHuf(r.amount ?? 0)}
                       </span>
                       <ChevronDown className={`w-4 h-4 text-text-muted shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
@@ -406,7 +459,8 @@ function PlannedSection({
                 );
               })}
             </div>
-          )}
+            );
+          })()}
         </>
       )}
     </Card>
