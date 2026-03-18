@@ -3,9 +3,17 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.33";
+export const APP_VERSION = "0.5.34";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.34": {
+    date: "2026-03-18",
+    changes: [
+      "MoneyTab: expanded form mezők hierarchia — primary (Megnevezés+Összeg text-base font-medium, grid-cols-[1fr_140px]) vs secondary (border-t elválasztó, 2×3 compact grid, Megjegyzés col-span-2).",
+      "MoneyTab: actions sor border-t elválasztóval (ConfirmDelete bal + Rögzít jobb).",
+      "ui.tsx Input + Select: min-h-11 (44px) touch target mobil kompatibilitáshoz.",
+    ],
+  },
   "0.5.33": {
     date: "2026-03-18",
     changes: [

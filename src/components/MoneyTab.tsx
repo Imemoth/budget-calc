@@ -325,14 +325,14 @@ function PlannedSection({
 
                     {/* Expanded form */}
                     {isExpanded && (
-                      <div className="border-t border-border p-4 space-y-4">
-                        {/* Primary: name + amount */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="border-t border-border p-4">
+                        {/* PRIMARY — Megnevezés + Összeg */}
+                        <div className="grid grid-cols-[1fr_140px] gap-3 mb-5">
                           <Field label="Megnevezés">
                             <Input
                               value={r.name || ""}
                               onChange={(e) => updateRecurring(r.id, { name: e.target.value })}
-                              className="w-full"
+                              className="w-full text-base font-medium"
                             />
                           </Field>
                           <Field label="Összeg / hó">
@@ -342,13 +342,13 @@ function PlannedSection({
                               onChange={(e) =>
                                 updateRecurring(r.id, { amount: parseNumberInput(e.target.value) })
                               }
-                              className="w-full"
+                              className="w-full text-base font-semibold text-right"
                             />
                           </Field>
                         </div>
 
-                        {/* Secondary: category, person, frequency, dates */}
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {/* SECONDARY — részletek */}
+                        <div className="border-t border-border pt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
                           <Field label="Kategória">
                             <CategorySelect
                               value={r.categoryId || ""}
@@ -369,6 +369,16 @@ function PlannedSection({
                               ))}
                             </Select>
                           </Field>
+                          <Field label="Aktív">
+                            <Select
+                              value={r.enabled ? "yes" : "no"}
+                              onChange={(e) => updateRecurring(r.id, { enabled: e.target.value === "yes" })}
+                              className="w-full"
+                            >
+                              <option value="yes">Igen</option>
+                              <option value="no">Nem</option>
+                            </Select>
+                          </Field>
                           <Field label="Gyakoriság">
                             <Select
                               value={r.cadence}
@@ -382,7 +392,7 @@ function PlannedSection({
                               <option value="yearly">Éves</option>
                             </Select>
                           </Field>
-                          <Field label="Kezdő hónap" hint="YYYY-MM">
+                          <Field label="Kezdő hónap">
                             <Input
                               type="month"
                               value={r.startMonth || ""}
@@ -392,7 +402,7 @@ function PlannedSection({
                               className="w-full"
                             />
                           </Field>
-                          <Field label="Záró hónap" hint="üres = nincs vége">
+                          <Field label="Záró hónap">
                             <Input
                               type="month"
                               value={r.endMonth || ""}
@@ -418,31 +428,19 @@ function PlannedSection({
                               {dueDateForMonth(previewMonth, r.dayOfMonth ?? 5)}
                             </div>
                           </Field>
+                          <div className="col-span-2">
+                            <Field label="Megjegyzés">
+                              <Input
+                                value={r.notes || ""}
+                                onChange={(e) => updateRecurring(r.id, { notes: e.target.value })}
+                                className="w-full"
+                              />
+                            </Field>
+                          </div>
                         </div>
 
-                        {/* Tertiary: notes + enabled */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <Field label="Megjegyzés">
-                            <Input
-                              value={r.notes || ""}
-                              onChange={(e) => updateRecurring(r.id, { notes: e.target.value })}
-                              className="w-full"
-                            />
-                          </Field>
-                          <Field label="Aktív">
-                            <Select
-                              value={r.enabled ? "yes" : "no"}
-                              onChange={(e) => updateRecurring(r.id, { enabled: e.target.value === "yes" })}
-                              className="w-full"
-                            >
-                              <option value="yes">Igen</option>
-                              <option value="no">Nem</option>
-                            </Select>
-                          </Field>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center justify-between gap-2 pt-1">
+                        {/* ACTIONS */}
+                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
                           <ConfirmDelete onConfirm={() => removeRecurring(r.id)} />
                           <SmallButton
                             variant="primary"
