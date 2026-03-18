@@ -3,9 +3,19 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.31";
+export const APP_VERSION = "0.5.32";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.32": {
+    date: "2026-03-18",
+    changes: [
+      "FÁZIS 4 — SavingsTab hero kártya: CSS var alapú border-l-warning, 3-stat grid + összesített progress bar.",
+      "SavingsTab: összegyűjtött összeg (accumulated total) a hero kártyán.",
+      "SavingsTab: 2 oszlopos goal kártya grid (sm:grid-cols-2).",
+      "SavingsTab: Aktív/Draft badge és border-l-positive/warning minden goal kártyán.",
+      "SavingsTab: Draft figyelmeztetés (célösszeg vagy kezdő hónap hiányzik).",
+    ],
+  },
   "0.5.31": {
     date: "2026-03-18",
     changes: [

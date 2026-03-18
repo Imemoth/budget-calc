@@ -51,37 +51,52 @@ export function SavingsView({
   const hero = useMemo(() => {
     const totalTarget = state.savings.reduce((s, b) => s + (b.targetAmount ?? 0), 0);
     const totalMonthly = state.savings.reduce((s, b) => s + (b.monthlyPlanned ?? 0), 0);
-    const activeCount = state.savings.length;
-    return { totalTarget, totalMonthly, activeCount };
+    const activeCount = state.savings.filter((b) => b.targetAmount > 0 && b.startMonth).length;
+    const totalAccumulated = state.savings.reduce((sum, b) => {
+      const prog = calcProgress(b);
+      return sum + (prog?.accumulated ?? 0);
+    }, 0);
+    const heroPct = totalTarget > 0 ? Math.min(100, Math.round((totalAccumulated / totalTarget) * 100)) : 0;
+    return { totalTarget, totalMonthly, activeCount, totalAccumulated, heroPct };
   }, [state.savings]);
 
   return (
     <div className="space-y-4">
       {/* Hero kártya */}
-      <div className="rounded-2xl border border-amber-500/30 border-l-4 border-l-amber-500 bg-amber-950/20 p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="rounded-2xl border border-border p-5" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-warning)" }}>
+        <p className="text-xs text-text-muted uppercase tracking-wide mb-3">Megtakarítások</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
           <div>
-            <div className="text-xs text-text-muted mb-1">Összes megtakarítási cél</div>
-            <div className="text-3xl font-bold tabular-nums text-amber-300">
-              {formatHuf(hero.totalTarget)}
-            </div>
+            <div className="text-xs text-text-muted mb-1">Összes célösszeg</div>
+            <div className="text-2xl font-bold tabular-nums text-warning">{formatHuf(hero.totalTarget)}</div>
           </div>
-          <div className="flex gap-6">
-            <div>
-              <div className="text-[11px] text-text-muted">Havi terv összesen</div>
-              <div className="text-sm font-semibold tabular-nums text-amber-400">
-                {formatHuf(hero.totalMonthly)}
-              </div>
-            </div>
-            <div>
-              <div className="text-[11px] text-text-muted">Aktív keretek</div>
-              <div className="text-sm font-semibold text-text-1">{hero.activeCount} db</div>
-            </div>
+          <div>
+            <div className="text-xs text-text-muted mb-1">Összegyűjtve</div>
+            <div className="text-xl font-semibold tabular-nums text-positive">{formatHuf(hero.totalAccumulated)}</div>
+          </div>
+          <div>
+            <div className="text-xs text-text-muted mb-1">Havi terv / aktív keretek</div>
+            <div className="text-xl font-semibold tabular-nums text-text-1">{formatHuf(hero.totalMonthly)}</div>
+            <div className="text-xs text-text-muted">{hero.activeCount} aktív keret</div>
           </div>
         </div>
+        {hero.totalTarget > 0 && (
+          <div>
+            <div className="flex justify-between text-xs text-text-muted mb-1">
+              <span>Összesített haladás</span>
+              <span className="text-text-1 font-medium">{hero.heroPct}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-surface-2 overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-700"
+                style={{ width: `${hero.heroPct}%`, backgroundColor: "var(--color-positive)" }}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {state.savings.length === 0 ? (
           <Card className="p-6">
             <div className="text-sm text-text-muted">Még nincs megtakarítási keret.</div>
@@ -89,6 +104,7 @@ export function SavingsView({
         ) : (
           state.savings.map((s) => {
             const prog = calcProgress(s);
+            const isActive = (s.targetAmount ?? 0) > 0 && !!s.startMonth;
             const statusColor = !prog ? "var(--color-primary)"
               : prog.pct >= 100 ? "var(--color-positive)"
               : (prog.monthsLeft === 0 && prog.pct < 100) ? "var(--color-negative)"
@@ -100,7 +116,25 @@ export function SavingsView({
               : prog.pct < 40 ? "text-warning"
               : "text-text-2";
             return (
-              <Card key={s.id} className="p-4">
+              <div
+                key={s.id}
+                className="rounded-2xl bg-surface border border-border shadow-sm p-4 border-l-4"
+                style={{ borderLeftColor: isActive ? "var(--color-positive)" : "var(--color-warning)" }}
+              >
+                {/* Status badge */}
+                <div className="flex items-center justify-between mb-3">
+                  <span className={
+                    "text-[10px] px-2 py-0.5 rounded-full font-medium " +
+                    (isActive
+                      ? "bg-positive/10 text-positive border border-positive/20"
+                      : "bg-warning/10 text-warning border border-warning/20")
+                  }>
+                    {isActive ? "Aktív" : "Draft"}
+                  </span>
+                  {!isActive && (
+                    <span className="text-[10px] text-text-muted">Célösszeg vagy kezdő hónap hiányzik</span>
+                  )}
+                </div>
                 {/* ---- Progress summary ---- */}
                 {prog && (
                   <div className="mb-4 pb-4 border-b border-border">
@@ -220,7 +254,7 @@ export function SavingsView({
                     <ConfirmDelete onConfirm={() => removeSavings(s.id)} />
                   </div>
                 </div>
-              </Card>
+              </div>
             );
           })
         )}
