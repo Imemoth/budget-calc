@@ -3,9 +3,21 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.29";
+export const APP_VERSION = "0.5.30";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.30": {
+    date: "2026-03-18",
+    changes: [
+      "FÁZIS 2 — PeopleTab 3-column board layout (260px személylista | flex közép | 300px inspector).",
+      "PersonCard: accent avatar initial, bevétel/kiadás badge-ek, mini stat grid, aktív outline.",
+      "PersonDetailHeader: nagy avatar + név Input + ConfirmDelete + 3 stat kártya (bevétel/kiadás/nettó).",
+      "RecurringItemList: pill-style belső tab bar (Fix bevételek / Fix kiadások) + kattintható tétel kártyák.",
+      "InspectorPanel: label-érték párok + draft figyelmeztetés + MoneyTab navigáció CTA.",
+      "Draft tételek: border-warning/30 bg-warning/5 opacity-80 vizuális megkülönböztetés.",
+      "Dashed CTA gomb: 'Szerkesztés a Bevétel/Kiadás fülön' navigációval.",
+    ],
+  },
   "0.5.29": {
     date: "2026-03-18",
     changes: [
