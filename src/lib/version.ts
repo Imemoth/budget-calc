@@ -3,9 +3,106 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.25";
+export const APP_VERSION = "0.5.35";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.35": {
+    date: "2026-03-18",
+    changes: [
+      "PeopleTab: RecurringModal — inline modal tétel létrehozáshoz/szerkesztéshez.",
+      "PeopleTab '+' CTA: addRecurringFull → modal nyílik (personId előtöltve), nem navigál a MoneyTab-ra.",
+      "PeopleTab Inspector 'Szerkesztés': modal nyílik a kiválasztott tétellel (nem navigál).",
+      "App.tsx: addRecurringFull(patch) — visszaadja az új tétel ID-ját, personId előtölthető.",
+    ],
+  },
+  "0.5.34": {
+    date: "2026-03-18",
+    changes: [
+      "MoneyTab: expanded form mezők hierarchia — primary (Megnevezés+Összeg text-base font-medium, grid-cols-[1fr_140px]) vs secondary (border-t elválasztó, 2×3 compact grid, Megjegyzés col-span-2).",
+      "MoneyTab: actions sor border-t elválasztóval (ConfirmDelete bal + Rögzít jobb).",
+      "ui.tsx Input + Select: min-h-11 (44px) touch target mobil kompatibilitáshoz.",
+    ],
+  },
+  "0.5.33": {
+    date: "2026-03-18",
+    changes: [
+      "FÁZIS 5 — DashboardTab: hero kártya → 4 KPI kártya grid (2×2 mobilon, 1×4 desktopron).",
+      "DashboardTab KPI kártyák: fix bevétel/kiadás/nettó/megtakarítás — CSS var border-l-4 accent, tényleges másodlagos sor.",
+      "DashboardTab: Személyek szekció avatar initial (rounded-full bg-primary/20 text-primary).",
+      "DashboardTab: activeSavingsCount prop App.tsx-ből átadva (aktív keretek száma).",
+      "Hardcoded emerald-950/emerald-500/rose-300/red-400/amber-400 → CSS vars (text-positive, text-negative, text-warning).",
+    ],
+  },
+  "0.5.32": {
+    date: "2026-03-18",
+    changes: [
+      "FÁZIS 4 — SavingsTab hero kártya: CSS var alapú border-l-warning, 3-stat grid + összesített progress bar.",
+      "SavingsTab: összegyűjtött összeg (accumulated total) a hero kártyán.",
+      "SavingsTab: 2 oszlopos goal kártya grid (sm:grid-cols-2).",
+      "SavingsTab: Aktív/Draft badge és border-l-positive/warning minden goal kártyán.",
+      "SavingsTab: Draft figyelmeztetés (célösszeg vagy kezdő hónap hiányzik).",
+    ],
+  },
+  "0.5.31": {
+    date: "2026-03-18",
+    changes: [
+      "FÁZIS 3 — MoneyTab hero kártya: CSS var alapú border-l accent, 3-stat grid (aktív fix/hó + tényleges + draft count).",
+      "MoneyTab PlannedSection: Mind/Aktív/Draft szűrő tab bar (pill-style bg-surface-2 rounded-xl).",
+      "Draft tételek: border-warning/30 bg-warning/5 opacity-80 + 'Nem számít be' badge.",
+      "Aktív/Draft info box: border-l-4 border-l-warning magyarázó szöveg.",
+      "Hardcoded emerald/rose színek → CSS var (text-positive, text-negative, var(--color-positive/negative)).",
+    ],
+  },
+  "0.5.30": {
+    date: "2026-03-18",
+    changes: [
+      "FÁZIS 2 — PeopleTab 3-column board layout (260px személylista | flex közép | 300px inspector).",
+      "PersonCard: accent avatar initial, bevétel/kiadás badge-ek, mini stat grid, aktív outline.",
+      "PersonDetailHeader: nagy avatar + név Input + ConfirmDelete + 3 stat kártya (bevétel/kiadás/nettó).",
+      "RecurringItemList: pill-style belső tab bar (Fix bevételek / Fix kiadások) + kattintható tétel kártyák.",
+      "InspectorPanel: label-érték párok + draft figyelmeztetés + MoneyTab navigáció CTA.",
+      "Draft tételek: border-warning/30 bg-warning/5 opacity-80 vizuális megkülönböztetés.",
+      "Dashed CTA gomb: 'Szerkesztés a Bevétel/Kiadás fülön' navigációval.",
+    ],
+  },
+  "0.5.29": {
+    date: "2026-03-18",
+    changes: [
+      "FÁZIS 0 — Desktop sidebar layout: App.tsx top tab bar → lg:grid-cols-[220px_1fr] sidebar + main.",
+      "Sidebar: Kostségradar logo + nav itemek aktív stílussal (bg-primary/12 + outline), inaktív hover:bg-surface-2.",
+      "Sidebar footer: export/import gombok + UserMenu + mentési státusz.",
+      "Sticky header a main-ben: tab cím + alcím + UserMenu avatar.",
+      "Mobil: bottom tab bar változatlan (lg:hidden), export/import a header-ben megjelenik mobilon.",
+    ],
+  },
+  "0.5.28": {
+    date: "2026-03-12",
+    changes: [
+      "SmallButton: új 'primary' variant (bg-primary/10 text-primary hover:bg-primary/20).",
+      "MoneyTab: 'Rögzít' gomb solid → primary variant (tonal kiemelés).",
+      "RingProgress: color prop hozzáadva, CSS var alapú alapszín (var(--color-primary)).",
+      "SavingsTab: cirkuláris progress + bar color-coded állapot (done=positive, missed=negative, alacsony=warning).",
+    ],
+  },
+  "0.5.27": {
+    date: "2026-03-12",
+    changes: [
+      "DashboardTab PR 3: pie chart-ok eltávolítva, helyettük ranked progress bar listák (kiadás + bevétel kategória bontás).",
+      "DashboardTab: Keresők szerinti bevétel bar chart → ranked progress bar lista (CSS var szín).",
+      "DashboardTab: 'Legutolsó hónap' kártya eltávolítva (duplikált info a hero kártyán).",
+      "DashboardTab: Bar chart 3 sorozat → 2 (plannedIncome + plannedExpense, actualNet eltávolítva).",
+    ],
+  },
+  "0.5.26": {
+    date: "2026-03-12",
+    changes: [
+      "PeopleTab PR 2: per-person collapsed kártyák (avatar initial + név + bevétel/kiadás összefoglaló + chevron).",
+      "PeopleTab: emerald hero kártya (tervezett havi bevétel + személyek száma).",
+      "PeopleTab: dashed CTA 'Új kereső hozzáadása' gomb.",
+      "PeopleTab: '+ Fix bevétel' / '+ Fix kiadás' navigációs gombok expanded kártyán.",
+      "CategorySection: érintetlen maradt.",
+    ],
+  },
   "0.5.25": {
     date: "2026-03-12",
     changes: [
