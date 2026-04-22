@@ -211,6 +211,7 @@ function useUserLocalState(
   const [state, setState] = useState<State>(load);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setState(load());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
@@ -286,7 +287,7 @@ async function ensureDefaultHousehold(userId: string, userEmail?: string | null)
   if (userEmail) {
     await supabase
       .from("household_members")
-      .update({ email: userEmail } as Record<string, unknown>)
+      .update({ email: userEmail })
       .eq("household_id", householdId!)
       .eq("user_id", userId)
       .is("email", null);
@@ -430,6 +431,7 @@ export default function App() {
   // 1) Provisioning
   useEffect(() => {
     const userId = user?.id;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!userId) { setActiveHouseholdId(null); setRemoteReady(false); setRemoteLoadSuccess(false); setSavingStatus("idle"); setSaveError(null); setHouseholdMembers([]); return; }
     let cancelled = false;
     (async () => {
@@ -464,7 +466,9 @@ export default function App() {
   useEffect(() => {
     if (!activeHouseholdId) return;
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRemoteReady(false);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRemoteLoadSuccess(false);
     (async () => {
       try {
@@ -520,16 +524,22 @@ export default function App() {
   }, [state, activeHouseholdId, remoteReady, remoteLoadSuccess]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setSavingStatus("idle"); setSaveError(null); setRemoteReady(false); setRemoteLoadSuccess(false); setActiveHouseholdId(null); }
   }, [user]);
 
   useEffect(() => {
     try { localStorage.setItem("household-budget-planner-tab", tab); } catch { /* ignore */ }
-    if (tab === "income" || tab === "expense") {
-      setTransactionsOpen(true);
-      setLastMoneyTab(tab);
-    }
   }, [tab]);
+
+  // Navigáló wrapper: localStorage persist + transactions csoport auto-expand
+  const handleNavigate = (newTab: TabKey) => {
+    if (newTab === "income" || newTab === "expense") {
+      setTransactionsOpen(true);
+      setLastMoneyTab(newTab);
+    }
+    setTab(newTab);
+  };
 
   // Computed data
   const plannedByMonth = useMemo(() => {
@@ -592,6 +602,7 @@ export default function App() {
     if (!monthList.length) return;
     if (!focusMonth || !monthList.includes(focusMonth)) {
       const now = monthKey(new Date());
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFocusMonth(monthList.includes(now) ? now : monthList[0]);
     }
   }, [monthList, focusMonth]);
@@ -922,7 +933,7 @@ export default function App() {
           {/* Dashboard */}
           <button
             type="button"
-            onClick={() => setTab("dashboard")}
+            onClick={() => handleNavigate("dashboard")}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
               tab === "dashboard"
                 ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
@@ -954,7 +965,7 @@ export default function App() {
               <div className="mt-0.5 ml-3 pl-3 border-l border-border space-y-0.5">
                 <button
                   type="button"
-                  onClick={() => setTab("income")}
+                  onClick={() => handleNavigate("income")}
                   className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-sm transition-all text-left ${
                     tab === "income"
                       ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
@@ -966,7 +977,7 @@ export default function App() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setTab("expense")}
+                  onClick={() => handleNavigate("expense")}
                   className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-sm transition-all text-left ${
                     tab === "expense"
                       ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
@@ -985,7 +996,7 @@ export default function App() {
             <button
               key={key}
               type="button"
-              onClick={() => setTab(key)}
+              onClick={() => handleNavigate(key)}
               className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
                 tab === key
                   ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
@@ -1127,7 +1138,7 @@ export default function App() {
             {tab === "people" && (
               <motion.div key="people" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
                 <PeopleCategoriesView state={state} addPerson={addPerson} updatePerson={updatePerson} removePerson={removePerson}
-                  onNavigate={setTab}
+                  onNavigate={handleNavigate}
                   addRecurringFull={addRecurringFull} updateRecurring={updateRecurring} removeRecurring={removeRecurring}
                   addTransactionFull={addTransactionFull} updateTransaction={updateTransaction} removeTransaction={removeTransaction} />
               </motion.div>
@@ -1167,11 +1178,11 @@ export default function App() {
 
       {/* Bottom nav – mobile only */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur border-t border-border flex justify-around px-1 py-1 z-50">
-        <MobileNavBtn active={tab === "dashboard"} icon={BarChart3} label="Dashboard" onClick={() => setTab("dashboard")} />
-        <MobileNavBtn active={tab === "income" || tab === "expense"} icon={Receipt} label="Tranzakciók" onClick={() => setTab(lastMoneyTab)} />
-        <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Megtakarítás" onClick={() => setTab("savings")} />
-        <MobileNavBtn active={tab === "people"} icon={Users} label="Személyek" onClick={() => setTab("people")} />
-        <MobileNavBtn active={tab === "settings"} icon={Settings2} label="Beállítások" onClick={() => setTab("settings")} />
+        <MobileNavBtn active={tab === "dashboard"} icon={BarChart3} label="Dashboard" onClick={() => handleNavigate("dashboard")} />
+        <MobileNavBtn active={tab === "income" || tab === "expense"} icon={Receipt} label="Tranzakciók" onClick={() => handleNavigate(lastMoneyTab)} />
+        <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Megtakarítás" onClick={() => handleNavigate("savings")} />
+        <MobileNavBtn active={tab === "people"} icon={Users} label="Személyek" onClick={() => handleNavigate("people")} />
+        <MobileNavBtn active={tab === "settings"} icon={Settings2} label="Beállítások" onClick={() => handleNavigate("settings")} />
       </div>
 
       <input ref={fileInputRef} type="file" accept="application/json" className="hidden"
