@@ -53,10 +53,24 @@ html:is([data-theme="light"],[data-theme="trust-blue"],[data-theme="teal-slate"]
 html:is([data-theme="light"],[data-theme="trust-blue"],[data-theme="teal-slate"]) .placeholder\:text-white\/30::placeholder { color: rgb(15 23 42 / 0.4); }
 html:is([data-theme="light"],[data-theme="trust-blue"],[data-theme="teal-slate"]) .focus\:ring-white\/10:focus { --tw-ring-color: rgb(0 0 0 / 0.1); }
 
-html:is([data-theme="light"],[data-theme="trust-blue"],[data-theme="teal-slate"]) option {
+html:is([data-theme="light"],[data-theme="trust-blue"],[data-theme="teal-slate"]) option,
+html:is([data-theme="light"],[data-theme="trust-blue"],[data-theme="teal-slate"]) optgroup {
   background-color: #f8fafc;
   color: #0f172a;
 }
+
+/* Dark theme native select option + optgroup overrides */
+html:is([data-theme="graphite-emerald"],[data-theme="dark-neo"]) option,
+html:is([data-theme="graphite-emerald"],[data-theme="dark-neo"]) optgroup {
+  background-color: #1C2333;
+  color: #E6EDF3;
+}
+html[data-theme="midnight-purple"] option,
+html[data-theme="midnight-purple"] optgroup {
+  background-color: #16213E;
+  color: #F1F0FF;
+}
+/* rose-gold: light theme, no dark override needed — inherits #f8fafc via body bg */
 
 /* ============================================================
    PER-THEME ACCENT COLORS (income / expense indicators)

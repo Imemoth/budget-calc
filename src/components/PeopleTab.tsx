@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
-import { Plus, ChevronDown, RotateCcw, TrendingUp, TrendingDown, Info, X } from "lucide-react";
-import type { State, MoneyType, Person, Category, TabKey, RecurringItem } from "../types";
+import { Plus, TrendingUp, TrendingDown, Info, X } from "lucide-react";
+import type { State, MoneyType, Person, Category, TabKey, RecurringItem, Transaction } from "../types";
 import { Card, Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect } from "./ui";
 import { formatHuf } from "../lib/format";
 import { normalizeMonthInput, parseNumberInput, parseNonNegativeInput } from "../lib/domainHelpers";
-import { monthKey } from "../lib/utils";
+import { monthKey, uid } from "../lib/utils";
 
 // Accent palette derived from person.colorIndex
 const PERSON_ACCENTS = [
@@ -21,27 +21,25 @@ export function PeopleCategoriesView({
   addPerson,
   updatePerson,
   removePerson,
-  addCategory,
-  updateCategory,
-  removeCategory,
-  reseedCategories,
   onNavigate,
   addRecurringFull,
   updateRecurring,
   removeRecurring,
+  addTransactionFull,
+  updateTransaction,
+  removeTransaction,
 }: {
   state: State;
   addPerson: () => void;
   updatePerson: (id: string, patch: Partial<Person>) => void;
   removePerson: (id: string) => void;
-  addCategory: (type: MoneyType, parentId?: string) => void;
-  updateCategory: (id: string, patch: Partial<Category>) => void;
-  removeCategory: (id: string) => void;
-  reseedCategories: () => void;
   onNavigate?: (tab: TabKey) => void;
   addRecurringFull?: (patch: Partial<RecurringItem> & { type: MoneyType }) => string;
   updateRecurring?: (id: string, patch: Partial<RecurringItem>) => void;
   removeRecurring?: (id: string) => void;
+  addTransactionFull?: (patch: Partial<Transaction> & { type: MoneyType }) => string;
+  updateTransaction?: (id: string, patch: Partial<Transaction>) => void;
+  removeTransaction?: (id: string) => void;
 }) {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(
     state.people[0]?.id ?? null
@@ -50,33 +48,48 @@ export function PeopleCategoriesView({
   const [activeMoneyTab, setActiveMoneyTab] = useState<MoneyType>("income");
   const [modalItem, setModalItem] = useState<RecurringItem | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [isNewModal, setIsNewModal] = useState(false);
+  const [txModal, setTxModal] = useState<Transaction | null>(null);
+  const [isNewTx, setIsNewTx] = useState(false);
 
   const openNewModal = (type: MoneyType) => {
     if (!addRecurringFull) { onNavigate?.(type); return; }
-    const id = addRecurringFull({ type, personId: selectedPersonId });
-    const newItem = { ...state.recurring.find((r) => r.id === id) } as RecurringItem;
-    // Fallback: construct a default since state hasn't re-rendered yet
-    const fallback: RecurringItem = {
-      id, type, name: type === "income" ? "Fix bevétel" : "Fix kiadás",
-      amount: 0, categoryId: null, cadence: "monthly",
+    // Create a local draft — nothing written to state until "Mentés"
+    const draft: RecurringItem = {
+      id: uid(),
+      type,
+      name: type === "income" ? "Fix bevétel" : "Fix kiadás",
+      amount: 0,
+      categoryId: null,
+      cadence: "monthly",
       startMonth: monthKey(new Date(new Date().getFullYear(), 0, 1)),
-      endMonth: null, dayOfMonth: 5, personId: selectedPersonId, enabled: true, notes: "",
+      endMonth: null,
+      dayOfMonth: 5,
+      personId: selectedPersonId,
+      enabled: true,
+      notes: "",
     };
-    setModalItem(newItem.id ? newItem : fallback);
+    setModalItem(draft);
+    setIsNewModal(true);
     setModalOpen(true);
   };
 
   const openEditModal = (item: RecurringItem) => {
     setModalItem({ ...item });
+    setIsNewModal(false);
     setModalOpen(true);
   };
 
-  const closeModal = () => { setModalOpen(false); setModalItem(null); };
+  const closeModal = () => { setModalOpen(false); setModalItem(null); setIsNewModal(false); };
 
   const saveModal = () => {
-    if (!modalItem || !updateRecurring) return;
-    updateRecurring(modalItem.id, modalItem);
-    setSelectedItemId(modalItem.id);
+    if (!modalItem) return;
+    if (isNewModal) {
+      addRecurringFull?.(modalItem);
+    } else {
+      updateRecurring?.(modalItem.id, modalItem);
+      setSelectedItemId(modalItem.id);
+    }
     closeModal();
   };
 
@@ -84,10 +97,6 @@ export function PeopleCategoriesView({
     () => Object.fromEntries(state.categories.map((c) => [c.id, c])) as Record<string, Category>,
     [state.categories]
   );
-
-  const incomeParents = state.categories.filter((c) => c.type === "income" && !c.parentId);
-  const expenseParents = state.categories.filter((c) => c.type === "expense" && !c.parentId);
-  const childrenOf = (parentId: string) => state.categories.filter((c) => c.parentId === parentId);
 
   // Per-person recurring summary (enabled items only)
   const personSummary = useMemo(() => {
@@ -249,6 +258,32 @@ export function PeopleCategoriesView({
                   </div>
                 );
               })()}
+
+              {/* Quick record transaction buttons */}
+              {addTransactionFull && (
+                <div className="flex gap-2 mt-3 pt-3 border-t border-border">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTxModal({ id: uid(), type: "expense", date: new Date().toISOString().slice(0, 10), name: "", amount: 0, categoryId: null, personId: selectedPerson.id, notes: "" });
+                      setIsNewTx(true);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium text-negative bg-negative/10 hover:bg-negative/20 transition-colors"
+                  >
+                    <TrendingDown className="w-3.5 h-3.5" /> Kiadás rögzítése
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTxModal({ id: uid(), type: "income", date: new Date().toISOString().slice(0, 10), name: "", amount: 0, categoryId: null, personId: selectedPerson.id, notes: "" });
+                      setIsNewTx(true);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium text-positive bg-positive/10 hover:bg-positive/20 transition-colors"
+                  >
+                    <TrendingUp className="w-3.5 h-3.5" /> Bevétel rögzítése
+                  </button>
+                </div>
+              )}
             </Card>
 
             {/* RecurringItemList */}
@@ -398,7 +433,7 @@ export function PeopleCategoriesView({
                   </div>
                 ))}
               </div>
-              <div className="mt-4 pt-3 border-t border-border">
+              <div className="mt-4 pt-3 border-t border-border space-y-2">
                 <button
                   type="button"
                   onClick={() => openEditModal(selectedItem)}
@@ -418,49 +453,6 @@ export function PeopleCategoriesView({
           )}
         </div>
       </div>
-
-      {/* Kategóriák — full width below */}
-      <Card className="p-5">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div>
-            <div className="text-sm text-text-2">Kategória-rendszer</div>
-            <div className="text-lg font-semibold">Bevétel- és kiadás kategóriák</div>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <SmallButton variant="ghost" onClick={() => addCategory("income")}>
-              <Plus className="w-3.5 h-3.5" /> Bevétel csoport
-            </SmallButton>
-            <SmallButton variant="ghost" onClick={() => addCategory("expense")}>
-              <Plus className="w-3.5 h-3.5" /> Kiadás csoport
-            </SmallButton>
-            {state.categories.length < 10 && (
-              <SmallButton variant="ghost" onClick={reseedCategories} title="Visszaállítja az alapértelmezett kategóriákat">
-                <RotateCcw className="w-3.5 h-3.5" /> Visszaállítás
-              </SmallButton>
-            )}
-          </div>
-        </div>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <CategorySection
-            title="Bevétel"
-            type="income"
-            parents={incomeParents}
-            childrenOf={childrenOf}
-            addCategory={addCategory}
-            updateCategory={updateCategory}
-            removeCategory={removeCategory}
-          />
-          <CategorySection
-            title="Kiadás"
-            type="expense"
-            parents={expenseParents}
-            childrenOf={childrenOf}
-            addCategory={addCategory}
-            updateCategory={updateCategory}
-            removeCategory={removeCategory}
-          />
-        </div>
-      </Card>
 
       {/* RecurringModal */}
       {modalOpen && modalItem && (
@@ -605,113 +597,81 @@ export function PeopleCategoriesView({
           </div>
         </div>
       )}
-    </div>
-  );
-}
 
-function CategorySection({
-  title,
-  type,
-  parents,
-  childrenOf,
-  addCategory,
-  updateCategory,
-  removeCategory,
-}: {
-  title: string;
-  type: MoneyType;
-  parents: Category[];
-  childrenOf: (parentId: string) => Category[];
-  addCategory: (type: MoneyType, parentId?: string) => void;
-  updateCategory: (id: string, patch: Partial<Category>) => void;
-  removeCategory: (id: string) => void;
-}) {
-  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set(parents.map((p) => p.id)));
-
-  const toggle = (id: string) =>
-    setCollapsed((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); }
-      return next;
-    });
-
-  return (
-    <div className="space-y-2">
-      <div className="text-sm font-semibold">{title}</div>
-
-      {parents.length === 0 && (
-        <div className="text-xs text-text-muted">Nincs {title.toLowerCase()} kategória.</div>
-      )}
-
-      {parents.map((parent) => {
-        const children = childrenOf(parent.id);
-        const isCollapsed = collapsed.has(parent.id);
-        const hasChildren = children.length > 0;
-
-        return (
-          <div key={parent.id} className="rounded-xl border border-border bg-surface-2 overflow-hidden">
-            {/* Szülő sor */}
-            <div className="flex items-center gap-2 p-2 pl-3">
-              <button
-                type="button"
-                onClick={() => toggle(parent.id)}
-                className="shrink-0 text-text-muted hover:text-text-2 transition min-w-9 min-h-9 flex items-center justify-center"
-                title={isCollapsed ? "Kinyit" : "Összecsuk"}
-              >
-                <ChevronDown
-                  className={`w-4 h-4 transition-transform ${isCollapsed ? "-rotate-90" : ""}`}
-                />
-              </button>
-              <Input
-                value={parent.name}
-                onChange={(e) => updateCategory(parent.id, { name: e.target.value })}
-                className="flex-1 font-medium"
-              />
-              <SmallButton
-                variant="ghost"
-                onClick={() => addCategory(type, parent.id)}
-                title="Alkategória hozzáadása"
-              >
-                <Plus className="w-3 h-3" />
-              </SmallButton>
-              <ConfirmDelete onConfirm={() => removeCategory(parent.id)} />
+      {/* Transaction Modal */}
+      {txModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-bg/80 backdrop-blur-sm" onClick={() => { setTxModal(null); setIsNewTx(false); }} />
+          <div className="relative w-full max-w-md rounded-2xl bg-surface border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-card)" }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <div>
+                <div className="text-xs text-text-muted uppercase tracking-wide mb-0.5">
+                  {txModal.type === "income" ? "Bevétel rögzítése" : "Kiadás rögzítése"}
+                </div>
+                <div className="text-sm font-semibold text-text-1">Tényleges egyszeri tétel</div>
+              </div>
+              <button type="button" onClick={() => { setTxModal(null); setIsNewTx(false); }} className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-1 hover:bg-surface-2 transition-colors text-lg">×</button>
             </div>
-
-            {/* Alkategóriák */}
-            {!isCollapsed && hasChildren && (
-              <div className="border-t border-border bg-bg">
-                {children.map((child) => (
-                  <div
-                    key={child.id}
-                    className="flex items-center gap-2 px-3 py-2 pl-9 border-b border-border last:border-b-0"
-                  >
-                    <span className="text-text-muted text-xs shrink-0">↳</span>
-                    <Input
-                      value={child.name}
-                      onChange={(e) => updateCategory(child.id, { name: e.target.value })}
-                      className="flex-1 text-sm"
-                    />
-                    <ConfirmDelete onConfirm={() => removeCategory(child.id)} />
-                  </div>
-                ))}
+            <div className="px-5 py-4 space-y-3">
+              <div className="grid grid-cols-[1fr_120px] gap-3">
+                <Field label="Megnevezés">
+                  <Input
+                    value={txModal.name || ""}
+                    onChange={(e) => setTxModal((t) => t ? { ...t, name: e.target.value } : t)}
+                    className="w-full"
+                    autoFocus
+                    placeholder={txModal.type === "income" ? "pl. Fizetés, Prémium..." : "pl. Tesco, Shell..."}
+                  />
+                </Field>
+                <Field label="Összeg">
+                  <Input
+                    type="number"
+                    value={txModal.amount ?? 0}
+                    onChange={(e) => setTxModal((t) => t ? { ...t, amount: parseNumberInput(e.target.value) } : t)}
+                    className="w-full text-right"
+                  />
+                </Field>
               </div>
-            )}
-
-            {/* Alkategória hozzáadása */}
-            {!isCollapsed && !hasChildren && (
-              <div className="border-t border-border px-9 py-2">
-                <button
-                  type="button"
-                  onClick={() => addCategory(type, parent.id)}
-                  className="text-xs text-text-muted hover:text-text-2 transition flex items-center gap-1"
-                >
-                  <Plus className="w-3 h-3" /> alkategória hozzáadása
-                </button>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Dátum">
+                  <Input
+                    type="date"
+                    value={txModal.date || ""}
+                    onChange={(e) => setTxModal((t) => t ? { ...t, date: e.target.value } : t)}
+                    className="w-full"
+                  />
+                </Field>
+                <Field label="Kategória">
+                  <CategorySelect
+                    value={txModal.categoryId || ""}
+                    onChange={(id) => setTxModal((t) => t ? { ...t, categoryId: id || null } : t)}
+                    categories={state.categories.filter((c) => c.type === txModal.type)}
+                    className="w-full"
+                  />
+                </Field>
               </div>
-            )}
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 border-t border-border bg-surface-2/30">
+              {!isNewTx && removeTransaction ? (
+                <ConfirmDelete onConfirm={() => { removeTransaction(txModal.id); setTxModal(null); setIsNewTx(false); }} />
+              ) : <div />}
+              <div className="flex gap-2">
+                <SmallButton variant="ghost" onClick={() => { setTxModal(null); setIsNewTx(false); }}>Mégsem</SmallButton>
+                <SmallButton variant="primary" onClick={() => {
+                  if (isNewTx) {
+                    addTransactionFull?.({ ...txModal, type: txModal.type });
+                  } else {
+                    updateTransaction?.(txModal.id, txModal);
+                  }
+                  setTxModal(null);
+                  setIsNewTx(false);
+                }}>Rögzít</SmallButton>
+              </div>
+            </div>
           </div>
-        );
-      })}
+        </div>
+      )}
     </div>
   );
 }
+

@@ -38,7 +38,8 @@ export const Card = ({
   className?: string;
 }) => (
   <div
-    className={`rounded-2xl bg-surface border border-border shadow-sm ${className}`}
+    className={`rounded-2xl bg-surface border border-border ${className}`}
+    style={{ boxShadow: "var(--shadow-card)" }}
   >
     {children}
   </div>

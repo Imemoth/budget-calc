@@ -64,7 +64,7 @@ export function DashboardView({
       {/* ---- 4 KPI kártya ---- */}
       <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Bevétel */}
-        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-positive)" }}>
+        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-positive)", boxShadow: "var(--shadow-card)" }}>
           <div className="text-xs text-text-muted mb-1">Fix bevétel / hó</div>
           <div className="text-xl font-bold tabular-nums text-positive">{formatHuf(current?.plannedIncome ?? 0)}</div>
           {(current?.actualIncome ?? 0) > 0 && (
@@ -72,7 +72,7 @@ export function DashboardView({
           )}
         </div>
         {/* Kiadás */}
-        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-negative)" }}>
+        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-negative)", boxShadow: "var(--shadow-card)" }}>
           <div className="text-xs text-text-muted mb-1">Fix kiadás / hó</div>
           <div className="text-xl font-bold tabular-nums text-negative">{formatHuf(current?.plannedExpense ?? 0)}</div>
           {(current?.actualExpense ?? 0) > 0 && (
@@ -80,7 +80,7 @@ export function DashboardView({
           )}
         </div>
         {/* Nettó */}
-        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: plannedNet >= 0 ? "var(--color-positive)" : "var(--color-negative)" }}>
+        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: plannedNet >= 0 ? "var(--color-positive)" : "var(--color-negative)", boxShadow: "var(--shadow-card)" }}>
           <div className="text-xs text-text-muted mb-1">Várható nettó · {focusMonth}</div>
           <div className={`text-xl font-bold tabular-nums ${plannedNet >= 0 ? "text-positive" : "text-negative"}`}>
             {formatHuf(plannedNet)}
@@ -92,7 +92,7 @@ export function DashboardView({
           ) : null}
         </div>
         {/* Megtakarítás */}
-        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-warning)" }}>
+        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-warning)", boxShadow: "var(--shadow-card)" }}>
           <div className="text-xs text-text-muted mb-1">Megtakarítás / hó</div>
           <div className="text-xl font-bold tabular-nums text-warning">{formatHuf(current?.plannedSavings ?? 0)}</div>
           {activeSavingsCount > 0 && (
