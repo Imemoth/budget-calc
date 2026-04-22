@@ -63,7 +63,7 @@ export function SavingsView({
   return (
     <div className="space-y-4">
       {/* Hero kártya */}
-      <div className="rounded-2xl border border-border p-5" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-warning)" }}>
+      <div className="rounded-2xl border border-border p-5" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-warning)", boxShadow: "var(--shadow-card)" }}>
         <p className="text-xs text-text-muted uppercase tracking-wide mb-3">Megtakarítások</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
           <div>
@@ -118,8 +118,8 @@ export function SavingsView({
             return (
               <div
                 key={s.id}
-                className="rounded-2xl bg-surface border border-border shadow-sm p-4 border-l-4"
-                style={{ borderLeftColor: isActive ? "var(--color-positive)" : "var(--color-warning)" }}
+                className="rounded-2xl bg-surface border border-border p-4 border-l-4"
+                style={{ borderLeftColor: isActive ? "var(--color-positive)" : "var(--color-warning)", boxShadow: "var(--shadow-card)" }}
               >
                 {/* Status badge */}
                 <div className="flex items-center justify-between mb-3">
