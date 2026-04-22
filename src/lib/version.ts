@@ -3,9 +3,56 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.35";
+export const APP_VERSION = "0.5.40";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.40": {
+    date: "2026-04-22",
+    changes: [
+      "Nav redesign: Bevétel + Kiadás → Tranzakciók expandálható szülőcsoport a sidebar-ban (ChevronDown animáció, border-l indent).",
+      "Sidebar: Tranzakciók auto-expand, ha income/expense tab aktív; lastMoneyTab state a mobilon való visszanavigáláshoz.",
+      "Mobil bottom nav: Bevétel + Kiadás (2 gomb) → Tranzakciók (1 gomb, Receipt ikon) — 6 itemről 5-re csökkent.",
+      "MoneyTab ActualSection: tranzakciók dátum szerint csoportosítva (nap fejléccel: '7 március' stílus + napi összesítő).",
+      "ActualSection filter: hónap filter chip-ek (pill stílus) a korábbi month input helyett, keresőmező mellé kerültek.",
+      "Transaction sorok: kerek kategória-szín dot (category color index) + leading letter badge, cleaner meta (kategória · személy).",
+    ],
+  },
+  "0.5.39": {
+    date: "2026-03-19",
+    changes: [
+      "Fix: tételek nem jönnek létre amíg a user 'Rögzít'/'Létrehozás'-ra nem nyom (MoneyTab + PeopleTab).",
+      "Kategória-rendszer átkerült a Beállítások fülre.",
+      "MoneyTab RecurringEditModal: lokális state — csak mentéskor ír DB-be.",
+      "PeopleTab: kategória-kártya eltávolítva, csak személy- és fix tételkezelés marad.",
+    ],
+  },
+  "0.5.38": {
+    date: "2026-03-19",
+    changes: [
+      "MoneyTab PlannedSection: inline expand form eltávolítva → olvasó nézet (csak sorok, szerkesztés modal-ban).",
+      "MoneyTab: RecurringEditModal — floating modal kártyához kattintva; auto-open új tétel hozzáadáskor.",
+      "MoneyTab: quickCreateYearTemplate eltávolítva (Sablon generátor törölve).",
+      "PeopleTab PersonDetailHeader: 'Kiadás rögzítése' + 'Bevétel rögzítése' quick action gombok — egyszeri tranzakciókhoz.",
+      "PeopleTab: Transaction modal — egyszerű name/összeg/dátum/kategória form floating overlay-ként.",
+      "App.tsx: addTransactionFull() helper — personId és type előtölthető patch-cel.",
+    ],
+  },
+  "0.5.37": {
+    date: "2026-03-19",
+    changes: [
+      "MoneyTab ActualSection: nap-csoport collapse eltávolítva → flat rich row lista (divide-y divide-border, ikon badge, dátum·személy·kategória meta).",
+      "ActualSection: Card overflow-hidden p-0 struktúra (header + search bar + flat list) — konzisztens a PlannedSection-nel.",
+      "MoneyTab: flex-shrink-0 → shrink-0 lint fix.",
+    ],
+  },
+  "0.5.36": {
+    date: "2026-03-19",
+    changes: [
+      "Nav: 'Keresők & kategóriák' → 'Személyek' (sidebar + mobile bottom bar + header).",
+      "MoneyTab: collapsed tételsor → rich flat row (32×32 icon badge, Aktív/Draft badge, személy·kategória·frekvencia·nap meta, színes összeg).",
+      "MoneyTab: single hero kártya → 4 KPI kártya grid (aktív fix/hó, tényleges, draft, különbség).",
+    ],
+  },
   "0.5.35": {
     date: "2026-03-18",
     changes: [
