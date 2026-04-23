@@ -5,6 +5,7 @@ export type MoneyType = "income" | "expense";
 export type TabKey =
   | "dashboard"
   | "transactions"
+  | "recurring"
   | "income"
   | "expense"
   | "savings"

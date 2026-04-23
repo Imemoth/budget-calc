@@ -4,7 +4,7 @@ import { DEFAULT_THEME, type ThemeId } from "./lib/themes";
 import { APP_VERSION } from "./lib/version";
 import { AnimatePresence, motion } from "framer-motion";
 import { uid, isUUID, monthKey, monthsBetweenInclusive } from "./lib/utils";
-import { Wallet, BarChart3, TrendingUp, TrendingDown, PiggyBank, Users, Settings2, Download, Upload, Info, LogOut, Receipt, ChevronDown } from "lucide-react";
+import { Wallet, BarChart3, TrendingUp, TrendingDown, PiggyBank, Users, Settings2, Download, Upload, Info, LogOut, Receipt } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./auth";
 import { AuthScreen } from "./authscreen";
@@ -21,6 +21,7 @@ import { ChangelogModal } from "./components/ChangelogModal";
 import { DashboardView } from "./components/DashboardTab";
 import { MoneyTab } from "./components/MoneyTab";
 import { TransactionsTab } from "./components/TransactionsTab";
+import { RecurringTab } from "./components/RecurringTab";
 import { SavingsView } from "./components/SavingsTab";
 import { PeopleCategoriesView } from "./components/PeopleTab";
 import { SettingsView } from "./components/SettingsTab";
@@ -287,7 +288,7 @@ async function ensureDefaultHousehold(userId: string, userEmail?: string | null)
   if (userEmail) {
     await supabase
       .from("household_members")
-      .update({ email: userEmail } as Record<string, unknown>)
+      .update({ email: userEmail })
       .eq("household_id", householdId!)
       .eq("user_id", userId)
       .is("email", null);
@@ -391,9 +392,7 @@ export default function App() {
     return "dashboard";
   });
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
-  const [transactionsOpen, setTransactionsOpen] = useState<boolean>(
-    () => ["income", "expense"].includes(localStorage.getItem("household-budget-planner-tab") ?? "")
-  );
+
   const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "error">("idle");
   const [, setSaveError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
@@ -533,14 +532,10 @@ export default function App() {
 
   useEffect(() => {
     try { localStorage.setItem("household-budget-planner-tab", tab); } catch { /* ignore */ }
-    if (tab === "income" || tab === "expense") {
-      setTransactionsOpen(true);
-    }
   }, [tab]);
 
   // Navigáló wrapper
   const handleNavigate = (newTab: TabKey) => {
-    if (newTab === "income" || newTab === "expense") setTransactionsOpen(true);
     setTab(newTab);
   };
 
@@ -909,6 +904,7 @@ export default function App() {
   const TAB_META: Record<TabKey, { title: string; subtitle: string }> = {
     dashboard:    { title: "Dashboard",     subtitle: "Áttekintés" },
     transactions: { title: "Tranzakciók",   subtitle: "Összes bevétel & kiadás" },
+    recurring:    { title: "Fix tételek",   subtitle: "Ismétlődő bevételek & kiadások" },
     income:       { title: "Fix bevételek", subtitle: "Tervezett fix tételek" },
     expense:      { title: "Fix kiadások",  subtitle: "Tervezett fix tételek" },
     savings:      { title: "Megtakarítás",  subtitle: "Célok & keretek" },
@@ -961,38 +957,19 @@ export default function App() {
             Tranzakciók
           </button>
 
-          {/* Fix tételek – expandálható (income/expense) */}
-          <div>
-            <button
-              type="button"
-              onClick={() => setTransactionsOpen((o) => !o)}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
-                tab === "income" || tab === "expense"
-                  ? "text-primary"
-                  : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-              }`}
-            >
-              <TrendingUp className="w-4 h-4 shrink-0" />
-              <span className="flex-1">Fix tételek</span>
-              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${transactionsOpen ? "rotate-180" : ""}`} />
-            </button>
-            {transactionsOpen && (
-              <div className="mt-0.5 ml-3 pl-3 border-l border-border space-y-0.5">
-                <button type="button" onClick={() => handleNavigate("income")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-sm transition-all text-left ${
-                    tab === "income" ? "bg-primary/12 text-primary outline outline-1 outline-primary/20" : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-                  }`}>
-                  <TrendingUp className="w-3.5 h-3.5 shrink-0" />Fix bevételek
-                </button>
-                <button type="button" onClick={() => handleNavigate("expense")}
-                  className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-sm transition-all text-left ${
-                    tab === "expense" ? "bg-primary/12 text-primary outline outline-1 outline-primary/20" : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-                  }`}>
-                  <TrendingDown className="w-3.5 h-3.5 shrink-0" />Fix kiadások
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Fix tételek – egyetlen gomb */}
+          <button
+            type="button"
+            onClick={() => handleNavigate("recurring")}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
+              tab === "recurring"
+                ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
+                : "text-text-2 hover:bg-surface-2 hover:text-text-1"
+            }`}
+          >
+            <TrendingUp className="w-4 h-4 shrink-0" />
+            Fix tételek
+          </button>
 
           {/* Többi nav elem */}
           {NAV_ITEMS.filter((i) => !["dashboard", "income", "expense"].includes(i.key)).map(({ key, label, Icon }) => (
@@ -1167,6 +1144,15 @@ export default function App() {
                   addTransactionFull={addTransactionFull}
                   updateTransaction={updateTransaction}
                   removeTransaction={removeTransaction} />
+              </motion.div>
+            )}
+            {tab === "recurring" && (
+              <motion.div key="recurring" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
+                <RecurringTab state={state}
+                  addRecurringFull={addRecurringFull}
+                  updateRecurring={updateRecurring}
+                  removeRecurring={removeRecurring}
+                  convertRecurring={convertRecurring} />
               </motion.div>
             )}
             {tab === "income" && (

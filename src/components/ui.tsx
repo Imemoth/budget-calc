@@ -144,15 +144,15 @@ export const SmallButton = ({
   children: React.ReactNode;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>) => {
   const base =
-    "px-3 py-1.5 rounded-xl text-xs transition inline-flex items-center gap-1";
+    "px-3 py-1.5 rounded-xl text-xs font-medium transition inline-flex items-center gap-1 border";
   const styles =
     variant === "solid"
-      ? "bg-surface-2 hover:bg-border text-text-1"
+      ? "bg-surface-2 hover:bg-surface border-border text-text-1"
       : variant === "danger"
-      ? "bg-red-500/10 hover:bg-red-500/20 text-red-400"
+      ? "bg-negative/8 hover:bg-negative/15 border-negative/25 text-negative"
       : variant === "primary"
-      ? "bg-primary/10 hover:bg-primary/20 text-primary"
-      : "hover:bg-surface-2 text-text-2 hover:text-text-1";
+      ? "bg-primary/10 hover:bg-primary/20 border-primary/30 text-primary"
+      : "bg-surface hover:bg-surface-2 border-border text-text-2 hover:text-text-1";
   return (
     <button className={`${base} ${styles}`} {...rest}>
       {children}
