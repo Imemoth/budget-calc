@@ -1,13 +1,14 @@
 import React from "react";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   LineChart, Line, ResponsiveContainer,
 } from "recharts";
 import { formatHuf } from "../lib/format";
 import { percent, roundTo } from "../lib/utils";
 import type { SeriesRow } from "../types";
-import { Card, Field, Select } from "./ui";
+import { Field, Select } from "./ui";
 import { useTheme } from "../context/ThemeContext";
+import { TrendingUp, TrendingDown, Wallet, PiggyBank } from "lucide-react";
 
 function readVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -17,6 +18,97 @@ function yFmt(v: number): string {
   if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
   if (Math.abs(v) >= 1_000)     return `${Math.round(v / 1_000)}K`;
   return String(v);
+}
+
+// ---- KPI kártya mélység-effekttel ----
+function KpiCard({
+  label,
+  value,
+  sub,
+  accentColor,
+  icon: Icon,
+  glow = false,
+}: {
+  label: string;
+  value: string;
+  sub?: React.ReactNode;
+  accentColor: string;
+  icon: React.ComponentType<{ className?: string }>;
+  glow?: boolean;
+}) {
+  return (
+    <div
+      className="rounded-2xl border border-border p-4 relative overflow-hidden"
+      style={{
+        borderLeftWidth: 4,
+        borderLeftColor: accentColor,
+        background: "linear-gradient(145deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
+        boxShadow: glow
+          ? `var(--shadow-card), 0 0 24px ${accentColor}22`
+          : "var(--shadow-card)",
+      }}
+    >
+      {/* Háttér glow folt */}
+      <div
+        className="absolute -top-6 -left-6 w-24 h-24 rounded-full pointer-events-none"
+        style={{
+          background: accentColor,
+          opacity: 0.07,
+          filter: "blur(18px)",
+        }}
+      />
+      {/* Felső fény-csík (üveg hatás) */}
+      <div
+        className="absolute top-0 left-4 right-4 h-px pointer-events-none"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent)" }}
+      />
+
+      <div className="relative flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-xs text-text-muted mb-1.5">{label}</div>
+          <div className="text-2xl font-bold tabular-nums leading-tight" style={{ color: accentColor }}>
+            {value}
+          </div>
+          {sub && <div className="text-xs text-text-muted mt-1.5 leading-snug">{sub}</div>}
+        </div>
+        <div
+          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+          style={{ background: `${accentColor}18`, color: accentColor }}
+        >
+          <Icon className="w-4 h-4" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Tooltip ----
+function ChartTooltip({ active, payload, label }: {
+  active?: boolean;
+  payload?: { name: string; value: number; color: string }[];
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div
+      className="rounded-xl border border-border px-3 py-2 text-xs space-y-1"
+      style={{
+        background: "var(--color-surface-2)",
+        boxShadow: "var(--shadow-card)",
+      }}
+    >
+      <div className="font-semibold text-text-2 mb-1">{label}</div>
+      {payload.map((p, i) => (
+        <div key={i} className="flex items-center justify-between gap-4">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+            <span className="text-text-muted">{p.name}</span>
+          </span>
+          <span className="font-semibold tabular-nums text-text-1">{formatHuf(p.value)}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function DashboardView({
@@ -39,228 +131,381 @@ export function DashboardView({
   currency?: string;
   activeSavingsCount?: number;
 }) {
-  useTheme(); // subscribe to theme changes → triggers re-render → CSS vars re-read
-  const c1 = readVar("--color-chart-1");
-  const c2 = readVar("--color-chart-2");
-  const c3 = readVar("--color-chart-3");
-  const c4 = readVar("--color-chart-4");
-  const C = {
-    income:  c2,
-    expense: c4,
-    net:     c3,
-    blue:    c1,
-    border:  readVar("--color-border"),
-    pie: [c1, "#A78BFA", "#22D3EE", "#F472B6", "#93C5FD", "#6EE7B7", c3, "#C4B5FD"],
-  };
+  useTheme();
+  const cIncome  = readVar("--color-positive");
+  const cExpense = readVar("--color-negative");
+  const cNet     = readVar("--color-chart-3");
+  const cBlue    = readVar("--color-chart-1");
+  const cBorder  = readVar("--color-border");
+  const cWarning = readVar("--color-warning");
+  const cPrimary = readVar("--color-primary");
+  const PIE_COLORS = [cBlue, "#A78BFA", "#22D3EE", "#F472B6", "#93C5FD", "#6EE7B7", cNet, "#C4B5FD"];
 
   const current = series.find((s) => s.month === focusMonth) ?? (series.length ? series[0] : undefined);
   const totalExpense = categoryBreakdown.reduce((s, x) => s + (x.value || 0), 0);
-  const totalIncome = incomeCategoryBreakdown.reduce((s, x) => s + (x.value || 0), 0);
-
-  const plannedNet = current?.plannedNet ?? 0;
+  const totalIncome  = incomeCategoryBreakdown.reduce((s, x) => s + (x.value || 0), 0);
+  const plannedNet   = current?.plannedNet ?? 0;
 
   return (
-    <div>
+    <div className="space-y-4">
+
       {/* ---- 4 KPI kártya ---- */}
-      <div className="mb-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* Bevétel */}
-        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-positive)", boxShadow: "var(--shadow-card)" }}>
-          <div className="text-xs text-text-muted mb-1">Fix bevétel / hó</div>
-          <div className="text-xl font-bold tabular-nums text-positive">{formatHuf(current?.plannedIncome ?? 0)}</div>
-          {(current?.actualIncome ?? 0) > 0 && (
-            <div className="text-xs text-text-muted mt-1">Tényleges: <span className="text-positive">{formatHuf(current!.actualIncome)}</span></div>
-          )}
-        </div>
-        {/* Kiadás */}
-        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-negative)", boxShadow: "var(--shadow-card)" }}>
-          <div className="text-xs text-text-muted mb-1">Fix kiadás / hó</div>
-          <div className="text-xl font-bold tabular-nums text-negative">{formatHuf(current?.plannedExpense ?? 0)}</div>
-          {(current?.actualExpense ?? 0) > 0 && (
-            <div className="text-xs text-text-muted mt-1">Tényleges: <span className="text-negative">{formatHuf(current!.actualExpense)}</span></div>
-          )}
-        </div>
-        {/* Nettó */}
-        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: plannedNet >= 0 ? "var(--color-positive)" : "var(--color-negative)", boxShadow: "var(--shadow-card)" }}>
-          <div className="text-xs text-text-muted mb-1">Várható nettó · {focusMonth}</div>
-          <div className={`text-xl font-bold tabular-nums ${plannedNet >= 0 ? "text-positive" : "text-negative"}`}>
-            {formatHuf(plannedNet)}
-          </div>
-          {(current?.actualIncome || current?.actualExpense) ? (
-            <div className={`text-xs mt-1 ${(current?.actualNet ?? 0) >= 0 ? "text-positive" : "text-negative"}`}>
-              Tényleges: {formatHuf(current?.actualNet ?? 0)}
-            </div>
-          ) : null}
-        </div>
-        {/* Megtakarítás */}
-        <div className="rounded-2xl border border-border p-4" style={{ borderLeftWidth: 4, borderLeftColor: "var(--color-warning)", boxShadow: "var(--shadow-card)" }}>
-          <div className="text-xs text-text-muted mb-1">Megtakarítás / hó</div>
-          <div className="text-xl font-bold tabular-nums text-warning">{formatHuf(current?.plannedSavings ?? 0)}</div>
-          {activeSavingsCount > 0 && (
-            <div className="text-xs text-text-muted mt-1">{activeSavingsCount} aktív keret</div>
-          )}
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <KpiCard
+          label="Fix bevétel / hó"
+          value={formatHuf(current?.plannedIncome ?? 0)}
+          accentColor={cIncome}
+          icon={TrendingUp}
+          glow
+          sub={(current?.actualIncome ?? 0) > 0
+            ? <span>Tényleges: <span style={{ color: cIncome }}>{formatHuf(current!.actualIncome)}</span></span>
+            : undefined}
+        />
+        <KpiCard
+          label="Fix kiadás / hó"
+          value={formatHuf(current?.plannedExpense ?? 0)}
+          accentColor={cExpense}
+          icon={TrendingDown}
+          glow
+          sub={(current?.actualExpense ?? 0) > 0
+            ? <span>Tényleges: <span style={{ color: cExpense }}>{formatHuf(current!.actualExpense)}</span></span>
+            : undefined}
+        />
+        <KpiCard
+          label={`Várható nettó · ${focusMonth}`}
+          value={formatHuf(plannedNet)}
+          accentColor={plannedNet >= 0 ? cIncome : cExpense}
+          icon={Wallet}
+          sub={(current?.actualIncome || current?.actualExpense)
+            ? <span style={{ color: (current?.actualNet ?? 0) >= 0 ? cIncome : cExpense }}>
+                Tényleges: {formatHuf(current?.actualNet ?? 0)}
+              </span>
+            : undefined}
+        />
+        <KpiCard
+          label="Megtakarítás / hó"
+          value={formatHuf(current?.plannedSavings ?? 0)}
+          accentColor={cWarning}
+          icon={PiggyBank}
+          sub={activeSavingsCount > 0 ? `${activeSavingsCount} aktív keret` : undefined}
+        />
       </div>
 
-      {/* ---- Charts + sidebar grid ---- */}
+      {/* ---- Fő tartalom: chart + jobb panel ---- */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div className="xl:col-span-2 space-y-4">
-          <Card className="p-5">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+
+          {/* Dual-scale bar chart */}
+          <div
+            className="rounded-2xl border border-border p-5 relative overflow-hidden"
+            style={{
+              background: "linear-gradient(160deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
+              boxShadow: "var(--shadow-card)",
+            }}
+          >
+            <div
+              className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)" }}
+            />
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
               <div>
-                <div className="text-sm text-text-2">Idősáv</div>
-                <div className="text-lg font-semibold">Tervezett vs. Tényleges</div>
+                <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5">Idősáv</div>
+                <div className="text-base font-semibold text-text-1">Bevétel vs. Kiadás</div>
               </div>
-              <div className="flex items-center gap-2">
-                <Field label="Fókusz hónap">
+              <div className="flex items-center gap-3">
+                {/* Jelmagyarázat */}
+                <div className="flex items-center gap-3 text-xs text-text-muted">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: cIncome }} />
+                    Bevétel
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: cExpense }} />
+                    Kiadás
+                  </span>
+                </div>
+                <Field label="Hónap">
                   <Select value={focusMonth} onChange={(e) => setFocusMonth(e.target.value)}>
                     {monthList.map((m) => <option key={m} value={m}>{m}</option>)}
                   </Select>
                 </Field>
               </div>
             </div>
-            <div className="mt-4 h-75">
+            <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={series} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} opacity={0.5} />
-                  <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={yFmt} />
-                  <Tooltip formatter={(v) => formatHuf(Number(v))} />
-                  <Legend />
-                  <Bar dataKey="plannedIncome" name="Tervezett bevétel" fill={C.income} />
-                  <Bar dataKey="plannedExpense" name="Tervezett kiadás" fill={C.expense} />
-                </BarChart>
+                <ComposedChart data={series} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barGap={4}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={cBorder} opacity={0.4} vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => {
+                      const [, m] = v.split("-");
+                      return ["jan","feb","már","ápr","máj","jún","júl","aug","szep","okt","nov","dec"][parseInt(m,10)-1] ?? v;
+                    }}
+                  />
+                  {/* Bal Y: bevétel */}
+                  <YAxis
+                    yAxisId="income"
+                    orientation="left"
+                    tick={{ fontSize: 10, fill: cIncome }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={yFmt}
+                    width={48}
+                  />
+                  {/* Jobb Y: kiadás — külön skála */}
+                  <YAxis
+                    yAxisId="expense"
+                    orientation="right"
+                    tick={{ fontSize: 10, fill: cExpense }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={yFmt}
+                    width={48}
+                  />
+                  <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--color-surface-2)", opacity: 0.5 }} />
+                  <Bar
+                    yAxisId="income"
+                    dataKey="plannedIncome"
+                    name="Tervezett bevétel"
+                    fill={cIncome}
+                    radius={[4, 4, 0, 0]}
+                    fillOpacity={0.85}
+                  />
+                  <Bar
+                    yAxisId="expense"
+                    dataKey="plannedExpense"
+                    name="Tervezett kiadás"
+                    fill={cExpense}
+                    radius={[4, 4, 0, 0]}
+                    fillOpacity={0.85}
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
-          </Card>
+          </div>
 
-          <Card className="p-5">
-            <div className="flex items-center justify-between">
+          {/* Nettó trend */}
+          <div
+            className="rounded-2xl border border-border p-5 relative overflow-hidden"
+            style={{
+              background: "linear-gradient(160deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
+              boxShadow: "var(--shadow-card)",
+            }}
+          >
+            <div
+              className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+              style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)" }}
+            />
+            <div className="flex items-center justify-between mb-5">
               <div>
-                <div className="text-sm text-text-2">Nettó trend</div>
-                <div className="text-lg font-semibold">Egyenleg alakulása</div>
+                <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5">Nettó trend</div>
+                <div className="text-base font-semibold text-text-1">Egyenleg alakulása</div>
               </div>
-              <div className="text-xs text-text-muted">A tényleges nettó a rögzített tételekből számol.</div>
+              <span className="text-xs text-text-muted hidden sm:block">A tényleges nettó a rögzített tételekből számol.</span>
             </div>
-            <div className="mt-4 h-65">
+            <div className="h-60">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={series} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={C.border} opacity={0.5} />
-                  <XAxis dataKey="month" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={yFmt} />
-                  <Tooltip formatter={(v) => formatHuf(Number(v))} />
-                  <Legend />
-                  <Line type="monotone" dataKey="plannedNet" name="Tervezett nettó" stroke={C.blue} strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="actualNet" name="Tényleges nettó" stroke={C.net} strokeWidth={2} dot={false} />
+                <LineChart data={series} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={cBorder} opacity={0.4} vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => {
+                      const [, m] = v.split("-");
+                      return ["jan","feb","már","ápr","máj","jún","júl","aug","szep","okt","nov","dec"][parseInt(m,10)-1] ?? v;
+                    }}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={yFmt}
+                    width={48}
+                  />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Line type="monotone" dataKey="plannedNet" name="Tervezett nettó" stroke={cBlue} strokeWidth={2.5} dot={false} strokeDasharray="6 3" />
+                  <Line type="monotone" dataKey="actualNet" name="Tényleges nettó" stroke={cNet} strokeWidth={2.5} dot={{ r: 3, fill: cNet }} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
-          </Card>
+          </div>
         </div>
 
+        {/* ---- Jobb panel ---- */}
         <div className="space-y-4">
-          <Card className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-text-2">Kiadások bontása</div>
-                <div className="text-lg font-semibold">Kategória megoszlás</div>
-              </div>
-              <div className="text-[10px] text-text-muted">tényleges, csak kiadás</div>
-            </div>
-            {categoryBreakdown.length === 0 ? (
-              <div className="mt-4 text-sm text-text-muted">Nincs rögzített kiadás ebben a hónapban.</div>
-            ) : null}
-            <div className="mt-3 space-y-2 max-h-64 overflow-auto pr-1">
-              {categoryBreakdown.slice(0, 10).map((c, i) => (
-                <div key={i} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs text-text-2">
-                    <span className="flex items-center gap-2 truncate mr-2">
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: C.pie[i % C.pie.length] }} />
-                      <span className="truncate">{c.category}</span>
-                    </span>
-                    <span className="flex items-center gap-2 shrink-0">
-                      <span className="text-text-1">{formatHuf(c.value)}</span>
-                      <span className="text-text-muted w-8 text-right">{roundTo(percent(c.value, totalExpense), 1)}%</span>
-                    </span>
-                  </div>
-                  <div className="h-1 rounded-full bg-surface-2 overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${percent(c.value, totalExpense)}%`,
-                        backgroundColor: C.pie[i % C.pie.length],
-                      }} />
-                  </div>
-                </div>
+
+          {/* Kiadás kategória bontás */}
+          <SideCard
+            subtitle="Kiadások bontása"
+            title="Kategória megoszlás"
+            badge="tényleges"
+            empty={categoryBreakdown.length === 0}
+            emptyText="Nincs rögzített kiadás ebben a hónapban."
+          >
+            <div className="space-y-2.5">
+              {categoryBreakdown.slice(0, 8).map((c, i) => (
+                <ProgressRow
+                  key={i}
+                  label={c.category}
+                  value={c.value}
+                  total={totalExpense}
+                  color={PIE_COLORS[i % PIE_COLORS.length]}
+                />
               ))}
             </div>
-          </Card>
+          </SideCard>
 
-          <Card className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-text-2">Bevételek bontása</div>
-                <div className="text-lg font-semibold">Kategória megoszlás</div>
-              </div>
-              <div className="text-[10px] text-text-muted">tényleges, csak bevétel</div>
-            </div>
-            {incomeCategoryBreakdown.length === 0 ? (
-              <div className="mt-4 text-sm text-text-muted">Nincs rögzített bevétel ebben a hónapban.</div>
-            ) : null}
-            <div className="mt-3 space-y-2 max-h-64 overflow-auto pr-1">
-              {incomeCategoryBreakdown.slice(0, 10).map((c, i) => (
-                <div key={i} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs text-text-2">
-                    <span className="flex items-center gap-2 truncate mr-2">
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: C.pie[i % C.pie.length] }} />
-                      <span className="truncate">{c.category}</span>
-                    </span>
-                    <span className="flex items-center gap-2 shrink-0">
-                      <span className="text-text-1">{formatHuf(c.value)}</span>
-                      <span className="text-text-muted w-8 text-right">{roundTo(percent(c.value, totalIncome), 1)}%</span>
-                    </span>
-                  </div>
-                  <div className="h-1 rounded-full bg-surface-2 overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${percent(c.value, totalIncome)}%`,
-                        backgroundColor: C.pie[i % C.pie.length],
-                      }} />
-                  </div>
-                </div>
+          {/* Bevétel kategória bontás */}
+          <SideCard
+            subtitle="Bevételek bontása"
+            title="Kategória megoszlás"
+            badge="tényleges"
+            empty={incomeCategoryBreakdown.length === 0}
+            emptyText="Nincs rögzített bevétel ebben a hónapban."
+          >
+            <div className="space-y-2.5">
+              {incomeCategoryBreakdown.slice(0, 8).map((c, i) => (
+                <ProgressRow
+                  key={i}
+                  label={c.category}
+                  value={c.value}
+                  total={totalIncome}
+                  color={PIE_COLORS[i % PIE_COLORS.length]}
+                />
               ))}
             </div>
-          </Card>
+          </SideCard>
 
-          <Card className="p-5">
-            <div className="text-sm text-text-2">Látható időtáv tervezett bevétele</div>
-            <div className="text-lg font-semibold">Keresők szerint</div>
-            {peopleIncomePlanned.length === 0 ? (
-              <div className="mt-3 text-sm text-text-muted">Nincs személyhez rendelt fix bevétel.</div>
-            ) : (() => {
+          {/* Keresők szerint */}
+          <SideCard
+            subtitle="Látható időtáv"
+            title="Keresők tervezett bevétele"
+            empty={peopleIncomePlanned.length === 0}
+            emptyText="Nincs személyhez rendelt fix bevétel."
+          >
+            {(() => {
               const maxVal = Math.max(...peopleIncomePlanned.map((p) => p.value), 1);
               return (
-                <div className="mt-4 space-y-3">
+                <div className="space-y-3">
                   {peopleIncomePlanned.map((p, i) => (
-                    <div key={i} className="space-y-1">
-                      <div className="flex items-center gap-2 text-xs text-text-2">
-                        <span className="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center text-[10px] font-bold shrink-0 uppercase">
+                    <div key={i} className="space-y-1.5">
+                      <div className="flex items-center gap-2 text-xs">
+                        <span
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 uppercase"
+                          style={{ background: `${cPrimary}22`, color: cPrimary }}
+                        >
                           {(p.name || "?")[0]}
                         </span>
-                        <span className="flex-1 truncate">{p.name}</span>
-                        <span className="text-text-1 shrink-0 tabular-nums">{formatHuf(p.value)}</span>
+                        <span className="flex-1 truncate text-text-2">{p.name}</span>
+                        <span className="tabular-nums font-semibold text-text-1">{formatHuf(p.value)}</span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-surface-2 overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-500"
-                          style={{ width: `${(p.value / maxVal) * 100}%`, backgroundColor: C.income }} />
+                      <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--color-surface-2)" }}>
+                        <div
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${(p.value / maxVal) * 100}%`,
+                            background: `linear-gradient(90deg, ${cIncome}cc, ${cIncome})`,
+                            boxShadow: `0 0 8px ${cIncome}55`,
+                          }}
+                        />
                       </div>
                     </div>
                   ))}
                 </div>
               );
             })()}
-          </Card>
+          </SideCard>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ---- Újrahasználható segéd-komponensek ----
+
+function SideCard({
+  subtitle,
+  title,
+  badge,
+  empty,
+  emptyText,
+  children,
+}: {
+  subtitle: string;
+  title: string;
+  badge?: string;
+  empty?: boolean;
+  emptyText?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-2xl border border-border p-4 relative overflow-hidden"
+      style={{
+        background: "linear-gradient(160deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
+        boxShadow: "var(--shadow-card)",
+      }}
+    >
+      <div
+        className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent)" }}
+      />
+      <div className="flex items-start justify-between mb-3">
+        <div>
+          <div className="text-xs text-text-muted">{subtitle}</div>
+          <div className="text-sm font-semibold text-text-1 mt-0.5">{title}</div>
+        </div>
+        {badge && (
+          <span className="text-[10px] text-text-muted bg-surface-2 px-2 py-0.5 rounded-full border border-border shrink-0">
+            {badge}
+          </span>
+        )}
+      </div>
+      {empty
+        ? <div className="text-xs text-text-muted py-4 text-center">{emptyText}</div>
+        : children}
+    </div>
+  );
+}
+
+function ProgressRow({
+  label,
+  value,
+  total,
+  color,
+}: {
+  label: string;
+  value: number;
+  total: number;
+  color: string;
+}) {
+  const pct = percent(value, total);
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-xs">
+        <span className="flex items-center gap-1.5 truncate mr-2 text-text-2">
+          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+          <span className="truncate">{label}</span>
+        </span>
+        <span className="flex items-center gap-2 shrink-0">
+          <span className="tabular-nums text-text-1">{formatHuf(value)}</span>
+          <span className="text-text-muted w-7 text-right">{roundTo(pct, 0)}%</span>
+        </span>
+      </div>
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--color-surface-2)" }}>
+        <div
+          className="h-full rounded-full transition-all duration-500"
+          style={{
+            width: `${pct}%`,
+            background: `linear-gradient(90deg, ${color}aa, ${color})`,
+            boxShadow: pct > 5 ? `0 0 6px ${color}44` : undefined,
+          }}
+        />
       </div>
     </div>
   );
