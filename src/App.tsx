@@ -288,7 +288,7 @@ async function ensureDefaultHousehold(userId: string, userEmail?: string | null)
   if (userEmail) {
     await supabase
       .from("household_members")
-      .update({ email: userEmail } as Record<string, unknown>)
+      .update({ email: userEmail })
       .eq("household_id", householdId!)
       .eq("user_id", userId)
       .is("email", null);
