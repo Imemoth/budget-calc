@@ -38,9 +38,59 @@ export const Card = ({
   className?: string;
 }) => (
   <div
-    className={`rounded-2xl bg-surface border border-border ${className}`}
-    style={{ boxShadow: "var(--shadow-card)" }}
+    className={`rounded-2xl border border-border relative overflow-hidden ${className}`}
+    style={{
+      background: "linear-gradient(145deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
+      boxShadow: "var(--shadow-card)",
+    }}
   >
+    {/* Felső fény-csík minden kártyán */}
+    <div
+      className="absolute top-0 left-0 right-0 h-px pointer-events-none z-10"
+      style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)" }}
+    />
+    {children}
+  </div>
+);
+
+/** Modal overlay wrapper — egységes háttér + blur */
+export const ModalOverlay = ({
+  onClose,
+  children,
+}: {
+  onClose: () => void;
+  children: React.ReactNode;
+}) => (
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div
+      className="absolute inset-0"
+      style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)" }}
+      onClick={onClose}
+    />
+    {children}
+  </div>
+);
+
+/** Modal panel — egységes kártya a felugró ablakoknál */
+export const ModalPanel = ({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <div
+    className={`relative w-full max-w-md rounded-2xl border border-border overflow-hidden z-10 ${className}`}
+    style={{
+      background: "linear-gradient(160deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
+      boxShadow: "0 24px 64px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07)",
+    }}
+  >
+    {/* Felső fény-csík */}
+    <div
+      className="absolute top-0 left-0 right-0 h-px pointer-events-none z-10"
+      style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)" }}
+    />
     {children}
   </div>
 );

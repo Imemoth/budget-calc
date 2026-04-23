@@ -3,7 +3,7 @@ import { Plus, ChevronDown, ArrowDownToLine, TrendingUp, TrendingDown } from "lu
 import { monthKey, uid } from "../lib/utils";
 import { formatHuf } from "../lib/format";
 import type { State, MoneyType, RecurringItem, Transaction, Category } from "../types";
-import { Card, Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect } from "./ui";
+import { Card, Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect, ModalOverlay, ModalPanel } from "./ui";
 import {
   normalizeMonthInput,
   normalizeDateInput,
@@ -311,14 +311,8 @@ function RecurringEditModal({
   const upd = (patch: Partial<RecurringItem>) => setLocal((p) => ({ ...p, ...patch }));
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-bg/80 backdrop-blur-sm" onClick={onClose} />
-
-      {/* Modal */}
-      <div
-        className="relative w-full max-w-md rounded-2xl bg-surface border border-border overflow-hidden"
-        style={{ boxShadow: "var(--shadow-card)" }}
+    <ModalOverlay onClose={onClose}>
+      <ModalPanel
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -445,8 +439,8 @@ function RecurringEditModal({
             </SmallButton>
           </div>
         </div>
-      </div>
-    </div>
+      </ModalPanel>
+    </ModalOverlay>
   );
 }
 
@@ -752,9 +746,8 @@ function ActualSection({
 
     {/* ── New transaction draft modal ── */}
     {txDraft && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-bg/80 backdrop-blur-sm" onClick={() => setTxDraft(null)} />
-        <div className="relative w-full max-w-md rounded-2xl bg-surface border border-border overflow-hidden" style={{ boxShadow: "var(--shadow-card)" }}>
+      <ModalOverlay onClose={() => setTxDraft(null)}>
+        <ModalPanel>
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <div>
               <div className="text-xs text-text-muted uppercase tracking-wide mb-0.5">
@@ -791,14 +784,14 @@ function ActualSection({
               </Field>
             </div>
           </div>
-          <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border bg-surface-2/30">
+          <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border bg-surface-2/20">
             <SmallButton variant="ghost" onClick={() => setTxDraft(null)}>Mégsem</SmallButton>
             <SmallButton variant="primary" onClick={() => { addTransactionFull({ ...txDraft, type }); setTxDraft(null); }}>
               <Plus className="w-3.5 h-3.5" /> Rögzít
             </SmallButton>
           </div>
-        </div>
-      </div>
+        </ModalPanel>
+      </ModalOverlay>
     )}
   </>
   );
