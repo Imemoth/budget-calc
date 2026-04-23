@@ -211,7 +211,6 @@ function useUserLocalState(
   const [state, setState] = useState<State>(load);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setState(load());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
@@ -287,7 +286,7 @@ async function ensureDefaultHousehold(userId: string, userEmail?: string | null)
   if (userEmail) {
     await supabase
       .from("household_members")
-      .update({ email: userEmail })
+      .update({ email: userEmail } as Record<string, unknown>)
       .eq("household_id", householdId!)
       .eq("user_id", userId)
       .is("email", null);
@@ -305,7 +304,7 @@ async function ensureDefaultHousehold(userId: string, userEmail?: string | null)
 
 // -------------------- user menu --------------------
 
-function UserMenu({ email, onLogout }: { email: string; onLogout: () => void }) {
+function UserMenu({ email, onLogout, dropUp = false }: { email: string; onLogout: () => void; dropUp?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -326,7 +325,15 @@ function UserMenu({ email, onLogout }: { email: string; onLogout: () => void }) 
         {initial}
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-52 rounded-xl bg-surface border border-border shadow-lg py-1.5 z-50">
+        <div
+          className={`absolute right-0 w-52 rounded-xl border border-border py-1.5 z-50 ${
+            dropUp ? "bottom-full mb-2" : "top-full mt-2"
+          }`}
+          style={{
+            background: "linear-gradient(145deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.2)",
+          }}
+        >
           <div className="px-3 py-2">
             <div className="text-[11px] text-text-muted">Bejelentkezve</div>
             <div className="text-xs text-text-2 truncate mt-0.5" title={email}>{email}</div>
@@ -431,7 +438,6 @@ export default function App() {
   // 1) Provisioning
   useEffect(() => {
     const userId = user?.id;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!userId) { setActiveHouseholdId(null); setRemoteReady(false); setRemoteLoadSuccess(false); setSavingStatus("idle"); setSaveError(null); setHouseholdMembers([]); return; }
     let cancelled = false;
     (async () => {
@@ -466,9 +472,7 @@ export default function App() {
   useEffect(() => {
     if (!activeHouseholdId) return;
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRemoteReady(false);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRemoteLoadSuccess(false);
     (async () => {
       try {
@@ -524,22 +528,16 @@ export default function App() {
   }, [state, activeHouseholdId, remoteReady, remoteLoadSuccess]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setSavingStatus("idle"); setSaveError(null); setRemoteReady(false); setRemoteLoadSuccess(false); setActiveHouseholdId(null); }
   }, [user]);
 
   useEffect(() => {
     try { localStorage.setItem("household-budget-planner-tab", tab); } catch { /* ignore */ }
-  }, [tab]);
-
-  // Navigáló wrapper: localStorage persist + transactions csoport auto-expand
-  const handleNavigate = (newTab: TabKey) => {
-    if (newTab === "income" || newTab === "expense") {
+    if (tab === "income" || tab === "expense") {
       setTransactionsOpen(true);
-      setLastMoneyTab(newTab);
+      setLastMoneyTab(tab);
     }
-    setTab(newTab);
-  };
+  }, [tab]);
 
   // Computed data
   const plannedByMonth = useMemo(() => {
@@ -602,7 +600,6 @@ export default function App() {
     if (!monthList.length) return;
     if (!focusMonth || !monthList.includes(focusMonth)) {
       const now = monthKey(new Date());
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFocusMonth(monthList.includes(now) ? now : monthList[0]);
     }
   }, [monthList, focusMonth]);
@@ -933,7 +930,7 @@ export default function App() {
           {/* Dashboard */}
           <button
             type="button"
-            onClick={() => handleNavigate("dashboard")}
+            onClick={() => setTab("dashboard")}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
               tab === "dashboard"
                 ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
@@ -965,7 +962,7 @@ export default function App() {
               <div className="mt-0.5 ml-3 pl-3 border-l border-border space-y-0.5">
                 <button
                   type="button"
-                  onClick={() => handleNavigate("income")}
+                  onClick={() => setTab("income")}
                   className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-sm transition-all text-left ${
                     tab === "income"
                       ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
@@ -977,7 +974,7 @@ export default function App() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleNavigate("expense")}
+                  onClick={() => setTab("expense")}
                   className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-sm transition-all text-left ${
                     tab === "expense"
                       ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
@@ -996,7 +993,7 @@ export default function App() {
             <button
               key={key}
               type="button"
-              onClick={() => handleNavigate(key)}
+              onClick={() => setTab(key)}
               className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
                 tab === key
                   ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
@@ -1010,36 +1007,80 @@ export default function App() {
         </nav>
 
         {/* Sidebar footer */}
-        <div className="border-t border-border pt-3 mt-3 space-y-2">
-          <div className="flex items-center gap-1.5">
-            <SmallButton variant="ghost" onClick={exportJson} title="Exportálás JSON-ba">
+        <div
+          className="border-t border-border mt-3 pt-3 space-y-2"
+        >
+          {/* Export / Import / Reset gombok */}
+          <div
+            className="flex items-center gap-1 rounded-xl p-1"
+            style={{ background: "var(--color-surface-2)" }}
+          >
+            <button
+              type="button"
+              onClick={exportJson}
+              title="Exportálás JSON-ba"
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs text-text-2 hover:bg-surface hover:text-text-1 transition-colors"
+            >
               <Download className="w-3.5 h-3.5" />
-            </SmallButton>
-            <SmallButton variant="ghost" onClick={() => fileInputRef.current?.click()} title="Importálás">
+              <span>Export</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              title="Importálás"
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs text-text-2 hover:bg-surface hover:text-text-1 transition-colors"
+            >
               <Upload className="w-3.5 h-3.5" />
-            </SmallButton>
+              <span>Import</span>
+            </button>
             {isAdmin && (
-              <SmallButton variant="danger" onClick={() => {
-                if (window.confirm("Biztosan visszaállítod az alkalmazást alapértelmezett állapotra? Minden jelenlegi adat törlődik erről a háztartásról.")) {
-                  const storageKey = localScopeId ? `${STORAGE_KEY}-${localScopeId}` : STORAGE_KEY;
-                  try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
-                  setState(defaultState());
-                }
-              }} title="Alaphelyzetbe állítás">
+              <button
+                type="button"
+                title="Alaphelyzetbe állítás"
+                onClick={() => {
+                  if (window.confirm("Biztosan visszaállítod az alkalmazást alapértelmezett állapotra? Minden jelenlegi adat törlődik erről a háztartásról.")) {
+                    const storageKey = localScopeId ? `${STORAGE_KEY}-${localScopeId}` : STORAGE_KEY;
+                    try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
+                    setState(defaultState());
+                  }
+                }}
+                className="px-2 py-1.5 rounded-lg text-xs text-[var(--color-negative)] hover:bg-[var(--color-negative)]/10 transition-colors"
+              >
                 Reset
-              </SmallButton>
+              </button>
             )}
           </div>
-          {user && <UserMenu email={user.email ?? ""} onLogout={handleLogout} />}
+
+          {/* Felhasználó sor */}
           {user && (
-            <div className="text-[10px] text-text-muted leading-tight">
-              {isProvisioning && "Household előkészítés..."}
-              {!isProvisioning && activeHouseholdId && !remoteReady && "Betöltés..."}
-              {!isProvisioning && activeHouseholdId && remoteReady && savingStatus === "saving" && "Mentés..."}
-              {!isProvisioning && activeHouseholdId && remoteReady && savingStatus === "idle" && !saveError && "Mentve ✓"}
-              {!isProvisioning && activeHouseholdId && remoteReady && savingStatus === "error" && (
-                <span className="text-[var(--color-negative)]">Mentési hiba</span>
-              )}
+            <div className="flex items-center gap-2 rounded-xl px-2 py-2"
+              style={{ background: "var(--color-surface-2)" }}>
+              {/* Avatar */}
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 border border-primary/30"
+                style={{ background: "var(--color-primary)20", color: "var(--color-primary)" }}
+              >
+                {(user.email ?? "?").charAt(0).toUpperCase()}
+              </div>
+              {/* Email + státusz */}
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-text-1 truncate">{user.email}</div>
+                <div className="text-[10px] leading-tight mt-0.5" style={{
+                  color: savingStatus === "error" ? "var(--color-negative)"
+                    : savingStatus === "saving" ? "var(--color-warning)"
+                    : "var(--color-text-muted)"
+                }}>
+                  {isProvisioning && "Előkészítés..."}
+                  {!isProvisioning && !remoteReady && "Betöltés..."}
+                  {!isProvisioning && remoteReady && savingStatus === "saving" && "Mentés..."}
+                  {!isProvisioning && remoteReady && savingStatus === "idle" && !saveError && "Mentve ✓"}
+                  {!isProvisioning && remoteReady && savingStatus === "error" && "Mentési hiba"}
+                </div>
+              </div>
+              {/* Kijelentkezés gomb */}
+              <div className="relative">
+                <UserMenu email={user.email ?? ""} onLogout={handleLogout} dropUp />
+              </div>
             </div>
           )}
         </div>
@@ -1056,6 +1097,7 @@ export default function App() {
             <h1 className="text-lg font-bold text-text-1">{TAB_META[tab].title}</h1>
           </div>
           <div className="flex items-center gap-2">
+            {/* Export/Import csak mobilon — desktopön a sidebar footer-ben van */}
             <div className="flex lg:hidden items-center gap-1">
               <SmallButton variant="ghost" onClick={exportJson} title="Exportálás">
                 <Download className="w-3.5 h-3.5" />
@@ -1064,7 +1106,8 @@ export default function App() {
                 <Upload className="w-3.5 h-3.5" />
               </SmallButton>
             </div>
-            {user && <UserMenu email={user.email ?? ""} onLogout={handleLogout} />}
+            {/* UserMenu csak mobilon — desktopön a sidebar alján van */}
+            {user && <div className="lg:hidden"><UserMenu email={user.email ?? ""} onLogout={handleLogout} /></div>}
           </div>
         </header>
 
@@ -1138,7 +1181,7 @@ export default function App() {
             {tab === "people" && (
               <motion.div key="people" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
                 <PeopleCategoriesView state={state} addPerson={addPerson} updatePerson={updatePerson} removePerson={removePerson}
-                  onNavigate={handleNavigate}
+                  onNavigate={setTab}
                   addRecurringFull={addRecurringFull} updateRecurring={updateRecurring} removeRecurring={removeRecurring}
                   addTransactionFull={addTransactionFull} updateTransaction={updateTransaction} removeTransaction={removeTransaction} />
               </motion.div>
@@ -1178,11 +1221,11 @@ export default function App() {
 
       {/* Bottom nav – mobile only */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur border-t border-border flex justify-around px-1 py-1 z-50">
-        <MobileNavBtn active={tab === "dashboard"} icon={BarChart3} label="Dashboard" onClick={() => handleNavigate("dashboard")} />
-        <MobileNavBtn active={tab === "income" || tab === "expense"} icon={Receipt} label="Tranzakciók" onClick={() => handleNavigate(lastMoneyTab)} />
-        <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Megtakarítás" onClick={() => handleNavigate("savings")} />
-        <MobileNavBtn active={tab === "people"} icon={Users} label="Személyek" onClick={() => handleNavigate("people")} />
-        <MobileNavBtn active={tab === "settings"} icon={Settings2} label="Beállítások" onClick={() => handleNavigate("settings")} />
+        <MobileNavBtn active={tab === "dashboard"} icon={BarChart3} label="Dashboard" onClick={() => setTab("dashboard")} />
+        <MobileNavBtn active={tab === "income" || tab === "expense"} icon={Receipt} label="Tranzakciók" onClick={() => setTab(lastMoneyTab)} />
+        <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Megtakarítás" onClick={() => setTab("savings")} />
+        <MobileNavBtn active={tab === "people"} icon={Users} label="Személyek" onClick={() => setTab("people")} />
+        <MobileNavBtn active={tab === "settings"} icon={Settings2} label="Beállítások" onClick={() => setTab("settings")} />
       </div>
 
       <input ref={fileInputRef} type="file" accept="application/json" className="hidden"

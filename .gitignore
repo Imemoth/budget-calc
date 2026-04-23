@@ -33,4 +33,5 @@ dist-ssr
 # Képek
 *.png
 *.jpg
-*.jpeg
+*.jpeg# Allow logo
+!public/logo.png
