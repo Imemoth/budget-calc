@@ -20,6 +20,7 @@ import { MobileNavBtn, SmallButton, Skeleton } from "./components/ui";
 import { ChangelogModal } from "./components/ChangelogModal";
 import { DashboardView } from "./components/DashboardTab";
 import { MoneyTab } from "./components/MoneyTab";
+import { TransactionsTab } from "./components/TransactionsTab";
 import { SavingsView } from "./components/SavingsTab";
 import { PeopleCategoriesView } from "./components/PeopleTab";
 import { SettingsView } from "./components/SettingsTab";
@@ -355,7 +356,7 @@ function UserMenu({ email, onLogout, dropUp = false }: { email: string; onLogout
 // -------------------- main app --------------------
 
 export default function App() {
-  const { user, loading, changePassword } = useAuth();
+  const { user, loading, changePassword, updateProfile, displayName } = useAuth();
 
   const handleLogout = async () => {
     if (saveTimerRef.current != null) {
@@ -393,9 +394,8 @@ export default function App() {
   const [transactionsOpen, setTransactionsOpen] = useState<boolean>(
     () => ["income", "expense"].includes(localStorage.getItem("household-budget-planner-tab") ?? "")
   );
-  const [lastMoneyTab, setLastMoneyTab] = useState<"income" | "expense">("income");
   const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "error">("idle");
-  const [saveError, setSaveError] = useState<string | null>(null);
+  const [, setSaveError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
 
@@ -535,9 +535,14 @@ export default function App() {
     try { localStorage.setItem("household-budget-planner-tab", tab); } catch { /* ignore */ }
     if (tab === "income" || tab === "expense") {
       setTransactionsOpen(true);
-      setLastMoneyTab(tab);
     }
   }, [tab]);
+
+  // Navigáló wrapper
+  const handleNavigate = (newTab: TabKey) => {
+    if (newTab === "income" || newTab === "expense") setTransactionsOpen(true);
+    setTab(newTab);
+  };
 
   // Computed data
   const plannedByMonth = useMemo(() => {
@@ -902,12 +907,13 @@ export default function App() {
   ];
 
   const TAB_META: Record<TabKey, { title: string; subtitle: string }> = {
-    dashboard: { title: "Dashboard", subtitle: "Áttekintés" },
-    income: { title: "Bevétel", subtitle: "Fix tételek & tranzakciók" },
-    expense: { title: "Kiadás", subtitle: "Fix tételek & tranzakciók" },
-    savings: { title: "Megtakarítás", subtitle: "Célok & keretek" },
-    people: { title: "Személyek", subtitle: "Keresők & kategóriák" },
-    settings: { title: "Beállítások", subtitle: "Fiók & preferenciák" },
+    dashboard:    { title: "Dashboard",     subtitle: "Áttekintés" },
+    transactions: { title: "Tranzakciók",   subtitle: "Összes bevétel & kiadás" },
+    income:       { title: "Fix bevételek", subtitle: "Tervezett fix tételek" },
+    expense:      { title: "Fix kiadások",  subtitle: "Tervezett fix tételek" },
+    savings:      { title: "Megtakarítás",  subtitle: "Célok & keretek" },
+    people:       { title: "Személyek",     subtitle: "Keresők & kategóriák" },
+    settings:     { title: "Beállítások",   subtitle: "Fiók & preferenciák" },
   };
 
   return (
@@ -941,7 +947,21 @@ export default function App() {
             Dashboard
           </button>
 
-          {/* Tranzakciók – expandálható csoport */}
+          {/* Tranzakciók – egységes nézet */}
+          <button
+            type="button"
+            onClick={() => handleNavigate("transactions")}
+            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
+              tab === "transactions"
+                ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
+                : "text-text-2 hover:bg-surface-2 hover:text-text-1"
+            }`}
+          >
+            <Receipt className="w-4 h-4 shrink-0" />
+            Tranzakciók
+          </button>
+
+          {/* Fix tételek – expandálható (income/expense) */}
           <div>
             <button
               type="button"
@@ -952,37 +972,23 @@ export default function App() {
                   : "text-text-2 hover:bg-surface-2 hover:text-text-1"
               }`}
             >
-              <Receipt className="w-4 h-4 shrink-0" />
-              <span className="flex-1">Tranzakciók</span>
-              <ChevronDown
-                className={`w-3.5 h-3.5 transition-transform duration-200 ${transactionsOpen ? "rotate-180" : ""}`}
-              />
+              <TrendingUp className="w-4 h-4 shrink-0" />
+              <span className="flex-1">Fix tételek</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${transactionsOpen ? "rotate-180" : ""}`} />
             </button>
             {transactionsOpen && (
               <div className="mt-0.5 ml-3 pl-3 border-l border-border space-y-0.5">
-                <button
-                  type="button"
-                  onClick={() => setTab("income")}
+                <button type="button" onClick={() => handleNavigate("income")}
                   className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-sm transition-all text-left ${
-                    tab === "income"
-                      ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
-                      : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-                  }`}
-                >
-                  <TrendingUp className="w-3.5 h-3.5 shrink-0" />
-                  Bevétel
+                    tab === "income" ? "bg-primary/12 text-primary outline outline-1 outline-primary/20" : "text-text-2 hover:bg-surface-2 hover:text-text-1"
+                  }`}>
+                  <TrendingUp className="w-3.5 h-3.5 shrink-0" />Fix bevételek
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setTab("expense")}
+                <button type="button" onClick={() => handleNavigate("expense")}
                   className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-sm transition-all text-left ${
-                    tab === "expense"
-                      ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
-                      : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-                  }`}
-                >
-                  <TrendingDown className="w-3.5 h-3.5 shrink-0" />
-                  Kiadás
+                    tab === "expense" ? "bg-primary/12 text-primary outline outline-1 outline-primary/20" : "text-text-2 hover:bg-surface-2 hover:text-text-1"
+                  }`}>
+                  <TrendingDown className="w-3.5 h-3.5 shrink-0" />Fix kiadások
                 </button>
               </div>
             )}
@@ -990,16 +996,10 @@ export default function App() {
 
           {/* Többi nav elem */}
           {NAV_ITEMS.filter((i) => !["dashboard", "income", "expense"].includes(i.key)).map(({ key, label, Icon }) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setTab(key)}
+            <button key={key} type="button" onClick={() => handleNavigate(key)}
               className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
-                tab === key
-                  ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
-                  : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-              }`}
-            >
+                tab === key ? "bg-primary/12 text-primary outline outline-1 outline-primary/20" : "text-text-2 hover:bg-surface-2 hover:text-text-1"
+              }`}>
               <Icon className="w-4 h-4 shrink-0" />
               {label}
             </button>
@@ -1060,21 +1060,25 @@ export default function App() {
                 className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 border border-primary/30"
                 style={{ background: "var(--color-primary)20", color: "var(--color-primary)" }}
               >
-                {(user.email ?? "?").charAt(0).toUpperCase()}
+                {(displayName ?? user.email ?? "?").charAt(0).toUpperCase()}
               </div>
-              {/* Email + státusz */}
+              {/* Név / email + státusz */}
               <div className="flex-1 min-w-0">
-                <div className="text-xs text-text-1 truncate">{user.email}</div>
+                <div className="text-xs font-semibold text-text-1 truncate">
+                  {displayName ?? user.email}
+                </div>
                 <div className="text-[10px] leading-tight mt-0.5" style={{
                   color: savingStatus === "error" ? "var(--color-negative)"
                     : savingStatus === "saving" ? "var(--color-warning)"
                     : "var(--color-text-muted)"
                 }}>
-                  {isProvisioning && "Előkészítés..."}
-                  {!isProvisioning && !remoteReady && "Betöltés..."}
-                  {!isProvisioning && remoteReady && savingStatus === "saving" && "Mentés..."}
-                  {!isProvisioning && remoteReady && savingStatus === "idle" && !saveError && "Mentve ✓"}
-                  {!isProvisioning && remoteReady && savingStatus === "error" && "Mentési hiba"}
+                  {isProvisioning ? "Előkészítés..."
+                    : !remoteReady ? "Betöltés..."
+                    : savingStatus === "saving" ? "Mentés..."
+                    : savingStatus === "error" ? "Mentési hiba"
+                    : householdMembers.length > 1
+                      ? `${householdMembers.length} fő a háztartásban`
+                      : "Mentve ✓"}
                 </div>
               </div>
               {/* Kijelentkezés gomb */}
@@ -1157,6 +1161,14 @@ export default function App() {
                   activeSavingsCount={state.savings.filter((s) => (s.targetAmount ?? 0) > 0 && s.startMonth).length} />
               </motion.div>
             )}
+            {tab === "transactions" && (
+              <motion.div key="transactions" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
+                <TransactionsTab state={state}
+                  addTransactionFull={addTransactionFull}
+                  updateTransaction={updateTransaction}
+                  removeTransaction={removeTransaction} />
+              </motion.div>
+            )}
             {tab === "income" && (
               <motion.div key="income" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
                 <MoneyTab type="income" state={state}
@@ -1200,6 +1212,9 @@ export default function App() {
                   state={state}
                   series={dashboardSeries}
                   changePassword={changePassword}
+                  updateProfile={updateProfile}
+                  currentUserEmail={user?.email}
+                  currentUserDisplayName={displayName}
                   householdMembers={householdMembers}
                   membersLoadError={membersLoadError}
                   isOwner={isOwner}
@@ -1222,7 +1237,7 @@ export default function App() {
       {/* Bottom nav – mobile only */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur border-t border-border flex justify-around px-1 py-1 z-50">
         <MobileNavBtn active={tab === "dashboard"} icon={BarChart3} label="Dashboard" onClick={() => setTab("dashboard")} />
-        <MobileNavBtn active={tab === "income" || tab === "expense"} icon={Receipt} label="Tranzakciók" onClick={() => setTab(lastMoneyTab)} />
+        <MobileNavBtn active={tab === "transactions"} icon={Receipt} label="Tranzakciók" onClick={() => handleNavigate("transactions")} />
         <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Megtakarítás" onClick={() => setTab("savings")} />
         <MobileNavBtn active={tab === "people"} icon={Users} label="Személyek" onClick={() => setTab("people")} />
         <MobileNavBtn active={tab === "settings"} icon={Settings2} label="Beállítások" onClick={() => setTab("settings")} />

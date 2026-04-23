@@ -1,4 +1,4 @@
-import { ChevronDown, Download, Eye, EyeOff, Mail, Plus, RefreshCw, RotateCcw } from "lucide-react";
+import { ChevronDown, Download, Eye, EyeOff, Mail, Plus, RefreshCw, RotateCcw, User } from "lucide-react";
 import { useState } from "react";
 import { APP_VERSION } from "../lib/version";
 import type { Settings, State, SeriesRow, HouseholdMember, MemberPermissions, MoneyType, Category } from "../types";
@@ -142,6 +142,9 @@ export function SettingsView({
   state,
   series,
   changePassword,
+  updateProfile,
+  currentUserEmail,
+  currentUserDisplayName,
   householdMembers,
   membersLoadError,
   isOwner,
@@ -160,6 +163,9 @@ export function SettingsView({
   state: State;
   series: SeriesRow[];
   changePassword: (currentPw: string, newPw: string) => Promise<{ error: string | null }>;
+  updateProfile: (firstName: string, lastName: string) => Promise<{ error: string | null }>;
+  currentUserEmail?: string | null;
+  currentUserDisplayName?: string | null;
   householdMembers: HouseholdMember[];
   membersLoadError: string | null;
   isOwner: boolean;
@@ -174,6 +180,25 @@ export function SettingsView({
   reseedCategories: () => void;
 }) {
   const { startMonth, horizonMonths, currency } = settings;
+
+  // ---- Profil (név) ----
+  const initFirst = (currentUserDisplayName ?? "").split(" ")[0] ?? "";
+  const initLast  = (currentUserDisplayName ?? "").split(" ").slice(1).join(" ") ?? "";
+  const [firstName, setFirstName] = useState(initFirst);
+  const [lastName,  setLastName]  = useState(initLast);
+  const [profileMsg, setProfileMsg] = useState<{ type: "error" | "ok"; text: string } | null>(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  async function handleProfileSave() {
+    setProfileMsg(null);
+    setProfileLoading(true);
+    const { error } = await updateProfile(firstName.trim(), lastName.trim());
+    setProfileLoading(false);
+    if (error) setProfileMsg({ type: "error", text: error });
+    else setProfileMsg({ type: "ok", text: "Profil sikeresen mentve." });
+  }
+
+  // ---- Jelszó ----
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
@@ -311,6 +336,39 @@ export function SettingsView({
         </div>
         <div className="mt-3 text-[11px] text-text-muted">
           UTF-8 BOM, pontosvessző elválasztó – közvetlenül megnyitható Excelben.
+        </div>
+      </Card>
+
+      {/* ---- Profil / Név ---- */}
+      <Card className="p-5">
+        <div className="flex items-center gap-2 mb-1">
+          <User className="w-4 h-4 text-text-muted" />
+          <div className="text-sm text-text-2">Fiók</div>
+        </div>
+        <div className="text-lg font-semibold mb-1">Profilom</div>
+        {currentUserEmail && (
+          <div className="text-xs text-text-muted mb-4 flex items-center gap-1.5">
+            <Mail className="w-3 h-3" /> {currentUserEmail}
+          </div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Keresztnév">
+            <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="pl. Péter" className="w-full" />
+          </Field>
+          <Field label="Vezetéknév">
+            <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="pl. Kovács" className="w-full" />
+          </Field>
+        </div>
+        {profileMsg && (
+          <div className={`mt-3 text-xs px-3 py-2 rounded-xl border ${profileMsg.type === "ok" ? "text-positive bg-positive/10 border-positive/30" : "text-negative bg-negative/10 border-negative/30"}`}>
+            {profileMsg.text}
+          </div>
+        )}
+        <div className="mt-3 flex justify-end">
+          <SmallButton variant="primary" onClick={handleProfileSave} disabled={profileLoading}>
+            {profileLoading ? <RotateCcw className="w-3.5 h-3.5 animate-spin" /> : null}
+            Mentés
+          </SmallButton>
         </div>
       </Card>
 

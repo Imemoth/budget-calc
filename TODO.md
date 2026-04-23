@@ -161,6 +161,20 @@ Vizsgálat eredménye:
 
 ---
 
+## 🔴 Következő sprint — UI & funkció
+
+- [ ] **AI Asszisztens** — szöveges tranzakció felismerés ("Tescón vettem 8400 Ft-ért" → automatikus rögzítés)
+  - Supabase Edge Function + Claude API (claude-haiku-4-5 / sonnet)
+  - Input: szabad szöveges bevitel vagy fénykép (OCR)
+  - Output: előtöltött draft modal (névvel, összeggel, kategória javaslattal)
+  - UI: chat-szerű panel vagy lebegő gomb → modal flow
+  - Opcionális: ismétlődő tranzakciók pattern felismerése
+
+- [ ] **SavingsTab UI ráncfelvarrás** — kártyák mélység-effekt, progress vizualizáció
+- [ ] **PeopleTab UI ráncfelvarrás** — 3-col board depth, inspector polish
+
+---
+
 ## 🟢 Jó lenne — bővítések
 
 - [ ] **Többnyelvűség (i18n)** — `i18next` integráció

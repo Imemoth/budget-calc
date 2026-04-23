@@ -3,9 +3,19 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.40";
+export const APP_VERSION = "0.5.42";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.42": {
+    date: "2026-04-23",
+    changes: [
+      "TransactionsTab: egységes tranzakció nézet (bevétel + kiadás egy helyen), stat strip, type filter, category chip filter, date-grouping, inline edit.",
+      "Nav: Tranzakciók flat nav item (transactions TabKey) + Fix tételek expandálható csoport (Fix bevételek / Fix kiadások).",
+      "auth.tsx: updateProfile(firstName, lastName) → Supabase user_metadata; displayName derived property.",
+      "SettingsTab: Profilom szekció — Keresztnév + Vezetéknév mezők, mentés Supabase-be.",
+      "Sidebar footer: displayName megjelenítése email helyett; háztartás létszám státuszsorban.",
+    ],
+  },
   "0.5.40": {
     date: "2026-04-22",
     changes: [
