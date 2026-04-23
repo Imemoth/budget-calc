@@ -4,7 +4,7 @@ import { DEFAULT_THEME, type ThemeId } from "./lib/themes";
 import { APP_VERSION } from "./lib/version";
 import { AnimatePresence, motion } from "framer-motion";
 import { uid, isUUID, monthKey, monthsBetweenInclusive } from "./lib/utils";
-import { Wallet, BarChart3, TrendingUp, TrendingDown, PiggyBank, Users, Settings2, Download, Upload, Info, LogOut, Receipt } from "lucide-react";
+import { Wallet, BarChart3, PiggyBank, Users, Settings2, Download, Upload, Info, LogOut, Receipt, Home, LineChart, Repeat } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./auth";
 import { AuthScreen } from "./authscreen";
@@ -303,6 +303,58 @@ async function ensureDefaultHousehold(userId: string, userEmail?: string | null)
   }
 
   return householdId!;
+}
+
+// -------------------- sidebar nav item --------------------
+
+function NavItem({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+  badge,
+  soon,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  badge?: number;
+  soon?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 text-left mb-0.5"
+      style={active ? {
+        background: "var(--color-primary)",
+        color: "#fff",
+        boxShadow: "0 2px 8px var(--color-primary)44",
+      } : {
+        color: "var(--color-text-2)",
+      }}
+      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--color-surface-2)"; }}
+      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = ""; }}
+    >
+      <Icon className="w-4 h-4 shrink-0" />
+      <span className="flex-1">{label}</span>
+      {soon && !badge && (
+        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+          style={{ background: "var(--color-surface-2)", color: "var(--color-text-muted)" }}>
+          hamarosan
+        </span>
+      )}
+      {badge !== undefined && badge > 0 && (
+        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
+          style={active
+            ? { background: "rgba(255,255,255,0.25)", color: "#fff" }
+            : { background: "var(--color-primary)", color: "#fff" }}>
+          {badge}
+        </span>
+      )}
+    </button>
+  );
 }
 
 // -------------------- user menu --------------------
@@ -898,14 +950,6 @@ export default function App() {
 
   // -------------------- layout --------------------
 
-  const NAV_ITEMS: { key: TabKey; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
-    { key: "dashboard", label: "Dashboard", Icon: BarChart3 },
-    { key: "income", label: "Bevétel", Icon: TrendingUp },
-    { key: "expense", label: "Kiadás", Icon: TrendingDown },
-    { key: "savings", label: "Megtakarítás", Icon: PiggyBank },
-    { key: "people", label: "Személyek", Icon: Users },
-    { key: "settings", label: "Beállítások", Icon: Settings2 },
-  ];
 
   const TAB_META: Record<TabKey, { title: string; subtitle: string }> = {
     dashboard:    { title: "Dashboard",     subtitle: "Áttekintés" },
@@ -923,70 +967,50 @@ export default function App() {
       {/* Sidebar — desktop only */}
       <aside className="hidden lg:flex flex-col bg-surface border-r border-border p-4 sticky top-0 h-screen">
         {/* Logo */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center">
-            <Wallet className="w-4 h-4 text-primary" />
+        <div className="flex items-center gap-3 mb-5 px-1">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
+            style={{ background: "var(--color-primary)", boxShadow: "0 2px 8px var(--color-primary)50" }}>
+            <img src="/logo.png" alt="" className="w-9 h-9 object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            <Wallet className="w-4 h-4 text-white" style={{ marginTop: "-36px" }} />
           </div>
           <div>
-            <div className="text-sm font-bold text-text-1">Költségradar</div>
-            <div className="text-xs text-text-muted">háztartási tervező</div>
+            <div className="text-sm font-bold text-text-1 leading-tight">
+              <span style={{ color: "var(--color-primary)" }}>Költség</span>radar
+            </div>
+            <div className="text-[10px] text-text-muted">háztartási tervező</div>
           </div>
         </div>
 
         {/* Nav items */}
-        <nav className="flex flex-col gap-1 flex-1 overflow-y-auto">
-          {/* Dashboard */}
-          <button
-            type="button"
-            onClick={() => setTab("dashboard")}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
-              tab === "dashboard"
-                ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
-                : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-            }`}
-          >
-            <BarChart3 className="w-4 h-4 shrink-0" />
-            Dashboard
-          </button>
+        <nav className="flex flex-col flex-1 overflow-y-auto">
 
-          {/* Tranzakciók – egységes nézet */}
-          <button
-            type="button"
+          {/* ── FŐMENÜ szekció ── */}
+          <div className="text-[10px] font-bold text-text-muted uppercase tracking-[0.1em] px-2 pb-1.5 pt-0.5">
+            Főmenü
+          </div>
+
+          <NavItem icon={Home} label="Áttekintés" active={tab === "dashboard"} onClick={() => handleNavigate("dashboard")} />
+          <NavItem
+            icon={Receipt}
+            label="Tranzakciók"
+            active={tab === "transactions"}
             onClick={() => handleNavigate("transactions")}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
-              tab === "transactions"
-                ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
-                : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-            }`}
-          >
-            <Receipt className="w-4 h-4 shrink-0" />
-            Tranzakciók
-          </button>
+            badge={state.transactions.length > 0 && tab === "transactions" ? state.transactions.length : undefined}
+          />
+          <NavItem icon={LineChart} label="Elemzés" active={false} onClick={() => handleNavigate("dashboard")} soon />
+          <NavItem icon={PiggyBank} label="Megtakarítás" active={tab === "savings"} onClick={() => handleNavigate("savings")} />
+          <NavItem icon={Repeat} label="Fix tételek" active={tab === "recurring"} onClick={() => handleNavigate("recurring")} />
 
-          {/* Fix tételek – egyetlen gomb */}
-          <button
-            type="button"
-            onClick={() => handleNavigate("recurring")}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
-              tab === "recurring"
-                ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
-                : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-            }`}
-          >
-            <TrendingUp className="w-4 h-4 shrink-0" />
-            Fix tételek
-          </button>
+          {/* ── HÁZTARTÁS szekció ── */}
+          <div className="text-[10px] font-bold text-text-muted uppercase tracking-[0.1em] px-2 pb-1.5 pt-4">
+            Háztartás
+          </div>
 
-          {/* Többi nav elem */}
-          {NAV_ITEMS.filter((i) => !["dashboard", "income", "expense"].includes(i.key)).map(({ key, label, Icon }) => (
-            <button key={key} type="button" onClick={() => handleNavigate(key)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
-                tab === key ? "bg-primary/12 text-primary outline outline-1 outline-primary/20" : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-              }`}>
-              <Icon className="w-4 h-4 shrink-0" />
-              {label}
-            </button>
-          ))}
+          <NavItem icon={Users} label="Személyek" active={tab === "people"} onClick={() => handleNavigate("people")} />
+          <NavItem icon={Settings2} label="Beállítások" active={tab === "settings"} onClick={() => handleNavigate("settings")} />
+
+          <div className="flex-1" />
         </nav>
 
         {/* Sidebar footer */}
