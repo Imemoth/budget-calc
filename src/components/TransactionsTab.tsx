@@ -60,7 +60,7 @@ export function TransactionsTab({
 }) {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
-  const [catFilter, setCatFilter] = useState<string>(""); // categoryId or ""
+  const [catFilter, setCatFilter] = useState<string>("");
   const [filterMonth, setFilterMonth] = useState<string>("");
   const [sortDesc, setSortDesc] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -73,21 +73,18 @@ export function TransactionsTab({
   const incomeCategories = allCategories.filter(c => c.type === "income");
   const expenseCategories = allCategories.filter(c => c.type === "expense");
 
-  // Stable category color map
   const catColorMap = useMemo(() => {
     const map = new Map<string, string>();
     allCategories.forEach((c, i) => map.set(c.id, CAT_COLORS[i % CAT_COLORS.length]));
     return map;
   }, [allCategories]);
 
-  // Available months for filter chips
   const availableMonths = useMemo(() => {
     const set = new Set<string>();
     state.transactions.forEach(t => { if (t.date) set.add(monthOf(t.date)); });
     return [...set].sort((a, b) => b.localeCompare(a));
   }, [state.transactions]);
 
-  // Filtered + sorted transactions
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return state.transactions
@@ -103,7 +100,6 @@ export function TransactionsTab({
         : (a.date || "").localeCompare(b.date || ""));
   }, [state.transactions, typeFilter, catFilter, filterMonth, search, sortDesc]);
 
-  // Stats
   const stats = useMemo(() => {
     const income  = filtered.filter(t => t.type === "income").reduce((s, t) => s + (t.amount ?? 0), 0);
     const expense = filtered.filter(t => t.type === "expense").reduce((s, t) => s + (t.amount ?? 0), 0);
@@ -112,7 +108,6 @@ export function TransactionsTab({
     return { income, expense, net, avg, count: filtered.length };
   }, [filtered]);
 
-  // Group by date
   const grouped = useMemo(() => {
     const map = new Map<string, Transaction[]>();
     filtered.forEach(t => {
@@ -123,7 +118,6 @@ export function TransactionsTab({
     return [...map.entries()].sort(([a], [b]) => sortDesc ? b.localeCompare(a) : a.localeCompare(b));
   }, [filtered, sortDesc]);
 
-  // Top categories for filter chips (by frequency in current filter)
   const topCats = useMemo(() => {
     const count = new Map<string, number>();
     state.transactions.forEach(t => {
@@ -208,7 +202,6 @@ export function TransactionsTab({
 
           {/* Sor 2: type chips + month chips */}
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Type filter */}
             <div className="flex rounded-xl overflow-hidden border border-border text-xs font-semibold shrink-0">
               {(["all", "income", "expense"] as const).map((t) => (
                 <button key={t} type="button" onClick={() => { setTypeFilter(t); setCatFilter(""); }}
@@ -224,7 +217,6 @@ export function TransactionsTab({
 
             <div className="w-px h-5 bg-border shrink-0" />
 
-            {/* Month chips */}
             <button type="button" onClick={() => setFilterMonth("")}
               className="px-2.5 py-1 rounded-full text-xs font-medium border transition-colors shrink-0"
               style={!filterMonth ? { background: "var(--color-primary)18", color: "var(--color-primary)", borderColor: "var(--color-primary)40" }
@@ -245,7 +237,7 @@ export function TransactionsTab({
             })}
           </div>
 
-          {/* Sor 3: kategória filter chips (ha vannak) */}
+          {/* Sor 3: kategória filter chips */}
           {topCats.length > 0 && (
             <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-[10px] text-text-muted shrink-0">Kategória:</span>
@@ -285,7 +277,7 @@ export function TransactionsTab({
               return (
                 <div key={date}>
                   {/* Nap fejléc */}
-                  <div className="px-5 pt-3 pb-1.5 flex items-center justify-between border-b border-border/40"
+                  <div className="px-5 pt-3 pb-2.5 flex items-center justify-between border-b border-border/40"
                     style={{ background: "var(--color-surface-2)30" }}>
                     <div className="flex items-center gap-2">
                       <Calendar className="w-3 h-3 text-text-muted shrink-0" />
@@ -295,6 +287,18 @@ export function TransactionsTab({
                       {dayIncome > 0 && <span style={{ color: "var(--color-positive)" }}>+{formatHuf(dayIncome)}</span>}
                       {dayExpense > 0 && <span style={{ color: "var(--color-negative)" }}>−{formatHuf(dayExpense)}</span>}
                     </div>
+                  </div>
+
+                  {/* Desktop column headers (hidden on mobile) */}
+                  <div className="hidden sm:grid px-5 py-2 text-[10px] text-text-muted uppercase tracking-wider font-semibold border-b border-border/20 gap-3"
+                    style={{ gridTemplateColumns: "40px 2fr 1fr 120px 100px 140px 32px" }}>
+                    <div></div>
+                    <div>Leírás</div>
+                    <div>Kategória</div>
+                    <div>Ki</div>
+                    <div>Dátum</div>
+                    <div className="text-right">Összeg</div>
+                    <div></div>
                   </div>
 
                   {/* Tételek */}
@@ -308,18 +312,68 @@ export function TransactionsTab({
 
                       return (
                         <div key={t.id}>
+                          {/* Desktop table row */}
                           <button type="button" onClick={() => setExpandedId(isExpanded ? null : t.id)}
-                            className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-surface-2/50 transition-colors">
-                            {/* Kategória dot */}
+                            className="hidden sm:grid w-full items-center px-5 py-3 text-left hover:bg-surface-2/50 transition-colors gap-3"
+                            style={{ gridTemplateColumns: "40px 2fr 1fr 120px 100px 140px 32px" }}>
+
+                            {/* Icon */}
                             <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold"
                               style={{ background: `${catColor}20`, color: catColor }}>
                               {(t.name || "?").slice(0, 1).toUpperCase()}
                             </div>
 
+                            {/* Name + Badge */}
+                            <div className="min-w-0 flex items-center gap-2">
+                              <span className="text-sm font-semibold text-text-1 truncate">{t.name || "(névtelen)"}</span>
+                              <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider"
+                                style={{
+                                  background: isIncome ? "var(--color-positive)18" : "var(--color-negative)18",
+                                  color: isIncome ? "var(--color-positive)" : "var(--color-negative)",
+                                }}>
+                                {isIncome ? "Bev" : "Kiad"}
+                              </span>
+                            </div>
+
+                            {/* Category */}
+                            <div className="text-xs text-text-muted truncate">
+                              {cat?.name || "—"}
+                            </div>
+
+                            {/* Person */}
+                            <div className="text-xs text-text-muted truncate">
+                              {person?.name || "—"}
+                            </div>
+
+                            {/* Date */}
+                            <div className="text-xs text-text-muted truncate">
+                              {t.date || "—"}
+                            </div>
+
+                            {/* Amount */}
+                            <span className="text-sm font-bold tabular-nums text-right shrink-0"
+                              style={{ color: isIncome ? "var(--color-positive)" : "var(--color-negative)" }}>
+                              {isIncome ? "+" : "−"}{formatHuf(t.amount ?? 0)}
+                            </span>
+
+                            {/* Chevron */}
+                            <ChevronDown className={`w-3.5 h-3.5 text-text-muted shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                          </button>
+
+                          {/* Mobile simplified row */}
+                          <button type="button" onClick={() => setExpandedId(isExpanded ? null : t.id)}
+                            className="sm:hidden w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-surface-2/50 transition-colors">
+
+                            {/* Icon */}
+                            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold"
+                              style={{ background: `${catColor}20`, color: catColor }}>
+                              {(t.name || "?").slice(0, 1).toUpperCase()}
+                            </div>
+
+                            {/* Name */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-semibold text-text-1 truncate">{t.name || "(névtelen)"}</span>
-                                {/* Típus badge */}
                                 <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider"
                                   style={{
                                     background: isIncome ? "var(--color-positive)18" : "var(--color-negative)18",
@@ -333,10 +387,13 @@ export function TransactionsTab({
                               </div>
                             </div>
 
+                            {/* Amount */}
                             <span className="text-sm font-bold tabular-nums shrink-0"
                               style={{ color: isIncome ? "var(--color-positive)" : "var(--color-negative)" }}>
                               {isIncome ? "+" : "−"}{formatHuf(t.amount ?? 0)}
                             </span>
+
+                            {/* Chevron */}
                             <ChevronDown className={`w-3.5 h-3.5 text-text-muted shrink-0 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
                           </button>
 
@@ -407,7 +464,6 @@ export function TransactionsTab({
                 <div className="text-sm font-bold text-text-1">Új tétel</div>
               </div>
               <div className="flex items-center gap-2">
-                {/* Típus váltó a modalban */}
                 <div className="flex rounded-lg overflow-hidden border border-border text-xs font-semibold">
                   <button type="button" onClick={() => setDraftModal(d => d && { ...d, type: "expense", categoryId: null })}
                     className="px-3 py-1.5 transition-colors"

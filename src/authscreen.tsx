@@ -36,6 +36,7 @@ function AuthInput({
   type,
   value,
   onChange,
+  onKeyDown,
   placeholder,
   required,
   minLength,
@@ -47,6 +48,7 @@ function AuthInput({
   type: string;
   value: string;
   onChange: (v: string) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   placeholder?: string;
   required?: boolean;
   minLength?: number;
@@ -62,6 +64,7 @@ function AuthInput({
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
+          onKeyDown={onKeyDown}
           placeholder={placeholder}
           required={required}
           minLength={minLength}
@@ -90,6 +93,16 @@ export function AuthScreen() {
   const [showPw, setShowPw] = useState(false);
 
   async function handleSubmit() {
+    // Manuális validáció (form tag nélkül — CLAUDE.md policy)
+    if (!email.trim() || !email.includes("@")) {
+      setErrorMsg("Érvényes email-t adj meg.");
+      return;
+    }
+    if (mode !== "forgot" && password.length < 6) {
+      setErrorMsg("A jelszónak legalább 6 karakter kell.");
+      return;
+    }
+
     setLoading(true);
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -106,6 +119,11 @@ export function AuthScreen() {
     const { error } = await action(email, password);
     if (error) setErrorMsg(error);
     setLoading(false);
+  }
+
+  // Enter billentyű → submit (form tag helyett)
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !loading) handleSubmit();
   }
 
   function switchMode(next: "login" | "register" | "forgot") {
@@ -239,6 +257,7 @@ export function AuthScreen() {
               type="email"
               value={email}
               onChange={setEmail}
+              onKeyDown={handleKeyDown}
               placeholder="nev@example.com"
               required
               autoFocus
@@ -250,6 +269,7 @@ export function AuthScreen() {
                 type={showPw ? "text" : "password"}
                 value={password}
                 onChange={setPassword}
+                onKeyDown={handleKeyDown}
                 placeholder="minimum 6 karakter"
                 required
                 minLength={6}
