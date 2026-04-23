@@ -4,6 +4,7 @@ import { formatHuf } from "../lib/format";
 import type { State, MoneyType, Transaction, Category } from "../types";
 import { Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect, ModalOverlay, ModalPanel } from "./ui";
 import { normalizeDateInput, parseNumberInput } from "../lib/domainHelpers";
+import { getCategoryIcon } from "../lib/categoryIcons";
 
 // ---- helpers ----
 
@@ -306,7 +307,7 @@ export function TransactionsTab({
                     {items.map(t => {
                       const isExpanded = expandedId === t.id;
                       const cat = allCategories.find(c => c.id === t.categoryId);
-                      const catColor = cat ? (catColorMap.get(cat.id) ?? "var(--color-primary)") : "var(--color-primary)";
+
                       const person = t.personId ? state.people.find(p => p.id === t.personId) : null;
                       const isIncome = t.type === "income";
 
@@ -317,11 +318,8 @@ export function TransactionsTab({
                             className="hidden sm:grid w-full items-center px-5 py-3 text-left hover:bg-surface-2/50 transition-colors gap-3"
                             style={{ gridTemplateColumns: "40px 2fr 1fr 120px 100px 140px 32px" }}>
 
-                            {/* Icon */}
-                            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold"
-                              style={{ background: `${catColor}20`, color: catColor }}>
-                              {(t.name || "?").slice(0, 1).toUpperCase()}
-                            </div>
+                            {/* Category icon */}
+                            {getCategoryIcon(cat?.name ?? "", t.type)}
 
                             {/* Name + Badge */}
                             <div className="min-w-0 flex items-center gap-2">
@@ -364,11 +362,8 @@ export function TransactionsTab({
                           <button type="button" onClick={() => setExpandedId(isExpanded ? null : t.id)}
                             className="sm:hidden w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-surface-2/50 transition-colors">
 
-                            {/* Icon */}
-                            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-[11px] font-bold"
-                              style={{ background: `${catColor}20`, color: catColor }}>
-                              {(t.name || "?").slice(0, 1).toUpperCase()}
-                            </div>
+                            {/* Category icon */}
+                            {getCategoryIcon(cat?.name ?? "", t.type)}
 
                             {/* Name */}
                             <div className="flex-1 min-w-0">

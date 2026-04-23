@@ -1,14 +1,15 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   LineChart, Line, ResponsiveContainer,
 } from "recharts";
 import { formatHuf } from "../lib/format";
 import { percent, roundTo } from "../lib/utils";
-import type { SeriesRow } from "../types";
+import type { SeriesRow, State } from "../types";
 import { Field, Select } from "./ui";
 import { useTheme } from "../context/ThemeContext";
-import { TrendingUp, TrendingDown, Wallet, PiggyBank } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight } from "lucide-react";
+import { getCategoryIcon } from "../lib/categoryIcons";
 
 function readVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -127,6 +128,8 @@ export function DashboardView({
   incomeCategoryBreakdown,
   peopleIncomePlanned,
   activeSavingsCount = 0,
+  state,
+  onNavigateTransactions,
 }: {
   monthList: string[];
   focusMonth: string;
@@ -137,6 +140,8 @@ export function DashboardView({
   peopleIncomePlanned: { name: string; value: number }[];
   currency?: string;
   activeSavingsCount?: number;
+  state?: State;
+  onNavigateTransactions?: () => void;
 }) {
   useTheme();
   const cIncome  = readVar("--color-positive");
@@ -152,6 +157,26 @@ export function DashboardView({
   const totalExpense = categoryBreakdown.reduce((s, x) => s + (x.value || 0), 0);
   const totalIncome  = incomeCategoryBreakdown.reduce((s, x) => s + (x.value || 0), 0);
   const plannedNet   = current?.plannedNet ?? 0;
+
+  // Legutóbbi 8 tranzakció (focusMonth szűrve, vagy összes ha nincs adat)
+  const recentTransactions = useMemo(() => {
+    if (!state) return [];
+    const monthTx = state.transactions.filter(t => (t.date || "").startsWith(focusMonth));
+    const sorted = (monthTx.length > 0 ? monthTx : state.transactions)
+      .slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+    return sorted.slice(0, 8);
+  }, [state, focusMonth]);
+
+  function relativeDate(isoDate: string): string {
+    if (!isoDate) return "—";
+    const d = new Date(isoDate + "T00:00:00");
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const diff = Math.round((today.getTime() - d.getTime()) / 86400000);
+    if (diff === 0) return "Ma";
+    if (diff === 1) return "Tegnap";
+    if (diff < 7) return `${diff} napja`;
+    return isoDate.slice(5).replace("-", ". ");
+  }
 
   return (
     <div className="space-y-4">
@@ -429,6 +454,82 @@ export function DashboardView({
           </SideCard>
         </div>
       </div>
+
+      {/* ---- Legutóbbi tranzakciók ---- */}
+      {state && recentTransactions.length > 0 && (
+        <div
+          className="rounded-2xl border border-border overflow-hidden relative"
+          style={{
+            background: "linear-gradient(145deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
+            boxShadow: "var(--shadow-card)",
+          }}
+        >
+          <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)" }} />
+
+          {/* Fejléc */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div>
+              <div className="text-base font-bold text-text-1">Legutóbbi tranzakciók</div>
+              <div className="text-xs text-text-muted mt-0.5">
+                {focusMonth} · {recentTransactions.length} tétel látható
+              </div>
+            </div>
+            {onNavigateTransactions && (
+              <button type="button" onClick={onNavigateTransactions}
+                className="flex items-center gap-1 text-xs font-semibold transition-colors hover:opacity-80"
+                style={{ color: cPrimary }}>
+                Mind <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Tábla fejléc — desktopön */}
+          <div className="hidden sm:grid px-5 py-2 text-[10px] font-bold text-text-muted uppercase tracking-wider border-b border-border"
+            style={{ gridTemplateColumns: "44px 2fr 1fr 100px 90px 120px" }}>
+            <div />
+            <div>Tranzakció</div>
+            <div>Kategória</div>
+            <div>Ki</div>
+            <div>Dátum</div>
+            <div className="text-right">Összeg</div>
+          </div>
+
+          {/* Sorok */}
+          <div className="divide-y divide-border/40">
+            {recentTransactions.map(t => {
+              const cat = state.categories.find(c => c.id === t.categoryId);
+              const person = t.personId ? state.people.find(p => p.id === t.personId) : null;
+              const isIncome = t.type === "income";
+              return (
+                <div key={t.id} className="px-5 py-3 flex sm:grid items-center gap-3 hover:bg-surface-2/40 transition-colors"
+                  style={{ gridTemplateColumns: "44px 2fr 1fr 100px 90px 120px" }}>
+                  {getCategoryIcon(cat?.name ?? "", t.type)}
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-text-1 truncate">{t.name || "(névtelen)"}</div>
+                    <div className="text-xs text-text-muted sm:hidden">{cat?.name} · {relativeDate(t.date)}</div>
+                  </div>
+                  <div className="hidden sm:block text-xs text-text-2 truncate">{cat?.name || "—"}</div>
+                  <div className="hidden sm:flex items-center gap-1.5 text-xs text-text-2">
+                    {person && (
+                      <span className="w-5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center"
+                        style={{ background: cPrimary + "22", color: cPrimary }}>
+                        {person.name.charAt(0)}
+                      </span>
+                    )}
+                    {person?.name ?? "Háztartás"}
+                  </div>
+                  <div className="hidden sm:block text-xs text-text-muted">{relativeDate(t.date)}</div>
+                  <div className="ml-auto sm:ml-0 text-sm font-bold tabular-nums text-right"
+                    style={{ color: isIncome ? cIncome : cExpense }}>
+                    {isIncome ? "+" : "−"}{formatHuf(t.amount ?? 0)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -213,7 +213,7 @@ function useUserLocalState(
   const [state, setState] = useState<State>(load);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setState(load());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
@@ -588,7 +588,7 @@ export default function App() {
   // 1) Provisioning
   useEffect(() => {
     const userId = user?.id;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     if (!userId) { setActiveHouseholdId(null); setRemoteReady(false); setRemoteLoadSuccess(false); setSavingStatus("idle"); setSaveError(null); setHouseholdMembers([]); return; }
     let cancelled = false;
     (async () => {
@@ -623,9 +623,9 @@ export default function App() {
   useEffect(() => {
     if (!activeHouseholdId) return;
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setRemoteReady(false);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     setRemoteLoadSuccess(false);
     (async () => {
       try {
@@ -681,7 +681,7 @@ export default function App() {
   }, [state, activeHouseholdId, remoteReady, remoteLoadSuccess]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+     
     if (!user) { setSavingStatus("idle"); setSaveError(null); setRemoteReady(false); setRemoteLoadSuccess(false); setActiveHouseholdId(null); }
   }, [user]);
 
@@ -755,7 +755,7 @@ export default function App() {
     if (!monthList.length) return;
     if (!focusMonth || !monthList.includes(focusMonth)) {
       const now = monthKey(new Date());
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setFocusMonth(monthList.includes(now) ? now : monthList[0]);
     }
   }, [monthList, focusMonth]);
@@ -1050,7 +1050,7 @@ export default function App() {
 
 
   const TAB_META: Record<TabKey, { title: string; subtitle: string }> = {
-    dashboard:    { title: "Dashboard",     subtitle: "Áttekintés" },
+    dashboard:    { title: "Áttekintés",     subtitle: "Pénzügyi összefoglaló" },
     transactions: { title: "Tranzakciók",   subtitle: "Összes bevétel & kiadás" },
     recurring:    { title: "Fix tételek",   subtitle: "Ismétlődő bevételek & kiadások" },
     income:       { title: "Fix bevételek", subtitle: "Tervezett fix tételek" },
@@ -1183,7 +1183,9 @@ export default function App() {
                   series={dashboardSeries} categoryBreakdown={categoryBreakdown}
                   incomeCategoryBreakdown={incomeCategoryBreakdown} peopleIncomePlanned={peopleIncomePlanned}
                   currency={state.settings.currency}
-                  activeSavingsCount={state.savings.filter((s) => (s.targetAmount ?? 0) > 0 && s.startMonth).length} />
+                  activeSavingsCount={state.savings.filter((s) => (s.targetAmount ?? 0) > 0 && s.startMonth).length}
+                  state={state}
+                  onNavigateTransactions={() => handleNavigate("transactions")} />
               </motion.div>
             )}
             {tab === "transactions" && (
@@ -1281,7 +1283,7 @@ export default function App() {
 
       {/* Bottom nav – mobile only */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur border-t border-border flex justify-around px-1 py-1 z-50">
-        <MobileNavBtn active={tab === "dashboard"} icon={BarChart3} label="Dashboard" onClick={() => setTab("dashboard")} />
+        <MobileNavBtn active={tab === "dashboard"} icon={BarChart3} label="Áttekintés" onClick={() => setTab("dashboard")} />
         <MobileNavBtn active={tab === "transactions"} icon={Receipt} label="Tranzakciók" onClick={() => handleNavigate("transactions")} />
         <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Megtakarítás" onClick={() => setTab("savings")} />
         <MobileNavBtn active={tab === "people"} icon={Users} label="Személyek" onClick={() => setTab("people")} />
