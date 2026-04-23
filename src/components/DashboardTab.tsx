@@ -191,9 +191,8 @@ export function DashboardView({
         />
       </div>
 
-      {/* ---- Fő tartalom: chart + jobb panel ---- */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <div className="xl:col-span-2 space-y-4">
+      {/* ---- Chartok egymás alatt, full-width ---- */}
+      <div className="space-y-4">
 
           {/* Dual-scale bar chart */}
           <div
@@ -334,10 +333,8 @@ export function DashboardView({
               </ResponsiveContainer>
             </div>
           </div>
-        </div>
-
-        {/* ---- Jobb panel ---- */}
-        <div className="space-y-4">
+        {/* ---- Info kártyák — 3 oszlopos sor ---- */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
           {/* Kiadás kategória bontás */}
           <SideCard
