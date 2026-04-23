@@ -5,11 +5,13 @@ import { supabase } from "./supabaseClient";
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
+  displayName: string | null;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ error: string | null }>;
+  updateProfile: (firstName: string, lastName: string) => Promise<{ error: string | null }>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -72,6 +74,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ? error.message : null };
   }
 
+  async function updateProfile(firstName: string, lastName: string) {
+    const { error } = await supabase.auth.updateUser({
+      data: { first_name: firstName, last_name: lastName },
+    });
+    if (!error) {
+      // Frissítjük a helyi user state-et
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user ?? null);
+    }
+    return { error: error ? error.message : null };
+  }
+
   async function changePassword(currentPassword: string, newPassword: string) {
     // Jelenlegi jelszó ellenőrzése re-autentikációval
     if (!user?.email) return { error: "Nem sikerült azonosítani a felhasználót." };
@@ -84,14 +98,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ? error.message : null };
   }
 
+  // displayName: Keresztnév Vezetéknév, vagy null ha nincs beállítva
+  const firstName = user?.user_metadata?.first_name ?? "";
+  const lastName  = user?.user_metadata?.last_name  ?? "";
+  const displayName = (firstName || lastName)
+    ? [firstName, lastName].filter(Boolean).join(" ")
+    : null;
+
   const value: AuthContextValue = {
     user,
     loading,
+    displayName,
     signUp,
     signIn,
     signOut,
     resetPassword,
     changePassword,
+    updateProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

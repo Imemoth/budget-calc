@@ -27,57 +27,64 @@ function KpiCard({
   sub,
   accentColor,
   icon: Icon,
-  glow = false,
+  progress,
 }: {
   label: string;
   value: string;
   sub?: React.ReactNode;
   accentColor: string;
   icon: React.ComponentType<{ className?: string }>;
-  glow?: boolean;
+  progress?: number; // 0-100, opcionális mini progress bar
 }) {
   return (
     <div
-      className="rounded-2xl border border-border p-4 relative overflow-hidden"
+      className="rounded-2xl border border-border p-4 relative overflow-hidden flex flex-col gap-3"
       style={{
         borderLeftWidth: 4,
         borderLeftColor: accentColor,
-        background: "linear-gradient(145deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
-        boxShadow: glow
-          ? `var(--shadow-card), 0 0 24px ${accentColor}22`
-          : "var(--shadow-card)",
+        background: `linear-gradient(145deg, var(--color-surface) 0%, var(--color-surface-2) 100%)`,
+        boxShadow: `var(--shadow-card), 0 0 28px ${accentColor}18`,
       }}
     >
-      {/* Háttér glow folt */}
-      <div
-        className="absolute -top-6 -left-6 w-24 h-24 rounded-full pointer-events-none"
-        style={{
-          background: accentColor,
-          opacity: 0.07,
-          filter: "blur(18px)",
-        }}
-      />
-      {/* Felső fény-csík (üveg hatás) */}
-      <div
-        className="absolute top-0 left-4 right-4 h-px pointer-events-none"
-        style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent)" }}
-      />
+      {/* Háttér radial glow */}
+      <div className="absolute -top-8 -left-8 w-28 h-28 rounded-full pointer-events-none"
+        style={{ background: accentColor, opacity: 0.08, filter: "blur(22px)" }} />
+      {/* Felső fény-csík */}
+      <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+        style={{ background: `linear-gradient(90deg, transparent, ${accentColor}44, transparent)` }} />
 
       <div className="relative flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="text-xs text-text-muted mb-1.5">{label}</div>
-          <div className="text-2xl font-bold tabular-nums leading-tight" style={{ color: accentColor }}>
+          <div className="text-[11px] font-medium text-text-muted uppercase tracking-wider mb-2">{label}</div>
+          <div className="text-[1.6rem] font-extrabold tabular-nums leading-none" style={{ color: accentColor }}>
             {value}
           </div>
-          {sub && <div className="text-xs text-text-muted mt-1.5 leading-snug">{sub}</div>}
         </div>
-        <div
-          className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-          style={{ background: `${accentColor}18`, color: accentColor }}
-        >
-          <Icon className="w-4 h-4" />
+        <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+          style={{ background: `${accentColor}20`, color: accentColor, boxShadow: `0 2px 8px ${accentColor}30` }}>
+          <Icon className="w-5 h-5" />
         </div>
       </div>
+
+      {/* Sub text */}
+      {sub && <div className="relative text-xs text-text-muted leading-snug">{sub}</div>}
+
+      {/* Mini progress bar */}
+      {progress !== undefined && (
+        <div className="relative">
+          <div className="h-1 rounded-full overflow-hidden" style={{ background: `${accentColor}18` }}>
+            <div
+              className="h-full rounded-full transition-all duration-700"
+              style={{
+                width: `${Math.min(100, Math.max(0, progress))}%`,
+                background: `linear-gradient(90deg, ${accentColor}88, ${accentColor})`,
+                boxShadow: `0 0 6px ${accentColor}55`,
+              }}
+            />
+          </div>
+          <div className="text-[10px] text-text-muted mt-1 text-right tabular-nums">{Math.round(progress)}%</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -156,20 +163,21 @@ export function DashboardView({
           value={formatHuf(current?.plannedIncome ?? 0)}
           accentColor={cIncome}
           icon={TrendingUp}
-          glow
           sub={(current?.actualIncome ?? 0) > 0
             ? <span>Tényleges: <span style={{ color: cIncome }}>{formatHuf(current!.actualIncome)}</span></span>
-            : undefined}
+            : <span className="text-text-muted">Tervezett összeg</span>}
         />
         <KpiCard
           label="Fix kiadás / hó"
           value={formatHuf(current?.plannedExpense ?? 0)}
           accentColor={cExpense}
           icon={TrendingDown}
-          glow
+          progress={(current?.plannedIncome ?? 0) > 0
+            ? ((current?.plannedExpense ?? 0) / (current?.plannedIncome ?? 1)) * 100
+            : undefined}
           sub={(current?.actualExpense ?? 0) > 0
             ? <span>Tényleges: <span style={{ color: cExpense }}>{formatHuf(current!.actualExpense)}</span></span>
-            : undefined}
+            : <span className="text-text-muted">Bevétel arányában</span>}
         />
         <KpiCard
           label={`Várható nettó · ${focusMonth}`}
@@ -180,14 +188,16 @@ export function DashboardView({
             ? <span style={{ color: (current?.actualNet ?? 0) >= 0 ? cIncome : cExpense }}>
                 Tényleges: {formatHuf(current?.actualNet ?? 0)}
               </span>
-            : undefined}
+            : <span className="text-text-muted">Bevétel − kiadás</span>}
         />
         <KpiCard
           label="Megtakarítás / hó"
           value={formatHuf(current?.plannedSavings ?? 0)}
           accentColor={cWarning}
           icon={PiggyBank}
-          sub={activeSavingsCount > 0 ? `${activeSavingsCount} aktív keret` : undefined}
+          sub={activeSavingsCount > 0
+            ? <span>{activeSavingsCount} aktív keret</span>
+            : <span className="text-text-muted">Nincs aktív keret</span>}
         />
       </div>
 
@@ -232,7 +242,18 @@ export function DashboardView({
             </div>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={series} margin={{ top: 4, right: 16, left: 0, bottom: 0 }} barGap={4}>
+                {/*
+                  Overlay / layered bar chart — mindkét bar ugyanazon az Y-skálán.
+                  Income: széles (42px), 20% opacity → háttér referencia sáv.
+                  Expense: keskeny (18px), teljes opacity → ráfekszik az income sávra.
+                  barGap={-30} → a két bar kb. középre igazodik egymáshoz képest.
+                */}
+                <ComposedChart
+                  data={series}
+                  margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
+                  barGap={-30}
+                  barCategoryGap="28%"
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke={cBorder} opacity={0.4} vertical={false} />
                   <XAxis
                     dataKey="month"
@@ -244,42 +265,31 @@ export function DashboardView({
                       return ["jan","feb","már","ápr","máj","jún","júl","aug","szep","okt","nov","dec"][parseInt(m,10)-1] ?? v;
                     }}
                   />
-                  {/* Bal Y: bevétel */}
                   <YAxis
-                    yAxisId="income"
-                    orientation="left"
-                    tick={{ fontSize: 10, fill: cIncome }}
+                    tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={yFmt}
                     width={48}
                   />
-                  {/* Jobb Y: kiadás — külön skála */}
-                  <YAxis
-                    yAxisId="expense"
-                    orientation="right"
-                    tick={{ fontSize: 10, fill: cExpense }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={yFmt}
-                    width={48}
-                  />
-                  <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--color-surface-2)", opacity: 0.5 }} />
+                  <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--color-surface-2)", opacity: 0.4 }} />
+                  {/* Bevétel — széles, halvány → vizuális referencia */}
                   <Bar
-                    yAxisId="income"
                     dataKey="plannedIncome"
                     name="Tervezett bevétel"
                     fill={cIncome}
-                    radius={[4, 4, 0, 0]}
-                    fillOpacity={0.85}
+                    fillOpacity={0.22}
+                    barSize={42}
+                    radius={[5, 5, 0, 0]}
                   />
+                  {/* Kiadás — keskeny, opaque → arányosan ráfekszik */}
                   <Bar
-                    yAxisId="expense"
                     dataKey="plannedExpense"
                     name="Tervezett kiadás"
                     fill={cExpense}
+                    fillOpacity={0.9}
+                    barSize={18}
                     radius={[4, 4, 0, 0]}
-                    fillOpacity={0.85}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
