@@ -4,7 +4,7 @@ import { DEFAULT_THEME, type ThemeId } from "./lib/themes";
 import { APP_VERSION } from "./lib/version";
 import { AnimatePresence, motion } from "framer-motion";
 import { uid, isUUID, monthKey, monthsBetweenInclusive } from "./lib/utils";
-import { Wallet, BarChart3, TrendingUp, TrendingDown, PiggyBank, Users, Settings2, Download, Upload, Info, LogOut, Receipt } from "lucide-react";
+import { Wallet, BarChart3, PiggyBank, Users, Settings2, Info, LogOut, Receipt, Home, LineChart, Repeat } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./auth";
 import { AuthScreen } from "./authscreen";
@@ -16,7 +16,7 @@ import type { Settings, Person, Category, RecurringItem, Transaction, SavingsBuc
 import { DEFAULT_PERMISSIONS } from "./types";
 
 // Components
-import { MobileNavBtn, SmallButton, Skeleton } from "./components/ui";
+import { MobileNavBtn, Skeleton } from "./components/ui";
 import { ChangelogModal } from "./components/ChangelogModal";
 import { DashboardView } from "./components/DashboardTab";
 import { MoneyTab } from "./components/MoneyTab";
@@ -305,6 +305,156 @@ async function ensureDefaultHousehold(userId: string, userEmail?: string | null)
   return householdId!;
 }
 
+// -------------------- sidebar nav item --------------------
+
+function NavItem({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+  badge,
+  soon,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  badge?: number;
+  soon?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all duration-150 text-left mb-0.5"
+      style={active ? {
+        background: "var(--color-primary)",
+        color: "#fff",
+        boxShadow: "0 2px 8px var(--color-primary)44",
+      } : {
+        color: "var(--color-text-2)",
+      }}
+      onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--color-surface-2)"; }}
+      onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = ""; }}
+    >
+      <Icon className="w-4 h-4 shrink-0" />
+      <span className="flex-1">{label}</span>
+      {soon && !badge && (
+        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+          style={{ background: "var(--color-surface-2)", color: "var(--color-text-muted)" }}>
+          hamarosan
+        </span>
+      )}
+      {badge !== undefined && badge > 0 && (
+        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
+          style={active
+            ? { background: "rgba(255,255,255,0.25)", color: "#fff" }
+            : { background: "var(--color-primary)", color: "#fff" }}>
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+// -------------------- sidebar user button --------------------
+
+function SidebarUserButton({
+  displayName,
+  email,
+  savingStatus,
+  isProvisioning,
+  remoteReady,
+  memberCount,
+  onLogout,
+}: {
+  displayName: string | null;
+  email: string;
+  savingStatus: "idle" | "saving" | "error";
+  isProvisioning: boolean;
+  remoteReady: boolean;
+  memberCount: number;
+  onLogout: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const initial = (displayName ?? email ?? "?").charAt(0).toUpperCase();
+  const statusText = isProvisioning ? "Előkészítés..."
+    : !remoteReady ? "Betöltés..."
+    : savingStatus === "saving" ? "Mentés..."
+    : savingStatus === "error" ? "Mentési hiba"
+    : memberCount > 1 ? `${memberCount} fő a háztartásban`
+    : "Mentve ✓";
+  const statusColor = savingStatus === "error" ? "var(--color-negative)"
+    : savingStatus === "saving" ? "var(--color-warning)"
+    : "var(--color-text-muted)";
+
+  return (
+    <div ref={ref} className="border-t border-border mt-3 pt-3 relative">
+      {/* Felugró dropdown — felfele, fix z-index */}
+      {open && (
+        <div
+          className="absolute bottom-full left-0 right-0 mb-2 rounded-xl border border-border py-1.5 z-[200]"
+          style={{
+            background: "linear-gradient(145deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
+            boxShadow: "0 -8px 32px rgba(0,0,0,0.35), 0 -2px 8px rgba(0,0,0,0.2)",
+          }}
+        >
+          <div className="px-3 py-2 border-b border-border">
+            <div className="text-[11px] text-text-muted">Bejelentkezve</div>
+            <div className="text-xs font-semibold text-text-1 truncate mt-0.5">{displayName ?? email}</div>
+            <div className="text-[10px] text-text-muted truncate">{email}</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onLogout(); }}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-xs text-text-2 hover:bg-surface-2 hover:text-text-1 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Kijelentkezés
+          </button>
+        </div>
+      )}
+
+      {/* Kattintható user sor */}
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        className="w-full flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-surface-2"
+        style={{ background: open ? "var(--color-surface-2)" : "transparent" }}
+      >
+        {/* Avatar kör */}
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 border"
+          style={{
+            background: "var(--color-primary)22",
+            color: "var(--color-primary)",
+            borderColor: "var(--color-primary)40",
+          }}
+        >
+          {initial}
+        </div>
+        {/* Név + státusz */}
+        <div className="flex-1 min-w-0 text-left">
+          <div className="text-xs font-semibold text-text-1 truncate">{displayName ?? email}</div>
+          <div className="text-[10px] leading-tight mt-0.5" style={{ color: statusColor }}>
+            {statusText}
+          </div>
+        </div>
+      </button>
+    </div>
+  );
+}
+
 // -------------------- user menu --------------------
 
 function UserMenu({ email, onLogout, dropUp = false }: { email: string; onLogout: () => void; dropUp?: boolean }) {
@@ -358,7 +508,7 @@ function UserMenu({ email, onLogout, dropUp = false }: { email: string; onLogout
 // -------------------- main app --------------------
 
 export default function App() {
-  const { user, loading, changePassword, updateProfile, displayName } = useAuth();
+  const { user, loading, changePassword, updateProfile, displayName, firstName, lastName } = useAuth();
 
   const handleLogout = async () => {
     if (saveTimerRef.current != null) {
@@ -898,14 +1048,6 @@ export default function App() {
 
   // -------------------- layout --------------------
 
-  const NAV_ITEMS: { key: TabKey; label: string; Icon: React.ComponentType<{ className?: string }> }[] = [
-    { key: "dashboard", label: "Dashboard", Icon: BarChart3 },
-    { key: "income", label: "Bevétel", Icon: TrendingUp },
-    { key: "expense", label: "Kiadás", Icon: TrendingDown },
-    { key: "savings", label: "Megtakarítás", Icon: PiggyBank },
-    { key: "people", label: "Személyek", Icon: Users },
-    { key: "settings", label: "Beállítások", Icon: Settings2 },
-  ];
 
   const TAB_META: Record<TabKey, { title: string; subtitle: string }> = {
     dashboard:    { title: "Dashboard",     subtitle: "Áttekintés" },
@@ -923,154 +1065,64 @@ export default function App() {
       {/* Sidebar — desktop only */}
       <aside className="hidden lg:flex flex-col bg-surface border-r border-border p-4 sticky top-0 h-screen">
         {/* Logo */}
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center">
-            <Wallet className="w-4 h-4 text-primary" />
+        <div className="flex items-center gap-3 mb-5 px-1">
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 overflow-hidden"
+            style={{ background: "var(--color-primary)", boxShadow: "0 2px 8px var(--color-primary)50" }}>
+            <img src="/logo.png" alt="" className="w-9 h-9 object-cover"
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+            <Wallet className="w-4 h-4 text-white" style={{ marginTop: "-36px" }} />
           </div>
           <div>
-            <div className="text-sm font-bold text-text-1">Költségradar</div>
-            <div className="text-xs text-text-muted">háztartási tervező</div>
+            <div className="text-sm font-bold text-text-1 leading-tight">
+              <span style={{ color: "var(--color-primary)" }}>Költség</span>radar
+            </div>
+            <div className="text-[10px] text-text-muted">háztartási tervező</div>
           </div>
         </div>
 
         {/* Nav items */}
-        <nav className="flex flex-col gap-1 flex-1 overflow-y-auto">
-          {/* Dashboard */}
-          <button
-            type="button"
-            onClick={() => setTab("dashboard")}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
-              tab === "dashboard"
-                ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
-                : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-            }`}
-          >
-            <BarChart3 className="w-4 h-4 shrink-0" />
-            Dashboard
-          </button>
+        <nav className="flex flex-col flex-1 overflow-y-auto">
 
-          {/* Tranzakciók – egységes nézet */}
-          <button
-            type="button"
-            onClick={() => handleNavigate("transactions")}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
-              tab === "transactions"
-                ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
-                : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-            }`}
-          >
-            <Receipt className="w-4 h-4 shrink-0" />
-            Tranzakciók
-          </button>
-
-          {/* Fix tételek – egyetlen gomb */}
-          <button
-            type="button"
-            onClick={() => handleNavigate("recurring")}
-            className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
-              tab === "recurring"
-                ? "bg-primary/12 text-primary outline outline-1 outline-primary/20"
-                : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-            }`}
-          >
-            <TrendingUp className="w-4 h-4 shrink-0" />
-            Fix tételek
-          </button>
-
-          {/* Többi nav elem */}
-          {NAV_ITEMS.filter((i) => !["dashboard", "income", "expense"].includes(i.key)).map(({ key, label, Icon }) => (
-            <button key={key} type="button" onClick={() => handleNavigate(key)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium transition-all text-left ${
-                tab === key ? "bg-primary/12 text-primary outline outline-1 outline-primary/20" : "text-text-2 hover:bg-surface-2 hover:text-text-1"
-              }`}>
-              <Icon className="w-4 h-4 shrink-0" />
-              {label}
-            </button>
-          ))}
-        </nav>
-
-        {/* Sidebar footer */}
-        <div
-          className="border-t border-border mt-3 pt-3 space-y-2"
-        >
-          {/* Export / Import / Reset gombok */}
-          <div
-            className="flex items-center gap-1 rounded-xl p-1"
-            style={{ background: "var(--color-surface-2)" }}
-          >
-            <button
-              type="button"
-              onClick={exportJson}
-              title="Exportálás JSON-ba"
-              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs text-text-2 hover:bg-surface hover:text-text-1 transition-colors"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              title="Importálás"
-              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs text-text-2 hover:bg-surface hover:text-text-1 transition-colors"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              <span>Import</span>
-            </button>
-            {isAdmin && (
-              <button
-                type="button"
-                title="Alaphelyzetbe állítás"
-                onClick={() => {
-                  if (window.confirm("Biztosan visszaállítod az alkalmazást alapértelmezett állapotra? Minden jelenlegi adat törlődik erről a háztartásról.")) {
-                    const storageKey = localScopeId ? `${STORAGE_KEY}-${localScopeId}` : STORAGE_KEY;
-                    try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
-                    setState(defaultState());
-                  }
-                }}
-                className="px-2 py-1.5 rounded-lg text-xs text-[var(--color-negative)] hover:bg-[var(--color-negative)]/10 transition-colors"
-              >
-                Reset
-              </button>
-            )}
+          {/* ── FŐMENÜ szekció ── */}
+          <div className="text-[10px] font-bold text-text-muted uppercase tracking-[0.1em] px-2 pb-1.5 pt-0.5">
+            Főmenü
           </div>
 
-          {/* Felhasználó sor */}
-          {user && (
-            <div className="flex items-center gap-2 rounded-xl px-2 py-2"
-              style={{ background: "var(--color-surface-2)" }}>
-              {/* Avatar */}
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 border border-primary/30"
-                style={{ background: "var(--color-primary)20", color: "var(--color-primary)" }}
-              >
-                {(displayName ?? user.email ?? "?").charAt(0).toUpperCase()}
-              </div>
-              {/* Név / email + státusz */}
-              <div className="flex-1 min-w-0">
-                <div className="text-xs font-semibold text-text-1 truncate">
-                  {displayName ?? user.email}
-                </div>
-                <div className="text-[10px] leading-tight mt-0.5" style={{
-                  color: savingStatus === "error" ? "var(--color-negative)"
-                    : savingStatus === "saving" ? "var(--color-warning)"
-                    : "var(--color-text-muted)"
-                }}>
-                  {isProvisioning ? "Előkészítés..."
-                    : !remoteReady ? "Betöltés..."
-                    : savingStatus === "saving" ? "Mentés..."
-                    : savingStatus === "error" ? "Mentési hiba"
-                    : householdMembers.length > 1
-                      ? `${householdMembers.length} fő a háztartásban`
-                      : "Mentve ✓"}
-                </div>
-              </div>
-              {/* Kijelentkezés gomb */}
-              <div className="relative">
-                <UserMenu email={user.email ?? ""} onLogout={handleLogout} dropUp />
-              </div>
-            </div>
-          )}
-        </div>
+          <NavItem icon={Home} label="Áttekintés" active={tab === "dashboard"} onClick={() => handleNavigate("dashboard")} />
+          <NavItem
+            icon={Receipt}
+            label="Tranzakciók"
+            active={tab === "transactions"}
+            onClick={() => handleNavigate("transactions")}
+            badge={state.transactions.length > 0 && tab === "transactions" ? state.transactions.length : undefined}
+          />
+          <NavItem icon={LineChart} label="Elemzés" active={false} onClick={() => handleNavigate("dashboard")} soon />
+          <NavItem icon={PiggyBank} label="Megtakarítás" active={tab === "savings"} onClick={() => handleNavigate("savings")} />
+          <NavItem icon={Repeat} label="Fix tételek" active={tab === "recurring"} onClick={() => handleNavigate("recurring")} />
+
+          {/* ── HÁZTARTÁS szekció ── */}
+          <div className="text-[10px] font-bold text-text-muted uppercase tracking-[0.1em] px-2 pb-1.5 pt-4">
+            Háztartás
+          </div>
+
+          <NavItem icon={Users} label="Személyek" active={tab === "people"} onClick={() => handleNavigate("people")} />
+          <NavItem icon={Settings2} label="Beállítások" active={tab === "settings"} onClick={() => handleNavigate("settings")} />
+
+          <div className="flex-1" />
+        </nav>
+
+        {/* Sidebar footer — kattintható user sor, felfele nyíló dropdown */}
+        {user && (
+          <SidebarUserButton
+            displayName={displayName}
+            email={user.email ?? ""}
+            savingStatus={savingStatus}
+            isProvisioning={isProvisioning}
+            remoteReady={remoteReady}
+            memberCount={householdMembers.length}
+            onLogout={handleLogout}
+          />
+        )}
       </aside>
 
       {/* Main */}
@@ -1084,16 +1136,6 @@ export default function App() {
             <h1 className="text-lg font-bold text-text-1">{TAB_META[tab].title}</h1>
           </div>
           <div className="flex items-center gap-2">
-            {/* Export/Import csak mobilon — desktopön a sidebar footer-ben van */}
-            <div className="flex lg:hidden items-center gap-1">
-              <SmallButton variant="ghost" onClick={exportJson} title="Exportálás">
-                <Download className="w-3.5 h-3.5" />
-              </SmallButton>
-              <SmallButton variant="ghost" onClick={() => fileInputRef.current?.click()} title="Importálás">
-                <Upload className="w-3.5 h-3.5" />
-              </SmallButton>
-            </div>
-            {/* UserMenu csak mobilon — desktopön a sidebar alján van */}
             {user && <div className="lg:hidden"><UserMenu email={user.email ?? ""} onLogout={handleLogout} /></div>}
           </div>
         </header>
@@ -1206,7 +1248,18 @@ export default function App() {
                   changePassword={changePassword}
                   updateProfile={updateProfile}
                   currentUserEmail={user?.email}
-                  currentUserDisplayName={displayName}
+                  currentUserFirstName={firstName}
+                  currentUserLastName={lastName}
+                  onExportJson={exportJson}
+                  onImportClick={() => fileInputRef.current?.click()}
+                  onReset={isAdmin ? () => {
+                    if (window.confirm("Biztosan visszaállítod az alkalmazást alapértelmezett állapotra? Minden jelenlegi adat törlődik erről a háztartásról.")) {
+                      const storageKey = localScopeId ? `${STORAGE_KEY}-${localScopeId}` : STORAGE_KEY;
+                      try { localStorage.removeItem(storageKey); } catch { /* ignore */ }
+                      setState(defaultState());
+                    }
+                  } : undefined}
+                  isAdmin={isAdmin}
                   householdMembers={householdMembers}
                   membersLoadError={membersLoadError}
                   isOwner={isOwner}

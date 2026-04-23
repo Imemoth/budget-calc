@@ -1,4 +1,4 @@
-import { ChevronDown, Download, Eye, EyeOff, Mail, Plus, RefreshCw, RotateCcw, User } from "lucide-react";
+import { ChevronDown, Download, Upload, Eye, EyeOff, Mail, Plus, RefreshCw, RotateCcw, User } from "lucide-react";
 import { useState } from "react";
 import { APP_VERSION } from "../lib/version";
 import type { Settings, State, SeriesRow, HouseholdMember, MemberPermissions, MoneyType, Category } from "../types";
@@ -144,7 +144,12 @@ export function SettingsView({
   changePassword,
   updateProfile,
   currentUserEmail,
-  currentUserDisplayName,
+  currentUserFirstName,
+  currentUserLastName,
+  onExportJson,
+  onImportClick,
+  onReset,
+  isAdmin,
   householdMembers,
   membersLoadError,
   isOwner,
@@ -165,7 +170,12 @@ export function SettingsView({
   changePassword: (currentPw: string, newPw: string) => Promise<{ error: string | null }>;
   updateProfile: (firstName: string, lastName: string) => Promise<{ error: string | null }>;
   currentUserEmail?: string | null;
-  currentUserDisplayName?: string | null;
+  currentUserFirstName?: string | null;
+  currentUserLastName?: string | null;
+  onExportJson: () => void;
+  onImportClick: () => void;
+  onReset?: () => void;
+  isAdmin?: boolean;
   householdMembers: HouseholdMember[];
   membersLoadError: string | null;
   isOwner: boolean;
@@ -181,11 +191,9 @@ export function SettingsView({
 }) {
   const { startMonth, horizonMonths, currency } = settings;
 
-  // ---- Profil (név) ----
-  const initFirst = (currentUserDisplayName ?? "").split(" ")[0] ?? "";
-  const initLast  = (currentUserDisplayName ?? "").split(" ").slice(1).join(" ") ?? "";
-  const [firstName, setFirstName] = useState(initFirst);
-  const [lastName,  setLastName]  = useState(initLast);
+  // ---- Profil (név) — közvetlenül a raw first_name/last_name-ből ----
+  const [lastName,  setLastName]  = useState(currentUserLastName  ?? "");
+  const [firstName, setFirstName] = useState(currentUserFirstName ?? "");
   const [profileMsg, setProfileMsg] = useState<{ type: "error" | "ok"; text: string } | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
 
@@ -351,12 +359,13 @@ export function SettingsView({
             <Mail className="w-3 h-3" /> {currentUserEmail}
           </div>
         )}
+        {/* Magyar névsor: Vezetéknév előbb */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Field label="Keresztnév">
-            <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="pl. Péter" className="w-full" />
-          </Field>
           <Field label="Vezetéknév">
             <Input value={lastName} onChange={e => setLastName(e.target.value)} placeholder="pl. Kovács" className="w-full" />
+          </Field>
+          <Field label="Keresztnév">
+            <Input value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="pl. Péter" className="w-full" />
           </Field>
         </div>
         {profileMsg && (
@@ -369,6 +378,28 @@ export function SettingsView({
             {profileLoading ? <RotateCcw className="w-3.5 h-3.5 animate-spin" /> : null}
             Mentés
           </SmallButton>
+        </div>
+      </Card>
+
+      {/* ---- Adatok: Export / Import / Reset ---- */}
+      <Card className="p-5">
+        <div className="text-sm text-text-2">Fiók</div>
+        <div className="text-lg font-semibold mb-4">Adatok kezelése</div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <SmallButton variant="solid" onClick={onExportJson}>
+            <Download className="w-3.5 h-3.5" /> JSON export
+          </SmallButton>
+          <SmallButton variant="solid" onClick={onImportClick}>
+            <Upload className="w-3.5 h-3.5" /> JSON import
+          </SmallButton>
+          {isAdmin && onReset && (
+            <SmallButton variant="danger" onClick={onReset}>
+              Adatok visszaállítása
+            </SmallButton>
+          )}
+        </div>
+        <div className="mt-3 text-[11px] text-text-muted">
+          Az export/import az összes háztartási adatot tartalmazza JSON formátumban.
         </div>
       </Card>
 
