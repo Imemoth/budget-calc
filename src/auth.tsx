@@ -5,7 +5,9 @@ import { supabase } from "./supabaseClient";
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
-  displayName: string | null;
+  displayName: string | null;  // Vezetéknév Keresztnév (magyar sorrend)
+  firstName: string | null;
+  lastName: string | null;
   signUp: (email: string, password: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
@@ -98,17 +100,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ? error.message : null };
   }
 
-  // displayName: Keresztnév Vezetéknév, vagy null ha nincs beállítva
-  const firstName = user?.user_metadata?.first_name ?? "";
-  const lastName  = user?.user_metadata?.last_name  ?? "";
+  // Magyar névsor: Vezetéknév Keresztnév
+  const firstName = (user?.user_metadata?.first_name as string | undefined) ?? null;
+  const lastName  = (user?.user_metadata?.last_name  as string | undefined) ?? null;
   const displayName = (firstName || lastName)
-    ? [firstName, lastName].filter(Boolean).join(" ")
+    ? [lastName, firstName].filter(Boolean).join(" ")
     : null;
 
   const value: AuthContextValue = {
     user,
     loading,
     displayName,
+    firstName,
+    lastName,
     signUp,
     signIn,
     signOut,
