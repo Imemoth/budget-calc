@@ -1,15 +1,17 @@
 import React, { useMemo } from "react";
 import {
-  ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  LineChart, Line, ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip,
+  PieChart, Pie, Cell, Area, AreaChart,
+  ResponsiveContainer,
 } from "recharts";
 import { formatHuf } from "../lib/format";
-import { percent, roundTo } from "../lib/utils";
+import { monthKey } from "../lib/utils";
 import type { SeriesRow, State } from "../types";
-import { Field, Select } from "./ui";
 import { useTheme } from "../context/ThemeContext";
-import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight } from "lucide-react";
+import { Target, ArrowRight, ArrowUpRight } from "lucide-react";
 import { getCategoryIcon } from "../lib/categoryIcons";
+
+// ---- helpers ----
 
 function readVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -17,95 +19,70 @@ function readVar(name: string): string {
 
 function yFmt(v: number): string {
   if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(v) >= 1_000)     return `${Math.round(v / 1_000)}K`;
+  if (Math.abs(v) >= 1_000) return `${Math.round(v / 1_000)}K`;
   return String(v);
 }
 
-// ---- KPI kártya mélység-effekttel ----
-function KpiCard({
-  label,
-  value,
-  sub,
+function cmpct(v: number): string {
+  if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(v) >= 1_000) return `${Math.round(v / 1_000)}k`;
+  return String(v);
+}
+
+const PERSON_PALETTE = [
+  "var(--color-positive)",
+  "var(--color-chart-1)",
+  "#A78BFA",
+  "#F472B6",
+  "#22D3EE",
+  "#F59E0B",
+];
+
+// ---- Glassmorphism kártya alap ----
+function GlassCard({
+  children,
+  className = "",
   accentColor,
-  icon: Icon,
-  progress,
+  style,
 }: {
-  label: string;
-  value: string;
-  sub?: React.ReactNode;
-  accentColor: string;
-  icon: React.ComponentType<{ className?: string }>;
-  progress?: number; // 0-100, opcionális mini progress bar
+  children: React.ReactNode;
+  className?: string;
+  accentColor?: string;
+  style?: React.CSSProperties;
 }) {
   return (
     <div
-      className="rounded-2xl border border-border p-4 relative overflow-hidden flex flex-col gap-3"
+      className={`rounded-2xl border border-border relative overflow-hidden ${className}`}
       style={{
-        borderLeftWidth: 4,
-        borderLeftColor: accentColor,
-        background: `linear-gradient(145deg, var(--color-surface) 0%, var(--color-surface-2) 100%)`,
-        boxShadow: `var(--shadow-card), 0 0 28px ${accentColor}18`,
+        background: "linear-gradient(145deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
+        boxShadow: accentColor
+          ? `var(--shadow-card), 0 0 32px ${accentColor}14`
+          : "var(--shadow-card)",
+        ...style,
       }}
     >
-      {/* Háttér radial glow */}
-      <div className="absolute -top-8 -left-8 w-28 h-28 rounded-full pointer-events-none"
-        style={{ background: accentColor, opacity: 0.08, filter: "blur(22px)" }} />
-      {/* Felső fény-csík */}
-      <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-        style={{ background: `linear-gradient(90deg, transparent, ${accentColor}44, transparent)` }} />
-
-      <div className="relative flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="text-[11px] font-medium text-text-muted uppercase tracking-wider mb-2">{label}</div>
-          <div className="text-[1.6rem] font-extrabold tabular-nums leading-none" style={{ color: accentColor }}>
-            {value}
-          </div>
-        </div>
-        <div className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-          style={{ background: `${accentColor}20`, color: accentColor, boxShadow: `0 2px 8px ${accentColor}30` }}>
-          <Icon className="w-5 h-5" />
-        </div>
-      </div>
-
-      {/* Sub text */}
-      {sub && <div className="relative text-xs text-text-muted leading-snug">{sub}</div>}
-
-      {/* Mini progress bar */}
-      {progress !== undefined && (
-        <div className="relative">
-          <div className="h-1 rounded-full overflow-hidden" style={{ background: `${accentColor}18` }}>
-            <div
-              className="h-full rounded-full transition-all duration-700"
-              style={{
-                width: `${Math.min(100, Math.max(0, progress))}%`,
-                background: `linear-gradient(90deg, ${accentColor}88, ${accentColor})`,
-                boxShadow: `0 0 6px ${accentColor}55`,
-              }}
-            />
-          </div>
-          <div className="text-[10px] text-text-muted mt-1 text-right tabular-nums">{Math.round(progress)}%</div>
-        </div>
+      <div className="absolute top-0 left-0 right-0 h-px pointer-events-none z-10"
+        style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.09), transparent)" }} />
+      {accentColor && (
+        <div className="absolute -top-10 -left-10 w-32 h-32 rounded-full pointer-events-none"
+          style={{ background: accentColor, opacity: 0.06, filter: "blur(24px)" }} />
       )}
+      {children}
     </div>
   );
 }
 
-// ---- Tooltip ----
+// ---- Custom Tooltip ----
 function ChartTooltip({ active, payload, label }: {
   active?: boolean;
   payload?: { name: string; value: number; color: string }[];
-  label?: string;
+  label?: string | number;
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div
-      className="rounded-xl border border-border px-3 py-2 text-xs space-y-1"
-      style={{
-        background: "var(--color-surface-2)",
-        boxShadow: "var(--shadow-card)",
-      }}
-    >
-      <div className="font-semibold text-text-2 mb-1">{label}</div>
+    <div className="rounded-xl border border-border px-3 py-2 text-xs space-y-1 z-50"
+      style={{ background: "var(--color-surface-2)", boxShadow: "var(--shadow-card)" }}>
+      {label !== undefined && <div className="font-semibold text-text-2 mb-1">{label}. nap</div>}
       {payload.map((p, i) => (
         <div key={i} className="flex items-center justify-between gap-4">
           <span className="flex items-center gap-1.5">
@@ -119,14 +96,49 @@ function ChartTooltip({ active, payload, label }: {
   );
 }
 
+// ---- Célok progress ----
+function ym2int(ym: string): number {
+  const [y, m] = ym.split("-").map(Number);
+  return y * 12 + m;
+}
+function goalProgress(s: { targetAmount?: number; monthlyPlanned?: number; startMonth?: string | null; endMonth?: string | null }) {
+  const today = monthKey(new Date());
+  const target = s.targetAmount ?? 0;
+  const monthly = s.monthlyPlanned ?? 0;
+  if (!s.startMonth || target <= 0) return null;
+  const start = ym2int(s.startMonth);
+  const end = s.endMonth ? ym2int(s.endMonth) : null;
+  const now = ym2int(today);
+  const capped = end ? Math.min(now, end) : now;
+  const elapsed = Math.max(0, capped - start + 1);
+  const accumulated = elapsed * monthly;
+  const pct = Math.min(100, Math.round((accumulated / target) * 100));
+  return { accumulated, pct, target };
+}
+
+const GOAL_EMOJIS = ["🎯", "💻", "🌴", "🚗", "🏠", "✈️", "🎮", "📱"];
+
+// ---- Relatív dátum ----
+function relativeDate(isoDate: string): string {
+  if (!isoDate) return "—";
+  const d = new Date(isoDate + "T00:00:00");
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const diff = Math.round((today.getTime() - d.getTime()) / 86400000);
+  if (diff === 0) return "Ma";
+  if (diff === 1) return "Tegnap";
+  if (diff < 7) return `${diff} napja`;
+  return isoDate.slice(5).replace("-", ". ");
+}
+
+// =============================================================
+// FŐKOMPONENS
+// =============================================================
+
 export function DashboardView({
   monthList,
   focusMonth,
   setFocusMonth,
   series,
-  categoryBreakdown,
-  incomeCategoryBreakdown,
-  peopleIncomePlanned,
   activeSavingsCount = 0,
   state,
   onNavigateTransactions,
@@ -135,9 +147,10 @@ export function DashboardView({
   focusMonth: string;
   setFocusMonth: React.Dispatch<React.SetStateAction<string>>;
   series: SeriesRow[];
-  categoryBreakdown: { category: string; value: number }[];
-  incomeCategoryBreakdown: { category: string; value: number }[];
-  peopleIncomePlanned: { name: string; value: number }[];
+  // Backward-compat props (nem használt de ne törjük a prop interfészt)
+  categoryBreakdown?: { category: string; value: number }[];
+  incomeCategoryBreakdown?: { category: string; value: number }[];
+  peopleIncomePlanned?: { name: string; value: number }[];
   currency?: string;
   activeSavingsCount?: number;
   state?: State;
@@ -146,333 +159,400 @@ export function DashboardView({
   useTheme();
   const cIncome  = readVar("--color-positive");
   const cExpense = readVar("--color-negative");
-  const cNet     = readVar("--color-chart-3");
-  const cBlue    = readVar("--color-chart-1");
-  const cBorder  = readVar("--color-border");
   const cWarning = readVar("--color-warning");
   const cPrimary = readVar("--color-primary");
-  const PIE_COLORS = [cBlue, "#A78BFA", "#22D3EE", "#F472B6", "#93C5FD", "#6EE7B7", cNet, "#C4B5FD"];
+  const cBorder  = readVar("--color-border");
 
-  const current = series.find((s) => s.month === focusMonth) ?? (series.length ? series[0] : undefined);
-  const totalExpense = categoryBreakdown.reduce((s, x) => s + (x.value || 0), 0);
-  const totalIncome  = incomeCategoryBreakdown.reduce((s, x) => s + (x.value || 0), 0);
-  const plannedNet   = current?.plannedNet ?? 0;
+  const current = series.find(s => s.month === focusMonth) ?? series[0];
+  const prevIdx = series.findIndex(s => s.month === focusMonth) - 1;
+  const prev = prevIdx >= 0 ? series[prevIdx] : null;
 
-  // Legutóbbi 8 tranzakció (focusMonth szűrve, vagy összes ha nincs adat)
-  const recentTransactions = useMemo(() => {
+  // Hó/hó változás %
+  const netChange = prev && prev.plannedNet !== 0
+    ? Math.round(((current?.plannedNet ?? 0) - prev.plannedNet) / Math.abs(prev.plannedNet) * 100)
+    : null;
+
+  // Sparkline — utolsó 8 hónap nettó
+  const sparkData = series.slice(-8).map(s => ({ v: s.plannedNet }));
+
+  // Havi keret
+  const monthlyBudget = state?.settings?.monthlyBudget ?? 0;
+  const budgetUsedPct = monthlyBudget > 0
+    ? Math.min(100, Math.round(((current?.plannedExpense ?? 0) / monthlyBudget) * 100))
+    : null;
+
+  // --- Napi kiadás (state.transactions-ból) ---
+  const dailyData = useMemo(() => {
     if (!state) return [];
-    const monthTx = state.transactions.filter(t => (t.date || "").startsWith(focusMonth));
-    const sorted = (monthTx.length > 0 ? monthTx : state.transactions)
-      .slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-    return sorted.slice(0, 8);
+    const [year, month] = focusMonth.split("-").map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const byDay: Record<string, Record<string, number>> = {};
+    state.transactions
+      .filter(t => t.type === "expense" && (t.date || "").startsWith(focusMonth))
+      .forEach(t => {
+        const day = String(parseInt((t.date || "").slice(8, 10), 10));
+        const pid = t.personId || "__household";
+        if (!byDay[day]) byDay[day] = {};
+        byDay[day][pid] = (byDay[day][pid] ?? 0) + (t.amount ?? 0);
+      });
+    return Array.from({ length: daysInMonth }, (_, i) => {
+      const d = String(i + 1);
+      const row: Record<string, number> = { day: i + 1 };
+      (state.people).forEach(p => { row[p.id] = byDay[d]?.[p.id] ?? 0; });
+      row.__household = byDay[d]?.__household ?? 0;
+      return row;
+    });
   }, [state, focusMonth]);
 
-  function relativeDate(isoDate: string): string {
-    if (!isoDate) return "—";
-    const d = new Date(isoDate + "T00:00:00");
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    const diff = Math.round((today.getTime() - d.getTime()) / 86400000);
-    if (diff === 0) return "Ma";
-    if (diff === 1) return "Tegnap";
-    if (diff < 7) return `${diff} napja`;
-    return isoDate.slice(5).replace("-", ". ");
-  }
+  const hasDailyData = dailyData.some(d =>
+    Object.entries(d).some(([k, v]) => k !== "day" && (v as number) > 0)
+  );
+
+  const dailyAvg = useMemo(() => {
+    if (!state) return 0;
+    const total = state.transactions
+      .filter(t => t.type === "expense" && (t.date || "").startsWith(focusMonth))
+      .reduce((s, t) => s + (t.amount ?? 0), 0);
+    const [year, month] = focusMonth.split("-").map(Number);
+    const days = new Date(year, month, 0).getDate();
+    return days > 0 ? Math.round(total / days) : 0;
+  }, [state, focusMonth]);
+
+  // --- Kategória donut ---
+  const catData = useMemo(() => {
+    if (!state) return [];
+    const map: Record<string, { name: string; value: number }> = {};
+    state.transactions
+      .filter(t => t.type === "expense" && (t.date || "").startsWith(focusMonth))
+      .forEach(t => {
+        const cat = state.categories.find(c => c.id === t.categoryId);
+        const name = cat?.name ?? "Egyéb";
+        if (!map[name]) map[name] = { name, value: 0 };
+        map[name].value += t.amount ?? 0;
+      });
+    return Object.values(map).sort((a, b) => b.value - a.value).slice(0, 8);
+  }, [state, focusMonth]);
+
+  const catTotal = catData.reduce((s, c) => s + c.value, 0);
+
+  const DONUT_COLORS = [
+    cPrimary, readVar("--color-chart-1"), "#A78BFA", "#22D3EE",
+    "#F472B6", cWarning, "#6EE7B7", "#C4B5FD",
+  ];
+
+  // --- Célok ---
+  const goalItems = useMemo(() => {
+    if (!state) return [];
+    return state.savings
+      .filter(s => (s.targetAmount ?? 0) > 0 && s.startMonth)
+      .slice(0, 3);
+  }, [state]);
+
+  // --- Legutóbbi tranzakciók ---
+  const recentTx = useMemo(() => {
+    if (!state) return [];
+    return state.transactions
+      .slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+      .slice(0, 8);
+  }, [state]);
 
   return (
     <div className="space-y-4">
 
-      {/* ---- 4 KPI kártya ---- */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <KpiCard
-          label="Fix bevétel / hó"
-          value={formatHuf(current?.plannedIncome ?? 0)}
-          accentColor={cIncome}
-          icon={TrendingUp}
-          sub={(current?.actualIncome ?? 0) > 0
-            ? <span>Tényleges: <span style={{ color: cIncome }}>{formatHuf(current!.actualIncome)}</span></span>
-            : <span className="text-text-muted">Tervezett összeg</span>}
-        />
-        <KpiCard
-          label="Fix kiadás / hó"
-          value={formatHuf(current?.plannedExpense ?? 0)}
-          accentColor={cExpense}
-          icon={TrendingDown}
-          progress={(current?.plannedIncome ?? 0) > 0
-            ? ((current?.plannedExpense ?? 0) / (current?.plannedIncome ?? 1)) * 100
-            : undefined}
-          sub={(current?.actualExpense ?? 0) > 0
-            ? <span>Tényleges: <span style={{ color: cExpense }}>{formatHuf(current!.actualExpense)}</span></span>
-            : <span className="text-text-muted">Bevétel arányában</span>}
-        />
-        <KpiCard
-          label={`Várható nettó · ${focusMonth}`}
-          value={formatHuf(plannedNet)}
-          accentColor={plannedNet >= 0 ? cIncome : cExpense}
-          icon={Wallet}
-          sub={(current?.actualIncome || current?.actualExpense)
-            ? <span style={{ color: (current?.actualNet ?? 0) >= 0 ? cIncome : cExpense }}>
-                Tényleges: {formatHuf(current?.actualNet ?? 0)}
-              </span>
-            : <span className="text-text-muted">Bevétel − kiadás</span>}
-        />
-        <KpiCard
-          label="Megtakarítás / hó"
-          value={formatHuf(current?.plannedSavings ?? 0)}
-          accentColor={cWarning}
-          icon={PiggyBank}
-          sub={activeSavingsCount > 0
-            ? <span>{activeSavingsCount} aktív keret</span>
-            : <span className="text-text-muted">Nincs aktív keret</span>}
-        />
-      </div>
+      {/* ===== ROW 1: Hero + 3 KPI ===== */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
 
-      {/* ---- Chartok egymás alatt, full-width ---- */}
-      <div className="space-y-4">
-
-          {/* Dual-scale bar chart */}
-          <div
-            className="rounded-2xl border border-border p-5 relative overflow-hidden"
-            style={{
-              background: "linear-gradient(160deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
-              boxShadow: "var(--shadow-card)",
-            }}
-          >
-            <div
-              className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-              style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)" }}
-            />
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
-              <div>
-                <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5">Idősáv</div>
-                <div className="text-base font-semibold text-text-1">Bevétel vs. Kiadás</div>
+        {/* Nettó egyenleg — HERO (2 oszlop szélességen) */}
+        <GlassCard className="lg:col-span-2 p-5 flex flex-col gap-3" accentColor={cIncome}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">
+                Nettó egyenleg · {focusMonth}
               </div>
-              <div className="flex items-center gap-3">
-                {/* Jelmagyarázat */}
-                <div className="flex items-center gap-3 text-xs text-text-muted">
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: cIncome }} />
-                    Bevétel
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: cExpense }} />
-                    Kiadás
+              <div className="text-4xl font-extrabold tabular-nums leading-none" style={{ color: cIncome }}>
+                {formatHuf(current?.plannedNet ?? 0)}
+              </div>
+              {netChange !== null && (
+                <div className="flex items-center gap-1 mt-2 text-xs font-semibold"
+                  style={{ color: netChange >= 0 ? cIncome : cExpense }}>
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                  {netChange >= 0 ? "+" : ""}{netChange}% hó/hó
+                </div>
+              )}
+            </div>
+            {/* Hónap szűrő */}
+            <select
+              value={focusMonth}
+              onChange={e => setFocusMonth(e.target.value)}
+              className="text-xs rounded-xl border border-border px-2 py-1.5 shrink-0"
+              style={{ background: "var(--color-surface-2)", color: "var(--color-text-2)" }}
+            >
+              {monthList.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          {/* Mini sparkline */}
+          {sparkData.length > 1 && (
+            <div className="h-14 -mx-1">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={sparkData} margin={{ top: 4, right: 4, left: 4, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="netGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={cIncome} stopOpacity={0.25} />
+                      <stop offset="95%" stopColor={cIncome} stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <Area type="monotone" dataKey="v" stroke={cIncome} strokeWidth={2}
+                    fill="url(#netGrad)" dot={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </GlassCard>
+
+        {/* Bevétel */}
+        <GlassCard className="p-4 flex flex-col gap-2" accentColor={cIncome}
+          style={{ borderLeftWidth: 3, borderLeftColor: cIncome }}>
+          <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
+            Bevétel · {focusMonth}
+          </div>
+          <div className="text-2xl font-extrabold tabular-nums" style={{ color: cIncome }}>
+            {formatHuf(current?.plannedIncome ?? 0)}
+          </div>
+          <div className="text-xs text-text-muted mt-auto">
+            {state ? `${state.recurring.filter(r => r.type === "income" && r.enabled).length} aktív forrás` : "—"}
+          </div>
+          {(current?.actualIncome ?? 0) > 0 && (
+            <div className="text-[11px]" style={{ color: cIncome }}>
+              Tényleges: {formatHuf(current!.actualIncome)}
+            </div>
+          )}
+        </GlassCard>
+
+        {/* Kiadás */}
+        <GlassCard className="p-4 flex flex-col gap-2" accentColor={cExpense}
+          style={{ borderLeftWidth: 3, borderLeftColor: cExpense }}>
+          <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest">
+            Kiadás · {focusMonth}
+          </div>
+          <div className="text-2xl font-extrabold tabular-nums" style={{ color: cExpense }}>
+            {formatHuf(current?.plannedExpense ?? 0)}
+          </div>
+          <div className="text-xs text-text-muted mt-auto">
+            {state
+              ? `${state.transactions.filter(t => t.type === "expense" && (t.date || "").startsWith(focusMonth)).length} tétel`
+              : "—"}
+          </div>
+          {(current?.actualExpense ?? 0) > 0 && (
+            <div className="text-[11px]" style={{ color: cExpense }}>
+              Tényleges: {formatHuf(current!.actualExpense)}
+            </div>
+          )}
+        </GlassCard>
+
+        {/* Havi keret — 2. sorba kerül mobilon */}
+        <GlassCard className="p-4 flex flex-col gap-2 col-span-2 lg:col-span-4" accentColor={cWarning}
+          style={{ borderLeftWidth: 3, borderLeftColor: cWarning }}>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1">
+                Havi költségkeret
+              </div>
+              {monthlyBudget > 0 ? (
+                <>
+                  <div className="text-2xl font-extrabold tabular-nums" style={{ color: cWarning }}>
+                    {budgetUsedPct}%
+                  </div>
+                  <div className="text-xs text-text-muted mt-1">
+                    {formatHuf(current?.plannedExpense ?? 0)} / {formatHuf(monthlyBudget)} keretből
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-text-muted">
+                  Nincs keret beállítva —{" "}
+                  <span className="text-xs text-primary underline cursor-pointer">
+                    Beállítások → Háztartás
                   </span>
                 </div>
-                <Field label="Hónap">
-                  <Select value={focusMonth} onChange={(e) => setFocusMonth(e.target.value)}>
-                    {monthList.map((m) => <option key={m} value={m}>{m}</option>)}
-                  </Select>
-                </Field>
+              )}
+            </div>
+            <Target className="w-8 h-8 shrink-0" style={{ color: cWarning, opacity: 0.6 }} />
+          </div>
+          {monthlyBudget > 0 && budgetUsedPct !== null && (
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--color-surface-2)" }}>
+              <div className="h-full rounded-full transition-all duration-700"
+                style={{
+                  width: `${budgetUsedPct}%`,
+                  background: budgetUsedPct > 90
+                    ? `linear-gradient(90deg, ${cExpense}88, ${cExpense})`
+                    : budgetUsedPct > 70
+                    ? `linear-gradient(90deg, ${cWarning}88, ${cWarning})`
+                    : `linear-gradient(90deg, ${cIncome}88, ${cIncome})`,
+                  boxShadow: `0 0 8px ${cWarning}44`,
+                }} />
+            </div>
+          )}
+        </GlassCard>
+      </div>
+
+      {/* ===== ROW 2: Napi kiadás | Donut | Célok ===== */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+        {/* Napi kiadás — 2 col wide */}
+        <GlassCard className="lg:col-span-2 p-5">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-0.5">
+                Napi kiadás
+              </div>
+              <div className="text-base font-bold text-text-1">
+                {formatHuf(dailyAvg)} / nap átlag
               </div>
             </div>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                {/*
-                  Overlay / layered bar chart — mindkét bar ugyanazon az Y-skálán.
-                  Income: széles (42px), 20% opacity → háttér referencia sáv.
-                  Expense: keskeny (18px), teljes opacity → ráfekszik az income sávra.
-                  barGap={-30} → a két bar kb. középre igazodik egymáshoz képest.
-                */}
-                <ComposedChart
-                  data={series}
-                  margin={{ top: 4, right: 16, left: 0, bottom: 0 }}
-                  barGap={-30}
-                  barCategoryGap="28%"
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke={cBorder} opacity={0.4} vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v) => {
-                      const [, m] = v.split("-");
-                      return ["jan","feb","már","ápr","máj","jún","júl","aug","szep","okt","nov","dec"][parseInt(m,10)-1] ?? v;
-                    }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={yFmt}
-                    width={48}
-                  />
-                  <Tooltip content={<ChartTooltip />} cursor={{ fill: "var(--color-surface-2)", opacity: 0.4 }} />
-                  {/* Bevétel — széles, halvány → vizuális referencia */}
-                  <Bar
-                    dataKey="plannedIncome"
-                    name="Tervezett bevétel"
-                    fill={cIncome}
-                    fillOpacity={0.22}
-                    barSize={42}
-                    radius={[5, 5, 0, 0]}
-                  />
-                  {/* Kiadás — keskeny, opaque → arányosan ráfekszik */}
-                  <Bar
-                    dataKey="plannedExpense"
-                    name="Tervezett kiadás"
-                    fill={cExpense}
-                    fillOpacity={0.9}
-                    barSize={18}
-                    radius={[4, 4, 0, 0]}
-                  />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {/* Nettó trend */}
-          <div
-            className="rounded-2xl border border-border p-5 relative overflow-hidden"
-            style={{
-              background: "linear-gradient(160deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
-              boxShadow: "var(--shadow-card)",
-            }}
-          >
-            <div
-              className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-              style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)" }}
-            />
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5">Nettó trend</div>
-                <div className="text-base font-semibold text-text-1">Egyenleg alakulása</div>
+            {/* Legenda (személyek) */}
+            {state && (
+              <div className="flex items-center gap-3 text-xs text-text-muted">
+                {state.people.map((p, i) => (
+                  <span key={p.id} className="flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-sm shrink-0"
+                      style={{ background: PERSON_PALETTE[i % PERSON_PALETTE.length] }} />
+                    {p.name}
+                  </span>
+                ))}
               </div>
-              <span className="text-xs text-text-muted hidden sm:block">A tényleges nettó a rögzített tételekből számol.</span>
-            </div>
-            <div className="h-60">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={series} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={cBorder} opacity={0.4} vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(v) => {
-                      const [, m] = v.split("-");
-                      return ["jan","feb","már","ápr","máj","jún","júl","aug","szep","okt","nov","dec"][parseInt(m,10)-1] ?? v;
-                    }}
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={yFmt}
-                    width={48}
-                  />
-                  <Tooltip content={<ChartTooltip />} />
-                  <Line type="monotone" dataKey="plannedNet" name="Tervezett nettó" stroke={cBlue} strokeWidth={2.5} dot={false} strokeDasharray="6 3" />
-                  <Line type="monotone" dataKey="actualNet" name="Tényleges nettó" stroke={cNet} strokeWidth={2.5} dot={{ r: 3, fill: cNet }} activeDot={{ r: 5 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            )}
           </div>
-        {/* ---- Info kártyák — 3 oszlopos sor ---- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-
-          {/* Kiadás kategória bontás */}
-          <SideCard
-            subtitle="Kiadások bontása"
-            title="Kategória megoszlás"
-            badge="tényleges"
-            empty={categoryBreakdown.length === 0}
-            emptyText="Nincs rögzített kiadás ebben a hónapban."
-          >
-            <div className="space-y-2.5">
-              {categoryBreakdown.slice(0, 8).map((c, i) => (
-                <ProgressRow
-                  key={i}
-                  label={c.category}
-                  value={c.value}
-                  total={totalExpense}
-                  color={PIE_COLORS[i % PIE_COLORS.length]}
-                />
-              ))}
+          {!hasDailyData ? (
+            <div className="h-48 flex items-center justify-center text-sm text-text-muted">
+              Nincs rögzített kiadás ebben a hónapban.
             </div>
-          </SideCard>
-
-          {/* Bevétel kategória bontás */}
-          <SideCard
-            subtitle="Bevételek bontása"
-            title="Kategória megoszlás"
-            badge="tényleges"
-            empty={incomeCategoryBreakdown.length === 0}
-            emptyText="Nincs rögzített bevétel ebben a hónapban."
-          >
-            <div className="space-y-2.5">
-              {incomeCategoryBreakdown.slice(0, 8).map((c, i) => (
-                <ProgressRow
-                  key={i}
-                  label={c.category}
-                  value={c.value}
-                  total={totalIncome}
-                  color={PIE_COLORS[i % PIE_COLORS.length]}
-                />
-              ))}
-            </div>
-          </SideCard>
-
-          {/* Keresők szerint */}
-          <SideCard
-            subtitle="Látható időtáv"
-            title="Keresők tervezett bevétele"
-            empty={peopleIncomePlanned.length === 0}
-            emptyText="Nincs személyhez rendelt fix bevétel."
-          >
-            {(() => {
-              const maxVal = Math.max(...peopleIncomePlanned.map((p) => p.value), 1);
-              return (
-                <div className="space-y-3">
-                  {peopleIncomePlanned.map((p, i) => (
-                    <div key={i} className="space-y-1.5">
-                      <div className="flex items-center gap-2 text-xs">
-                        <span
-                          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 uppercase"
-                          style={{ background: `${cPrimary}22`, color: cPrimary }}
-                        >
-                          {(p.name || "?")[0]}
-                        </span>
-                        <span className="flex-1 truncate text-text-2">{p.name}</span>
-                        <span className="tabular-nums font-semibold text-text-1">{formatHuf(p.value)}</span>
-                      </div>
-                      <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--color-surface-2)" }}>
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${(p.value / maxVal) * 100}%`,
-                            background: `linear-gradient(90deg, ${cIncome}cc, ${cIncome})`,
-                            boxShadow: `0 0 8px ${cIncome}55`,
-                          }}
-                        />
-                      </div>
-                    </div>
+          ) : (
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dailyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+                  barCategoryGap="20%">
+                  <CartesianGrid strokeDasharray="3 3" stroke={cBorder} opacity={0.3} vertical={false} />
+                  <XAxis dataKey="day" tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+                    tickLine={false} axisLine={false}
+                    tickFormatter={v => v % 5 === 1 || v === 1 ? String(v) : ""} />
+                  <YAxis tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+                    tickLine={false} axisLine={false} tickFormatter={yFmt} width={40} />
+                  <RechartTooltip content={<ChartTooltip />}
+                    cursor={{ fill: "var(--color-surface-2)", opacity: 0.5 }} />
+                  {state?.people.map((p, i) => (
+                    <Bar key={p.id} dataKey={p.id} name={p.name} stackId="a"
+                      fill={PERSON_PALETTE[i % PERSON_PALETTE.length]}
+                      fillOpacity={0.9} radius={i === (state.people.length - 1) ? [3, 3, 0, 0] : [0, 0, 0, 0]} />
                   ))}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </GlassCard>
+
+        {/* Kategória donut */}
+        <GlassCard className="p-5 flex flex-col">
+          <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1">
+            Kategóriák
+          </div>
+          <div className="text-sm font-bold text-text-1 mb-3">Kiadások megoszlása</div>
+          {catData.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-sm text-text-muted">
+              Nincs adat
+            </div>
+          ) : (
+            <>
+              {/* Donut */}
+              <div className="relative h-44">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={catData} cx="50%" cy="50%"
+                      innerRadius={54} outerRadius={78}
+                      dataKey="value" paddingAngle={2} startAngle={90} endAngle={-270}>
+                      {catData.map((_, i) => (
+                        <Cell key={i} fill={DONUT_COLORS[i % DONUT_COLORS.length]}
+                          stroke="transparent" />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Közép szöveg */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  <div className="text-xl font-extrabold tabular-nums text-text-1">
+                    {cmpct(catTotal)}k
+                  </div>
+                  <div className="text-[10px] text-text-muted">Ft összesen</div>
+                </div>
+              </div>
+              {/* Legenda */}
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
+                {catData.slice(0, 6).map((c, i) => (
+                  <div key={i} className="flex items-center gap-1.5 text-[11px] text-text-2 min-w-0">
+                    <span className="w-2 h-2 rounded-full shrink-0"
+                      style={{ background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
+                    <span className="truncate">{c.name.replace(/ 🛒|🏠|⚡|🍽️|🚗|🩺|🛡️|🧾|🧩|🎮|👕|👶|🎁|✈️|🧯/g, "").trim()}</span>
+                    <span className="ml-auto shrink-0 tabular-nums font-medium">{cmpct(c.value)}k</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </GlassCard>
+      </div>
+
+      {/* Célok sor — full width alatt */}
+      {goalItems.length > 0 && (
+        <GlassCard className="p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-0.5">Megtakarítás</div>
+              <div className="text-base font-bold text-text-1">Célok</div>
+            </div>
+            <span className="text-xs font-semibold px-2 py-1 rounded-lg border border-border text-text-2">
+              {activeSavingsCount} aktív
+            </span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {goalItems.map((g, i) => {
+              const prog = goalProgress(g);
+              return (
+                <div key={g.id} className="space-y-2 p-3 rounded-xl border border-border"
+                  style={{ background: "var(--color-surface-2)50" }}>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{GOAL_EMOJIS[i % GOAL_EMOJIS.length]}</span>
+                    <span className="text-sm font-semibold text-text-1 truncate">{g.name || "Cél"}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-text-muted">
+                    <span>{prog ? formatHuf(prog.accumulated) : "0 Ft"}</span>
+                    <span>{formatHuf(g.targetAmount ?? 0)}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-surface-2)" }}>
+                    <div className="h-full rounded-full transition-all duration-700"
+                      style={{
+                        width: `${prog?.pct ?? 0}%`,
+                        background: `linear-gradient(90deg, ${cWarning}88, ${cWarning})`,
+                        boxShadow: `0 0 6px ${cWarning}44`,
+                      }} />
+                  </div>
+                  <div className="text-right text-[11px] font-semibold" style={{ color: cWarning }}>
+                    {prog?.pct ?? 0}%
+                  </div>
                 </div>
               );
-            })()}
-          </SideCard>
-        </div>
-      </div>
+            })}
+          </div>
+        </GlassCard>
+      )}
 
-      {/* ---- Legutóbbi tranzakciók ---- */}
-      {state && recentTransactions.length > 0 && (
-        <div
-          className="rounded-2xl border border-border overflow-hidden relative"
-          style={{
-            background: "linear-gradient(145deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
-            boxShadow: "var(--shadow-card)",
-          }}
-        >
-          <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-            style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)" }} />
-
+      {/* ===== ROW 3: Legutóbbi tranzakciók ===== */}
+      {state && recentTx.length > 0 && (
+        <GlassCard>
           {/* Fejléc */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <div>
               <div className="text-base font-bold text-text-1">Legutóbbi tranzakciók</div>
               <div className="text-xs text-text-muted mt-0.5">
-                {focusMonth} · {recentTransactions.length} tétel látható
+                {recentTx[recentTx.length - 1]?.date?.slice(5).replace("-", ". ")} –{" "}
+                {recentTx[0]?.date?.slice(5).replace("-", ". ")} · {recentTx.length} tétel látható
               </div>
             </div>
             {onNavigateTransactions && (
@@ -484,9 +564,9 @@ export function DashboardView({
             )}
           </div>
 
-          {/* Tábla fejléc — desktopön */}
-          <div className="hidden sm:grid px-5 py-2 text-[10px] font-bold text-text-muted uppercase tracking-wider border-b border-border"
-            style={{ gridTemplateColumns: "44px 2fr 1fr 100px 90px 120px" }}>
+          {/* Tábla fejléc */}
+          <div className="hidden sm:grid px-5 py-2 text-[10px] font-bold text-text-muted uppercase tracking-wider border-b border-border/50"
+            style={{ gridTemplateColumns: "44px 2fr 1fr 120px 90px 130px" }}>
             <div />
             <div>Tranzakció</div>
             <div>Kategória</div>
@@ -496,24 +576,31 @@ export function DashboardView({
           </div>
 
           {/* Sorok */}
-          <div className="divide-y divide-border/40">
-            {recentTransactions.map(t => {
+          <div className="divide-y divide-border/30">
+            {recentTx.map(t => {
               const cat = state.categories.find(c => c.id === t.categoryId);
               const person = t.personId ? state.people.find(p => p.id === t.personId) : null;
+              const personIdx = person ? state.people.findIndex(p => p.id === person.id) : -1;
               const isIncome = t.type === "income";
               return (
-                <div key={t.id} className="px-5 py-3 flex sm:grid items-center gap-3 hover:bg-surface-2/40 transition-colors"
-                  style={{ gridTemplateColumns: "44px 2fr 1fr 100px 90px 120px" }}>
+                <div key={t.id}
+                  className="px-5 py-3 flex sm:grid items-center gap-3 hover:bg-surface-2/40 transition-colors"
+                  style={{ gridTemplateColumns: "44px 2fr 1fr 120px 90px 130px" }}>
                   {getCategoryIcon(cat?.name ?? "", t.type)}
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="text-sm font-semibold text-text-1 truncate">{t.name || "(névtelen)"}</div>
                     <div className="text-xs text-text-muted sm:hidden">{cat?.name} · {relativeDate(t.date)}</div>
                   </div>
-                  <div className="hidden sm:block text-xs text-text-2 truncate">{cat?.name || "—"}</div>
-                  <div className="hidden sm:flex items-center gap-1.5 text-xs text-text-2">
+                  <div className="hidden sm:block text-xs text-text-2 truncate">
+                    {cat?.name?.replace(/ 🛒|🏠|⚡|🍽️|🚗|🩺|🛡️|🧾|🧩|🎮|👕|👶|🎁|✈️|🧯/g, "").trim() || "—"}
+                  </div>
+                  <div className="hidden sm:flex items-center gap-2 text-xs text-text-2">
                     {person && (
-                      <span className="w-5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center"
-                        style={{ background: cPrimary + "22", color: cPrimary }}>
+                      <span className="w-5 h-5 rounded-full text-[9px] font-bold flex items-center justify-center shrink-0"
+                        style={{
+                          background: PERSON_PALETTE[personIdx >= 0 ? personIdx % PERSON_PALETTE.length : 0] + "30",
+                          color: PERSON_PALETTE[personIdx >= 0 ? personIdx % PERSON_PALETTE.length : 0],
+                        }}>
                         {person.name.charAt(0)}
                       </span>
                     )}
@@ -528,93 +615,8 @@ export function DashboardView({
               );
             })}
           </div>
-        </div>
+        </GlassCard>
       )}
-    </div>
-  );
-}
-
-// ---- Újrahasználható segéd-komponensek ----
-
-function SideCard({
-  subtitle,
-  title,
-  badge,
-  empty,
-  emptyText,
-  children,
-}: {
-  subtitle: string;
-  title: string;
-  badge?: string;
-  empty?: boolean;
-  emptyText?: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div
-      className="rounded-2xl border border-border p-4 relative overflow-hidden"
-      style={{
-        background: "linear-gradient(160deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
-        boxShadow: "var(--shadow-card)",
-      }}
-    >
-      <div
-        className="absolute top-0 left-0 right-0 h-px pointer-events-none"
-        style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.07), transparent)" }}
-      />
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <div className="text-xs text-text-muted">{subtitle}</div>
-          <div className="text-sm font-semibold text-text-1 mt-0.5">{title}</div>
-        </div>
-        {badge && (
-          <span className="text-[10px] text-text-muted bg-surface-2 px-2 py-0.5 rounded-full border border-border shrink-0">
-            {badge}
-          </span>
-        )}
-      </div>
-      {empty
-        ? <div className="text-xs text-text-muted py-4 text-center">{emptyText}</div>
-        : children}
-    </div>
-  );
-}
-
-function ProgressRow({
-  label,
-  value,
-  total,
-  color,
-}: {
-  label: string;
-  value: number;
-  total: number;
-  color: string;
-}) {
-  const pct = percent(value, total);
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs">
-        <span className="flex items-center gap-1.5 truncate mr-2 text-text-2">
-          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-          <span className="truncate">{label}</span>
-        </span>
-        <span className="flex items-center gap-2 shrink-0">
-          <span className="tabular-nums text-text-1">{formatHuf(value)}</span>
-          <span className="text-text-muted w-7 text-right">{roundTo(pct, 0)}%</span>
-        </span>
-      </div>
-      <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--color-surface-2)" }}>
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{
-            width: `${pct}%`,
-            background: `linear-gradient(90deg, ${color}aa, ${color})`,
-            boxShadow: pct > 5 ? `0 0 6px ${color}44` : undefined,
-          }}
-        />
-      </div>
     </div>
   );
 }
