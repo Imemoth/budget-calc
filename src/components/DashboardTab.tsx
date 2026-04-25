@@ -293,8 +293,7 @@ export function DashboardView({
     <div className="space-y-4">
 
       {/* ===== ROW 1: 4 KPI kártya (egyenleg hero + bevétel + kiadás + keret) ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"
-        style={{ gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)" }}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr] gap-3">
 
         {/* Nettó egyenleg — HERO (2fr a grid template-ben) */}
         <GlassCard className="p-5 flex flex-col gap-3" accentColor={cIncome}>
@@ -463,9 +462,8 @@ export function DashboardView({
         </GlassCard>
       </div>
 
-      {/* ===== ROW 2: Napi kiadás | Donut | Célok — 2fr:1fr:1fr ===== */}
-      <div className="grid grid-cols-1 gap-4"
-        style={{ gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr) minmax(0,1fr)" }}>
+      {/* ===== ROW 2: Napi kiadás | Donut | Célok — 2fr:1fr:1fr (csak lg+) ===== */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr] gap-4">
 
         {/* Napi kiadás */}
         <GlassCard className="p-5">
