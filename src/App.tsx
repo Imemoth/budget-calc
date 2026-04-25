@@ -1191,7 +1191,8 @@ export default function App() {
                   currency={state.settings.currency}
                   activeSavingsCount={state.savings.filter((s) => (s.targetAmount ?? 0) > 0 && s.startMonth).length}
                   state={state}
-                  onNavigateTransactions={() => handleNavigate("transactions")} />
+                  onNavigateTransactions={() => handleNavigate("transactions")}
+                  onUpdateBudget={(amount) => updateSettings({ monthlyBudget: amount })} />
               </motion.div>
             )}
             {tab === "transactions" && (
