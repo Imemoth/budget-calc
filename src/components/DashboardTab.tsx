@@ -142,12 +142,12 @@ export function DashboardView({
   activeSavingsCount = 0,
   state,
   onNavigateTransactions,
+  onUpdateBudget,
 }: {
   monthList: string[];
   focusMonth: string;
   setFocusMonth: React.Dispatch<React.SetStateAction<string>>;
   series: SeriesRow[];
-  // Backward-compat props (nem használt de ne törjük a prop interfészt)
   categoryBreakdown?: { category: string; value: number }[];
   incomeCategoryBreakdown?: { category: string; value: number }[];
   peopleIncomePlanned?: { name: string; value: number }[];
@@ -155,6 +155,7 @@ export function DashboardView({
   activeSavingsCount?: number;
   state?: State;
   onNavigateTransactions?: () => void;
+  onUpdateBudget?: (amount: number) => void;
 }) {
   useTheme();
   const cIncome  = readVar("--color-positive");
@@ -249,6 +250,10 @@ export function DashboardView({
   }, [state]);
 
   // --- Legutóbbi tranzakciók filter ---
+  // Havi keret inline szerkesztés
+  const [budgetEdit, setBudgetEdit] = useState(false);
+  const [budgetInput, setBudgetInput] = useState("");
+
   const [txPeriod, setTxPeriod] = useState<"today"|"week"|"month"|"custom">("month");
   const [txFrom, setTxFrom] = useState("");
   const [txTo,   setTxTo]   = useState("");
@@ -288,10 +293,11 @@ export function DashboardView({
     <div className="space-y-4">
 
       {/* ===== ROW 1: 4 KPI kártya (egyenleg hero + bevétel + kiadás + keret) ===== */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+        style={{ gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)" }}>
 
-        {/* Nettó egyenleg — HERO (2 oszlop szélességen) */}
-        <GlassCard className="lg:col-span-2 p-5 flex flex-col gap-3" accentColor={cIncome}>
+        {/* Nettó egyenleg — HERO (2fr a grid template-ben) */}
+        <GlassCard className="p-5 flex flex-col gap-3" accentColor={cIncome}>
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2">
@@ -378,14 +384,14 @@ export function DashboardView({
         </GlassCard>
 
         {/* Havi keret */}
-        <GlassCard className="p-4 flex flex-col gap-2 col-span-2 lg:col-span-1" accentColor={cWarning}
+        <GlassCard className="p-4 flex flex-col gap-2" accentColor={cWarning}
           style={{ borderLeftWidth: 3, borderLeftColor: cWarning }}>
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1 min-w-0">
               <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-1">
                 Havi költségkeret
               </div>
-              {monthlyBudget > 0 ? (
+              {monthlyBudget > 0 && !budgetEdit ? (
                 <>
                   <div className="text-2xl font-extrabold tabular-nums" style={{ color: cWarning }}>
                     {budgetUsedPct}%
@@ -393,20 +399,55 @@ export function DashboardView({
                   <div className="text-xs text-text-muted mt-1">
                     {formatHuf(current?.plannedExpense ?? 0)} / {formatHuf(monthlyBudget)} keretből
                   </div>
+                  {onUpdateBudget && (
+                    <button type="button" onClick={() => { setBudgetInput(String(monthlyBudget)); setBudgetEdit(true); }}
+                      className="text-[10px] text-text-muted hover:text-primary underline mt-1 transition-colors">
+                      Módosítás
+                    </button>
+                  )}
                 </>
-              ) : (
-                <div className="text-sm text-text-muted">
-                  Nincs keret beállítva —{" "}
-                  <span className="text-xs text-primary underline cursor-pointer">
-                    Beállítások → Háztartás
-                  </span>
+              ) : budgetEdit || !monthlyBudget ? (
+                <div className="space-y-1.5 mt-1">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      value={budgetInput}
+                      onChange={e => setBudgetInput(e.target.value)}
+                      placeholder="pl. 300000"
+                      autoFocus
+                      className="flex-1 min-w-0 text-sm rounded-lg border border-border px-2 py-1 tabular-nums"
+                      style={{ background: "var(--color-surface-2)", color: "var(--color-text-1)" }}
+                      onKeyDown={e => {
+                        if (e.key === "Enter" && onUpdateBudget) {
+                          const n = parseInt(budgetInput, 10);
+                          if (n > 0) { onUpdateBudget(n); setBudgetEdit(false); }
+                        }
+                        if (e.key === "Escape") setBudgetEdit(false);
+                      }}
+                    />
+                    <button type="button"
+                      onClick={() => {
+                        if (!onUpdateBudget) return;
+                        const n = parseInt(budgetInput, 10);
+                        if (n > 0) { onUpdateBudget(n); setBudgetEdit(false); }
+                      }}
+                      className="text-xs px-2 py-1 rounded-lg font-semibold text-white transition-colors"
+                      style={{ background: cWarning }}>
+                      OK
+                    </button>
+                    {budgetEdit && (
+                      <button type="button" onClick={() => setBudgetEdit(false)}
+                        className="text-xs text-text-muted hover:text-text-1 transition-colors">✕</button>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-text-muted">Ft / hó (Enter = ment)</div>
                 </div>
-              )}
+              ) : null}
             </div>
-            <Target className="w-8 h-8 shrink-0" style={{ color: cWarning, opacity: 0.6 }} />
+            <Target className="w-7 h-7 shrink-0" style={{ color: cWarning, opacity: 0.5 }} />
           </div>
-          {monthlyBudget > 0 && budgetUsedPct !== null && (
-            <div className="h-2 rounded-full overflow-hidden" style={{ background: "var(--color-surface-2)" }}>
+          {monthlyBudget > 0 && !budgetEdit && budgetUsedPct !== null && (
+            <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-surface-2)" }}>
               <div className="h-full rounded-full transition-all duration-700"
                 style={{
                   width: `${budgetUsedPct}%`,
@@ -422,11 +463,12 @@ export function DashboardView({
         </GlassCard>
       </div>
 
-      {/* ===== ROW 2: Napi kiadás | Donut | Célok ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      {/* ===== ROW 2: Napi kiadás | Donut | Célok — 2fr:1fr:1fr ===== */}
+      <div className="grid grid-cols-1 gap-4"
+        style={{ gridTemplateColumns: "minmax(0,2fr) minmax(0,1fr) minmax(0,1fr)" }}>
 
-        {/* Napi kiadás — 2 col wide */}
-        <GlassCard className="lg:col-span-2 p-5">
+        {/* Napi kiadás */}
+        <GlassCard className="p-5">
           <div className="flex items-start justify-between mb-4">
             <div>
               <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-0.5">
