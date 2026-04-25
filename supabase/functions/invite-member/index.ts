@@ -49,10 +49,10 @@ Deno.serve(async (req) => {
     }
 
     // Redirect URL összeállítása – az ?invite= paramétert az app olvassa ki
+    // APP_ORIGIN env var prioritás: lokális fejlesztéskor ne localhost kerüljön az emailbe
     const origin =
-      req.headers.get("origin") ??
       Deno.env.get("APP_ORIGIN") ??
-      "https://budget-calc.vercel.app";
+      "https://koltsegradar.vercel.app";
     const redirectTo = `${origin}?invite=${invite.token}`;
 
     // Supabase meghívó email küldése (új fiók vagy magic link meglévőnek)
