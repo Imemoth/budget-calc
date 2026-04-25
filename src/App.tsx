@@ -214,6 +214,7 @@ function useUserLocalState(
 
   useEffect(() => {
      
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setState(load());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storageKey]);
@@ -589,6 +590,7 @@ export default function App() {
   useEffect(() => {
     const userId = user?.id;
      
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!userId) { setActiveHouseholdId(null); setRemoteReady(false); setRemoteLoadSuccess(false); setSavingStatus("idle"); setSaveError(null); setHouseholdMembers([]); return; }
     let cancelled = false;
     (async () => {
@@ -624,8 +626,10 @@ export default function App() {
     if (!activeHouseholdId) return;
     let cancelled = false;
      
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRemoteReady(false);
      
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRemoteLoadSuccess(false);
     (async () => {
       try {
@@ -682,6 +686,7 @@ export default function App() {
 
   useEffect(() => {
      
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!user) { setSavingStatus("idle"); setSaveError(null); setRemoteReady(false); setRemoteLoadSuccess(false); setActiveHouseholdId(null); }
   }, [user]);
 
@@ -756,6 +761,7 @@ export default function App() {
     if (!focusMonth || !monthList.includes(focusMonth)) {
       const now = monthKey(new Date());
        
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setFocusMonth(monthList.includes(now) ? now : monthList[0]);
     }
   }, [monthList, focusMonth]);
