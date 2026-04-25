@@ -5,6 +5,7 @@ import type { State, MoneyType, Transaction, Category } from "../types";
 import { Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect, ModalOverlay, ModalPanel } from "./ui";
 import { normalizeDateInput, parseNumberInput } from "../lib/domainHelpers";
 import { getCategoryIcon } from "../lib/categoryIcons";
+import { RevolutImportButton } from "./RevolutImport";
 
 // ---- helpers ----
 
@@ -169,6 +170,7 @@ export function TransactionsTab({
             <div className="text-base font-bold text-text-1">Tranzakciók</div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <RevolutImportButton state={state} addTransactionFull={addTransactionFull} />
             <SmallButton variant="primary" onClick={() => openDraft("expense")}>
               <TrendingDown className="w-3.5 h-3.5" /> Kiadás rögzítése
             </SmallButton>
