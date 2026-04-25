@@ -17,6 +17,7 @@ export type Settings = {
   horizonMonths: number;
   startMonth: string; // YYYY-MM
   theme?: string;
+  monthlyBudget?: number; // Havi költségkeret Ft-ban
 };
 
 export type Person = {

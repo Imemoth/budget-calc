@@ -292,6 +292,18 @@ export function SettingsView({
               <option value="USD">USD</option>
             </Select>
           </Field>
+          <Field label="Havi költségkeret (Ft)" hint="Áttekintésen progress bar-ként jelenik meg">
+            <Input
+              type="number"
+              min={0}
+              value={settings.monthlyBudget ?? ""}
+              placeholder="pl. 300000"
+              onChange={(e) => {
+                const n = parseNonNegativeInput(e.target.value);
+                updateSettings({ monthlyBudget: n > 0 ? n : undefined });
+              }}
+            />
+          </Field>
         </div>
 
         <div className="mt-4">
