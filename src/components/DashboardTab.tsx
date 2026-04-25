@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartTooltip,
   PieChart, Pie, Cell, Area, AreaChart,
@@ -248,18 +248,46 @@ export function DashboardView({
       .slice(0, 3);
   }, [state]);
 
-  // --- Legutóbbi tranzakciók ---
+  // --- Legutóbbi tranzakciók filter ---
+  const [txPeriod, setTxPeriod] = useState<"today"|"week"|"month"|"custom">("month");
+  const [txFrom, setTxFrom] = useState("");
+  const [txTo,   setTxTo]   = useState("");
+
   const recentTx = useMemo(() => {
     if (!state) return [];
+    const today = new Date(); today.setHours(0,0,0,0);
+    const todayStr = today.toISOString().slice(0,10);
+
+    let from = "", to = todayStr;
+    if (txPeriod === "today") {
+      from = todayStr;
+    } else if (txPeriod === "week") {
+      const d = new Date(today); d.setDate(d.getDate() - 6);
+      from = d.toISOString().slice(0,10);
+    } else if (txPeriod === "month") {
+      from = focusMonth + "-01";
+      const [y, m] = focusMonth.split("-").map(Number);
+      to = new Date(y, m, 0).toISOString().slice(0,10);
+    } else {
+      from = txFrom; to = txTo;
+    }
+
     return state.transactions
-      .slice().sort((a, b) => (b.date || "").localeCompare(a.date || ""))
-      .slice(0, 8);
-  }, [state]);
+      .slice()
+      .sort((a, b) => (b.date||"").localeCompare(a.date||""))
+      .filter(t => {
+        const d = t.date || "";
+        if (from && d < from) return false;
+        if (to   && d > to)   return false;
+        return true;
+      })
+      .slice(0, 20);
+  }, [state, txPeriod, txFrom, txTo, focusMonth]);
 
   return (
     <div className="space-y-4">
 
-      {/* ===== ROW 1: Hero + 3 KPI ===== */}
+      {/* ===== ROW 1: 4 KPI kártya (egyenleg hero + bevétel + kiadás + keret) ===== */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
 
         {/* Nettó egyenleg — HERO (2 oszlop szélességen) */}
@@ -349,8 +377,8 @@ export function DashboardView({
           )}
         </GlassCard>
 
-        {/* Havi keret — 2. sorba kerül mobilon */}
-        <GlassCard className="p-4 flex flex-col gap-2 col-span-2 lg:col-span-4" accentColor={cWarning}
+        {/* Havi keret */}
+        <GlassCard className="p-4 flex flex-col gap-2 col-span-2 lg:col-span-1" accentColor={cWarning}
           style={{ borderLeftWidth: 3, borderLeftColor: cWarning }}>
           <div className="flex items-center justify-between">
             <div>
@@ -497,71 +525,104 @@ export function DashboardView({
             </>
           )}
         </GlassCard>
-      </div>
 
-      {/* Célok sor — full width alatt */}
-      {goalItems.length > 0 && (
-        <GlassCard className="p-5">
+        {/* Célok — 3. oszlop a Row 2-ben */}
+        <GlassCard className="p-5 flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <div>
               <div className="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-0.5">Megtakarítás</div>
               <div className="text-base font-bold text-text-1">Célok</div>
             </div>
-            <span className="text-xs font-semibold px-2 py-1 rounded-lg border border-border text-text-2">
-              {activeSavingsCount} aktív
-            </span>
+            {activeSavingsCount > 0 && (
+              <span className="text-xs font-semibold px-2 py-1 rounded-lg border border-border text-text-2">
+                {activeSavingsCount} aktív
+              </span>
+            )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {goalItems.map((g, i) => {
-              const prog = goalProgress(g);
-              return (
-                <div key={g.id} className="space-y-2 p-3 rounded-xl border border-border"
-                  style={{ background: "var(--color-surface-2)50" }}>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{GOAL_EMOJIS[i % GOAL_EMOJIS.length]}</span>
-                    <span className="text-sm font-semibold text-text-1 truncate">{g.name || "Cél"}</span>
+          {goalItems.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-sm text-text-muted text-center">
+              Nincs aktív megtakarítási cél
+            </div>
+          ) : (
+            <div className="space-y-3 flex-1">
+              {goalItems.map((g, i) => {
+                const prog = goalProgress(g);
+                return (
+                  <div key={g.id} className="space-y-1.5 p-3 rounded-xl border border-border"
+                    style={{ background: "var(--color-surface-2)50" }}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{GOAL_EMOJIS[i % GOAL_EMOJIS.length]}</span>
+                      <span className="text-xs font-semibold text-text-1 truncate flex-1">{g.name || "Cél"}</span>
+                      <span className="text-[11px] font-bold shrink-0" style={{ color: cWarning }}>
+                        {prog?.pct ?? 0}%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-text-muted">
+                      <span>{prog ? formatHuf(prog.accumulated) : "0 Ft"}</span>
+                      <span>{formatHuf(g.targetAmount ?? 0)}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-surface-2)" }}>
+                      <div className="h-full rounded-full transition-all duration-700"
+                        style={{
+                          width: `${prog?.pct ?? 0}%`,
+                          background: `linear-gradient(90deg, ${cWarning}88, ${cWarning})`,
+                          boxShadow: `0 0 6px ${cWarning}44`,
+                        }} />
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-text-muted">
-                    <span>{prog ? formatHuf(prog.accumulated) : "0 Ft"}</span>
-                    <span>{formatHuf(g.targetAmount ?? 0)}</span>
-                  </div>
-                  <div className="h-1.5 rounded-full overflow-hidden" style={{ background: "var(--color-surface-2)" }}>
-                    <div className="h-full rounded-full transition-all duration-700"
-                      style={{
-                        width: `${prog?.pct ?? 0}%`,
-                        background: `linear-gradient(90deg, ${cWarning}88, ${cWarning})`,
-                        boxShadow: `0 0 6px ${cWarning}44`,
-                      }} />
-                  </div>
-                  <div className="text-right text-[11px] font-semibold" style={{ color: cWarning }}>
-                    {prog?.pct ?? 0}%
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </GlassCard>
-      )}
+      </div>
 
       {/* ===== ROW 3: Legutóbbi tranzakciók ===== */}
-      {state && recentTx.length > 0 && (
+      {state && (
         <GlassCard>
           {/* Fejléc */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-border">
             <div>
-              <div className="text-base font-bold text-text-1">Legutóbbi tranzakciók</div>
+              <div className="text-base font-bold text-text-1">Tranzakciók</div>
               <div className="text-xs text-text-muted mt-0.5">
-                {recentTx[recentTx.length - 1]?.date?.slice(5).replace("-", ". ")} –{" "}
-                {recentTx[0]?.date?.slice(5).replace("-", ". ")} · {recentTx.length} tétel látható
+                {recentTx.length > 0
+                  ? `${recentTx.length} tétel látható`
+                  : "Nincs tranzakció a kiválasztott időszakban"}
               </div>
             </div>
-            {onNavigateTransactions && (
-              <button type="button" onClick={onNavigateTransactions}
-                className="flex items-center gap-1 text-xs font-semibold transition-colors hover:opacity-80"
-                style={{ color: cPrimary }}>
-                Mind <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            )}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Period filter chips */}
+              {(["today","week","month","custom"] as const).map(p => (
+                <button key={p} type="button" onClick={() => setTxPeriod(p)}
+                  className="px-2.5 py-1 rounded-full text-xs font-semibold border transition-all"
+                  style={txPeriod === p ? {
+                    background: cPrimary, color: "#fff",
+                    borderColor: cPrimary,
+                    boxShadow: `0 2px 8px ${cPrimary}44`,
+                  } : { borderColor: "var(--color-border)", color: "var(--color-text-2)" }}>
+                  {p === "today" ? "Ma" : p === "week" ? "Hét" : p === "month" ? "Hónap" : "Időszak"}
+                </button>
+              ))}
+              {/* Custom dátum inputok */}
+              {txPeriod === "custom" && (
+                <div className="flex items-center gap-1.5">
+                  <input type="date" value={txFrom} onChange={e => setTxFrom(e.target.value)}
+                    className="text-xs rounded-lg border border-border px-2 py-1"
+                    style={{ background: "var(--color-surface-2)", color: "var(--color-text-1)" }} />
+                  <span className="text-xs text-text-muted">–</span>
+                  <input type="date" value={txTo} onChange={e => setTxTo(e.target.value)}
+                    className="text-xs rounded-lg border border-border px-2 py-1"
+                    style={{ background: "var(--color-surface-2)", color: "var(--color-text-1)" }} />
+                </div>
+              )}
+              {onNavigateTransactions && (
+                <button type="button" onClick={onNavigateTransactions}
+                  className="flex items-center gap-1 text-xs font-semibold transition-colors hover:opacity-80 ml-1"
+                  style={{ color: cPrimary }}>
+                  Mind <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Tábla fejléc */}

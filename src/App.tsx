@@ -4,7 +4,7 @@ import { DEFAULT_THEME, type ThemeId } from "./lib/themes";
 import { APP_VERSION } from "./lib/version";
 import { AnimatePresence, motion } from "framer-motion";
 import { uid, isUUID, monthKey, monthsBetweenInclusive } from "./lib/utils";
-import { Wallet, BarChart3, PiggyBank, Users, Settings2, Info, LogOut, Receipt, Home, LineChart, Repeat } from "lucide-react";
+import { Wallet, PiggyBank, Users, Settings2, Info, LogOut, Receipt, Home, LineChart, Repeat } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./auth";
 import { AuthScreen } from "./authscreen";
@@ -457,7 +457,7 @@ function SidebarUserButton({
 
 // -------------------- user menu --------------------
 
-function UserMenu({ email, onLogout, dropUp = false }: { email: string; onLogout: () => void; dropUp?: boolean }) {
+function UserMenu({ email, displayName, onLogout, dropUp = false }: { email: string; displayName?: string | null; onLogout: () => void; dropUp?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -467,7 +467,7 @@ function UserMenu({ email, onLogout, dropUp = false }: { email: string; onLogout
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-  const initial = email.charAt(0).toUpperCase();
+  const initial = (displayName ?? email ?? "?").charAt(0).toUpperCase();
   return (
     <div ref={ref} className="relative">
       <button
@@ -1136,7 +1136,7 @@ export default function App() {
             <h1 className="text-lg font-bold text-text-1">{TAB_META[tab].title}</h1>
           </div>
           <div className="flex items-center gap-2">
-            {user && <div className="lg:hidden"><UserMenu email={user.email ?? ""} onLogout={handleLogout} /></div>}
+            {user && <div className="lg:hidden"><UserMenu email={user.email ?? ""} displayName={displayName} onLogout={handleLogout} /></div>}
           </div>
         </header>
 
@@ -1282,12 +1282,28 @@ export default function App() {
       </main>
 
       {/* Bottom nav – mobile only */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur border-t border-border flex justify-around px-1 py-1 z-50">
-        <MobileNavBtn active={tab === "dashboard"} icon={BarChart3} label="Áttekintés" onClick={() => setTab("dashboard")} />
-        <MobileNavBtn active={tab === "transactions"} icon={Receipt} label="Tranzakciók" onClick={() => handleNavigate("transactions")} />
-        <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Megtakarítás" onClick={() => setTab("savings")} />
-        <MobileNavBtn active={tab === "people"} icon={Users} label="Személyek" onClick={() => setTab("people")} />
-        <MobileNavBtn active={tab === "settings"} icon={Settings2} label="Beállítások" onClick={() => setTab("settings")} />
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-50"
+        style={{ background: "var(--color-surface)", borderTop: "1px solid var(--color-border)" }}>
+        {/* Felső fény csík */}
+        <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)" }} />
+        <div className="flex justify-around px-1 py-1">
+          <MobileNavBtn active={tab === "dashboard"} icon={Home} label="Áttekintés" onClick={() => handleNavigate("dashboard")} />
+          <MobileNavBtn active={tab === "transactions"} icon={Receipt} label="Tételek" onClick={() => handleNavigate("transactions")} />
+          {/* Középső + FAB gomb */}
+          <div className="flex flex-col items-center justify-center px-1 py-2">
+            <button
+              type="button"
+              onClick={() => handleNavigate("transactions")}
+              className="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-transform active:scale-95"
+              style={{ background: "var(--color-primary)", boxShadow: "0 4px 16px var(--color-primary)66" }}
+            >
+              <span className="text-2xl leading-none font-light">+</span>
+            </button>
+          </div>
+          <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Célok" onClick={() => handleNavigate("savings")} />
+          <MobileNavBtn active={tab === "settings" || tab === "people" || tab === "recurring"} icon={Settings2} label="Több" onClick={() => handleNavigate("settings")} />
+        </div>
       </div>
 
       <input ref={fileInputRef} type="file" accept="application/json" className="hidden"
