@@ -5,7 +5,8 @@ import { supabase } from "./supabaseClient";
 type AuthContextValue = {
   user: User | null;
   loading: boolean;
-  displayName: string | null;  // Vezetéknév Keresztnév (magyar sorrend)
+  passwordRecovery: boolean; // true = jelszócsere módban vagyunk
+  displayName: string | null;
   firstName: string | null;
   lastName: string | null;
   avatarUrl: string | null;
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
 
   // kezdeti auth state lekérdezés
   useEffect(() => {
@@ -44,11 +46,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     loadUser();
 
-    // állapotváltozás figyelése (login / logout)
+    // állapotváltozás + PASSWORD_RECOVERY esemény figyelése
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        // Jelszócsere módba lépés — NE jelentkezzünk be automatikusan
+        setPasswordRecovery(true);
+        setUser(session?.user ?? null);
+      } else {
+        setPasswordRecovery(false);
+        setUser(session?.user ?? null);
+      }
     });
 
     return () => {
@@ -131,6 +140,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value: AuthContextValue = {
     user,
     loading,
+    passwordRecovery,
     displayName,
     firstName,
     lastName,

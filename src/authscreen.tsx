@@ -386,3 +386,114 @@ export function AuthScreen() {
     </div>
   );
 }
+
+// ============================================================
+// Jelszócsere képernyő — PASSWORD_RECOVERY event után jelenik meg
+// ============================================================
+export function PasswordResetScreen() {
+  // supabase.auth.updateUser()-t közvetlenül hívjuk jelszócsere módban
+  const [pw, setPw] = useState("");
+  const [pw2, setPw2] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !loading) handleSubmit();
+  }
+
+  async function handleSubmit() {
+    if (pw.length < 8) {
+      setMsg({ type: "error", text: "A jelszónak legalább 8 karakter kell." });
+      return;
+    }
+    if (pw !== pw2) {
+      setMsg({ type: "error", text: "A két jelszó nem egyezik." });
+      return;
+    }
+    setLoading(true);
+    setMsg(null);
+    // changePassword vár current + new, recovery módban current jelszó nem kell
+    // supabase.auth.updateUser()-t közvetlenül hívjuk
+    const { supabase } = await import("./supabaseClient");
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    setLoading(false);
+    if (error) {
+      setMsg({ type: "error", text: error.message });
+    } else {
+      setMsg({ type: "ok", text: "Jelszó sikeresen megváltoztatva! Átirányítás..." });
+      setTimeout(() => { window.location.href = "/"; }, 1500);
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden"
+      style={{ background: "var(--color-bg)" }}>
+      <RadarRings />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(ellipse at center, var(--color-primary) 0%, transparent 70%)", opacity: 0.06, filter: "blur(40px)" }} />
+
+      <div className="relative w-full max-w-sm mx-4 rounded-3xl border border-border overflow-hidden"
+        style={{
+          background: "linear-gradient(160deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.5), 0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)",
+        }}>
+        <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)" }} />
+
+        {/* Fejléc */}
+        <div className="px-8 pt-8 pb-6 flex flex-col items-center">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+            style={{ background: "var(--color-primary)20", boxShadow: "0 0 24px var(--color-primary)30" }}>
+            <Lock className="w-6 h-6" style={{ color: "var(--color-primary)" }} />
+          </div>
+          <h1 className="text-2xl font-extrabold text-text-1">Új jelszó beállítása</h1>
+          <p className="text-xs text-text-muted mt-1 text-center">Add meg az új jelszavadat</p>
+        </div>
+
+        <div className="h-px mx-6" style={{ background: "var(--color-border)" }} />
+
+        {/* Mezők */}
+        <div className="px-8 py-6 space-y-4">
+          <AuthInput label="Új jelszó" icon={Lock}
+            type={showPw ? "text" : "password"}
+            value={pw} onChange={setPw} onKeyDown={handleKeyDown}
+            placeholder="minimum 8 karakter" autoFocus
+            rightEl={
+              <button type="button" onClick={() => setShowPw(v => !v)}
+                className="text-text-muted hover:text-text-2 transition-colors" tabIndex={-1}>
+                {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            } />
+          <AuthInput label="Jelszó megerősítése" icon={Lock}
+            type={showPw ? "text" : "password"}
+            value={pw2} onChange={setPw2} onKeyDown={handleKeyDown}
+            placeholder="ugyanaz még egyszer" />
+
+          {msg && (
+            <div className="flex items-start gap-2 text-xs rounded-xl px-3 py-2.5 border"
+              style={{
+                color: msg.type === "ok" ? "var(--color-positive)" : "var(--color-negative)",
+                background: msg.type === "ok" ? "color-mix(in srgb, var(--color-positive) 10%, transparent)" : "color-mix(in srgb, var(--color-negative) 10%, transparent)",
+                borderColor: msg.type === "ok" ? "color-mix(in srgb, var(--color-positive) 30%, transparent)" : "color-mix(in srgb, var(--color-negative) 30%, transparent)",
+              }}>
+              {msg.type === "ok" ? "✓" : "⚠"} {msg.text}
+            </div>
+          )}
+
+          <button type="button" onClick={handleSubmit} disabled={loading}
+            className="w-full h-12 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60"
+            style={{
+              background: loading ? "var(--color-primary)88" : "var(--color-primary)",
+              color: "#fff",
+              boxShadow: loading ? "none" : "0 4px 16px var(--color-primary)44",
+            }}>
+            {loading
+              ? <><RotateCcw className="w-4 h-4 animate-spin" /> Mentés...</>
+              : <><ArrowRight className="w-4 h-4" /> Jelszó mentése</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
