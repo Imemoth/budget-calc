@@ -1050,8 +1050,10 @@ export default function App() {
     );
   }
 
-  if (!user) return <AuthScreen />;
-  if (passwordRecovery) return <PasswordResetScreen />;
+  // ?newpw= paraméter = generált jelszóval jött (nem kell bejelentkezve lenni)
+  const hasNewPw = new URLSearchParams(window.location.search).has("newpw");
+  if (!user && !hasNewPw) return <AuthScreen />;
+  if (passwordRecovery || hasNewPw) return <PasswordResetScreen />;
 
   // -------------------- layout --------------------
 
