@@ -24,7 +24,14 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [passwordRecovery, setPasswordRecovery] = useState(false);
+
+  // Determinisztikus inicializálás URL hash-ből — mielőtt az onAuthStateChange
+  // callback regisztrálódna, Supabase már tüzelheti a PASSWORD_RECOVERY eventet.
+  // A hash ?type=recovery mindig ott van a linkben, ezért ez megbízható.
+  const [passwordRecovery, setPasswordRecovery] = useState<boolean>(() => {
+    const hash = new URLSearchParams(window.location.hash.replace("#", "?").slice(1));
+    return hash.get("type") === "recovery";
+  });
 
   // kezdeti auth state lekérdezés
   useEffect(() => {
