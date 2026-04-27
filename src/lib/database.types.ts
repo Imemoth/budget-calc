@@ -193,6 +193,7 @@ export type Database = {
           currency: string
           horizon_months: number
           id: string
+          monthly_budget: number | null
           name: string
           owner_user_id: string
           start_month: string
@@ -203,6 +204,7 @@ export type Database = {
           currency?: string
           horizon_months?: number
           id?: string
+          monthly_budget?: number | null
           name: string
           owner_user_id: string
           start_month: string
@@ -213,6 +215,7 @@ export type Database = {
           currency?: string
           horizon_months?: number
           id?: string
+          monthly_budget?: number | null
           name?: string
           owner_user_id?: string
           start_month?: string

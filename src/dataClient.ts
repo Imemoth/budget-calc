@@ -56,7 +56,7 @@ function mapHouseholdRowToSettings(row: HouseholdRow): Settings {
     horizonMonths: row.horizon_months ?? 18,
     startMonth: row.start_month ?? "2025-01",
     theme: row.theme ?? undefined,
-    monthlyBudget: (row as Record<string, unknown>).monthly_budget as number | undefined ?? undefined,
+    monthlyBudget: row.monthly_budget ?? undefined,
   };
 }
 
@@ -343,8 +343,7 @@ export async function saveStatePatch(
       (async () => {
         const { error } = await supabase
           .from("households")
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .update(update as any)
+          .update(update)
           .eq("id", householdId);
         if (error) {
           console.error("[dataClient] saveStatePatch settings error:", error);
