@@ -108,25 +108,26 @@ export function AuthScreen() {
     setSuccessMsg(null);
 
     if (mode === "forgot") {
-      // Új flow: Edge Function generál random jelszót, beállítja, és emailt küld
       try {
-        const { supabase } = await import("./supabaseClient");
-        const fnUrl = `${(await supabase.auth.getSession()).data.session?.user ?? ""}` // csak az URL kell
-          .replace(/[^/]*$/, "");
-        const res = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-password`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
-            body: JSON.stringify({ email }),
-          }
-        );
-        void fnUrl; // suppress unused
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          setErrorMsg((body as { error?: string }).error ?? "Hiba történt.");
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+        const anonKey    = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+        const res = await fetch(`${supabaseUrl}/functions/v1/reset-password`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": anonKey,
+          },
+          body: JSON.stringify({ email }),
+        });
+        const body = await res.json().catch(() => ({})) as { ok?: boolean; error?: string; loginLink?: string };
+        if (!res.ok || body.error) {
+          setErrorMsg(body.error ?? "Hiba történt.");
         } else {
-          setSuccessMsg("Új jelszó kiküldve! Ellenőrizd az email fiókod.");
+          setSuccessMsg("Új jelszó kiküldve! Ellenőrizd az email fiókod (esetleg spam mappát is).");
+          // Ha az email küldés nem sikerült de a link megvan, megjeleníthetjük
+          if (body.loginLink) {
+            setSuccessMsg("Az email küldés sikertelen volt. Kattints ide: " + body.loginLink);
+          }
         }
       } catch {
         setErrorMsg("Hálózati hiba. Próbáld újra.");
