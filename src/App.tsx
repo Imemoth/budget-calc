@@ -7,7 +7,7 @@ import { uid, isUUID, monthKey, monthsBetweenInclusive } from "./lib/utils";
 import { Wallet, PiggyBank, Users, Settings2, Info, LogOut, Receipt, Home, LineChart, Repeat } from "lucide-react";
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./auth";
-import { AuthScreen } from "./authscreen";
+import { AuthScreen, PasswordResetScreen } from "./authscreen";
 import { loadFullStateForUser, saveStatePatch, seedDefaultCategories, deletePerson, deleteCategory, deleteAllCategories, deleteRecurring, deleteTransaction, deleteSavings, getHouseholdMembers, acceptInvite, updateMemberPermissions, removeMember, sendInvite } from "./dataClient";
 
 // Types
@@ -509,7 +509,7 @@ function UserMenu({ email, displayName, onLogout, dropUp = false }: { email: str
 // -------------------- main app --------------------
 
 export default function App() {
-  const { user, loading, changePassword, updateProfile, displayName, firstName, lastName } = useAuth();
+  const { user, loading, changePassword, updateProfile, displayName, firstName, lastName, passwordRecovery } = useAuth();
 
   const handleLogout = async () => {
     if (saveTimerRef.current != null) {
@@ -1050,7 +1050,10 @@ export default function App() {
     );
   }
 
-  if (!user) return <AuthScreen />;
+  // ?newpw= paraméter = generált jelszóval jött (nem kell bejelentkezve lenni)
+  const hasNewPw = new URLSearchParams(window.location.search).has("newpw");
+  if (!user && !hasNewPw) return <AuthScreen />;
+  if (passwordRecovery || hasNewPw) return <PasswordResetScreen />;
 
   // -------------------- layout --------------------
 

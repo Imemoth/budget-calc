@@ -56,6 +56,7 @@ function mapHouseholdRowToSettings(row: HouseholdRow): Settings {
     horizonMonths: row.horizon_months ?? 18,
     startMonth: row.start_month ?? "2025-01",
     theme: row.theme ?? undefined,
+    monthlyBudget: row.monthly_budget ?? undefined,
   };
 }
 
@@ -128,6 +129,7 @@ function mapSettingsToUpdate(settings: Settings) {
     horizon_months: settings.horizonMonths,
     start_month: settings.startMonth,
     theme: settings.theme ?? null,
+    monthly_budget: settings.monthlyBudget ?? null,
   };
 }
 

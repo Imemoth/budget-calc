@@ -83,7 +83,7 @@ function AuthInput({
 }
 
 export function AuthScreen() {
-  const { signIn, signUp, resetPassword } = useAuth();
+  const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<"login" | "register" | "forgot">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -108,9 +108,29 @@ export function AuthScreen() {
     setSuccessMsg(null);
 
     if (mode === "forgot") {
-      const { error } = await resetPassword(email);
-      if (error) setErrorMsg(error);
-      else setSuccessMsg("Jelszó-visszaállítási link elküldve! Ellenőrizd az email fiókod.");
+      // Új flow: Edge Function generál random jelszót, beállítja, és emailt küld
+      try {
+        const { supabase } = await import("./supabaseClient");
+        const fnUrl = `${(await supabase.auth.getSession()).data.session?.user ?? ""}` // csak az URL kell
+          .replace(/[^/]*$/, "");
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-password`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "apikey": import.meta.env.VITE_SUPABASE_ANON_KEY },
+            body: JSON.stringify({ email }),
+          }
+        );
+        void fnUrl; // suppress unused
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          setErrorMsg((body as { error?: string }).error ?? "Hiba történt.");
+        } else {
+          setSuccessMsg("Új jelszó kiküldve! Ellenőrizd az email fiókod.");
+        }
+      } catch {
+        setErrorMsg("Hálózati hiba. Próbáld újra.");
+      }
       setLoading(false);
       return;
     }
@@ -381,6 +401,229 @@ export function AuthScreen() {
           <p className="text-[10px] text-text-muted">
             Biztonságos bejelentkezés · Supabase Auth
           </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// Jelszócsere képernyő — PASSWORD_RECOVERY event után jelenik meg
+// ============================================================
+export function PasswordResetScreen() {
+  // URL-ből olvassuk: ?newpw=base64jelszó&em=base64email
+  const params = new URLSearchParams(window.location.search);
+  const encodedPw    = params.get("newpw");
+  const encodedEmail = params.get("em");
+
+  const prefilledPw    = encodedPw    ? atob(encodedPw)    : "";
+  const prefilledEmail = encodedEmail ? atob(encodedEmail) : "";
+
+  // Mód: "prefilled" = generált jelszóval jött, "manual" = saját jelszót ad meg
+  const mode = prefilledPw ? "prefilled" : "manual";
+
+  const [showPw,  setShowPw]  = useState(mode === "prefilled"); // prefilled módban látható alapból
+  const [loading, setLoading] = useState(false);
+  const [copied,  setCopied]  = useState(false);
+  const [msg, setMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
+
+  // Manual mód state-ek
+  const [pw,  setPw]  = useState("");
+  const [pw2, setPw2] = useState("");
+
+  // Generált jelszóval belépés
+  async function handleSignIn() {
+    if (!prefilledEmail || !prefilledPw) return;
+    setLoading(true);
+    setMsg(null);
+    const { supabase } = await import("./supabaseClient");
+    const { error } = await supabase.auth.signInWithPassword({
+      email: prefilledEmail,
+      password: prefilledPw,
+    });
+    setLoading(false);
+    if (error) {
+      setMsg({ type: "error", text: "Nem sikerült belépni: " + error.message });
+    } else {
+      // URL-ből töröljük a params-okat, majd reload
+      window.history.replaceState({}, "", "/");
+      window.location.href = "/";
+    }
+  }
+
+  // Saját jelszó beállítása (recovery token esetén)
+  async function handleSetPassword() {
+    if (pw.length < 8) { setMsg({ type: "error", text: "Minimum 8 karakter kell." }); return; }
+    if (pw !== pw2)     { setMsg({ type: "error", text: "A két jelszó nem egyezik." }); return; }
+    setLoading(true);
+    setMsg(null);
+    const { supabase } = await import("./supabaseClient");
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    setLoading(false);
+    if (error) {
+      setMsg({ type: "error", text: error.message });
+    } else {
+      setMsg({ type: "ok", text: "Jelszó sikeresen megváltoztatva! Átirányítás..." });
+      setTimeout(() => { window.history.replaceState({}, "", "/"); window.location.href = "/"; }, 1500);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !loading) {
+      if (mode === "prefilled") handleSignIn();
+      else handleSetPassword();
+    }
+  }
+
+  function copyPassword() {
+    navigator.clipboard.writeText(prefilledPw).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden"
+      style={{ background: "var(--color-bg)" }}>
+      <RadarRings />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(ellipse at center, var(--color-primary) 0%, transparent 70%)", opacity: 0.06, filter: "blur(40px)" }} />
+
+      <div className="relative w-full max-w-sm mx-4 rounded-3xl border border-border overflow-hidden"
+        style={{
+          background: "linear-gradient(160deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
+          boxShadow: "0 32px 80px rgba(0,0,0,0.5), 0 4px 20px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)",
+        }}>
+        <div className="absolute top-0 left-0 right-0 h-px pointer-events-none"
+          style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)" }} />
+
+        {/* Fejléc */}
+        <div className="px-8 pt-8 pb-6 flex flex-col items-center">
+          <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4"
+            style={{ background: "var(--color-primary)20", boxShadow: "0 0 24px var(--color-primary)30" }}>
+            <Lock className="w-6 h-6" style={{ color: "var(--color-primary)" }} />
+          </div>
+          <h1 className="text-2xl font-extrabold text-text-1">
+            {mode === "prefilled" ? "Ideiglenes jelszó" : "Új jelszó beállítása"}
+          </h1>
+          <p className="text-xs text-text-muted mt-1 text-center">
+            {mode === "prefilled"
+              ? "Az ideiglenes jelszavad előre be van töltve. Lépj be, majd változtasd meg a Beállításokban."
+              : "Add meg az új jelszavadat"}
+          </p>
+        </div>
+
+        <div className="h-px mx-6" style={{ background: "var(--color-border)" }} />
+
+        <div className="px-8 py-6 space-y-4">
+
+          {mode === "prefilled" ? (
+            <>
+              {/* Email mező (olvasható) */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-text-2 tracking-wide">Email</label>
+                <div className="w-full h-12 rounded-xl border border-border px-4 flex items-center text-sm text-text-muted"
+                  style={{ background: "var(--color-surface-2)" }}>
+                  {prefilledEmail}
+                </div>
+              </div>
+
+              {/* Generált jelszó mező */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-text-2 tracking-wide">Ideiglenes jelszó</label>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+                  <input
+                    type={showPw ? "text" : "password"}
+                    value={prefilledPw}
+                    readOnly
+                    onKeyDown={handleKeyDown}
+                    className="w-full h-12 rounded-xl border border-border pl-10 pr-20 text-sm tabular-nums font-mono outline-none"
+                    style={{ background: "var(--color-surface-2)", color: "var(--color-text-1)" }}
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <button type="button" onClick={copyPassword}
+                      className="text-xs px-2 py-1 rounded-lg transition-colors font-medium"
+                      style={{ color: copied ? "var(--color-positive)" : "var(--color-primary)",
+                               background: copied ? "var(--color-positive)15" : "var(--color-primary)15" }}>
+                      {copied ? "✓" : "Másolás"}
+                    </button>
+                    <button type="button" onClick={() => setShowPw(v => !v)}
+                      className="text-text-muted hover:text-text-2 transition-colors" tabIndex={-1}>
+                      {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {msg && (
+                <div className="flex items-start gap-2 text-xs rounded-xl px-3 py-2.5 border"
+                  style={{
+                    color: msg.type === "ok" ? "var(--color-positive)" : "var(--color-negative)",
+                    background: msg.type === "ok" ? "color-mix(in srgb, var(--color-positive) 10%, transparent)" : "color-mix(in srgb, var(--color-negative) 10%, transparent)",
+                    borderColor: msg.type === "ok" ? "color-mix(in srgb, var(--color-positive) 30%, transparent)" : "color-mix(in srgb, var(--color-negative) 30%, transparent)",
+                  }}>
+                  {msg.type === "ok" ? "✓" : "⚠"} {msg.text}
+                </div>
+              )}
+
+              <button type="button" onClick={handleSignIn} disabled={loading}
+                className="w-full h-12 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{
+                  background: loading ? "var(--color-primary)88" : "var(--color-primary)",
+                  color: "#fff",
+                  boxShadow: loading ? "none" : "0 4px 16px var(--color-primary)44",
+                }}>
+                {loading
+                  ? <><RotateCcw className="w-4 h-4 animate-spin" /> Belépés...</>
+                  : <><ArrowRight className="w-4 h-4" /> Belépés ezzel a jelszóval</>}
+              </button>
+              <p className="text-[11px] text-text-muted text-center">
+                Belépés után változtasd meg a jelszót a Beállítások → Fiók menüben.
+              </p>
+            </>
+          ) : (
+            <>
+              {/* Manual mód: saját jelszó megadása */}
+              <AuthInput label="Új jelszó" icon={Lock}
+                type={showPw ? "text" : "password"}
+                value={pw} onChange={setPw} onKeyDown={handleKeyDown}
+                placeholder="minimum 8 karakter" autoFocus
+                rightEl={
+                  <button type="button" onClick={() => setShowPw(v => !v)}
+                    className="text-text-muted hover:text-text-2 transition-colors" tabIndex={-1}>
+                    {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                } />
+              <AuthInput label="Jelszó megerősítése" icon={Lock}
+                type={showPw ? "text" : "password"}
+                value={pw2} onChange={setPw2} onKeyDown={handleKeyDown}
+                placeholder="ugyanaz még egyszer" />
+
+              {msg && (
+                <div className="flex items-start gap-2 text-xs rounded-xl px-3 py-2.5 border"
+                  style={{
+                    color: msg.type === "ok" ? "var(--color-positive)" : "var(--color-negative)",
+                    background: msg.type === "ok" ? "color-mix(in srgb, var(--color-positive) 10%, transparent)" : "color-mix(in srgb, var(--color-negative) 10%, transparent)",
+                    borderColor: msg.type === "ok" ? "color-mix(in srgb, var(--color-positive) 30%, transparent)" : "color-mix(in srgb, var(--color-negative) 30%, transparent)",
+                  }}>
+                  {msg.type === "ok" ? "✓" : "⚠"} {msg.text}
+                </div>
+              )}
+
+              <button type="button" onClick={handleSetPassword} disabled={loading}
+                className="w-full h-12 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{
+                  background: loading ? "var(--color-primary)88" : "var(--color-primary)",
+                  color: "#fff",
+                  boxShadow: loading ? "none" : "0 4px 16px var(--color-primary)44",
+                }}>
+                {loading
+                  ? <><RotateCcw className="w-4 h-4 animate-spin" /> Mentés...</>
+                  : <><ArrowRight className="w-4 h-4" /> Jelszó mentése</>}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>
