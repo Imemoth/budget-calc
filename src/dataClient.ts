@@ -343,7 +343,8 @@ export async function saveStatePatch(
       (async () => {
         const { error } = await supabase
           .from("households")
-          .update(update)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .update(update as any)
           .eq("id", householdId);
         if (error) {
           console.error("[dataClient] saveStatePatch settings error:", error);
