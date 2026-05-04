@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, ArrowRight, RotateCcw } from "lucide-react";
 import { useAuth } from "./auth";
 
@@ -109,25 +109,18 @@ export function AuthScreen() {
 
     if (mode === "forgot") {
       try {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-        const anonKey    = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-        const res = await fetch(`${supabaseUrl}/functions/v1/reset-password`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "apikey": anonKey,
-          },
-          body: JSON.stringify({ email }),
+        // Supabase standard recovery — ?mode=reset query param jelzi az appnak
+        // hogy jelszócsere oldalra kell navigálni (a hash-t a Supabase feldolgozza,
+        // de a query param megmarad és az App.tsx elolvassa)
+        const { supabase } = await import("./supabaseClient");
+        const redirectTo = `${window.location.origin}/?mode=reset`;
+        const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo,
         });
-        const body = await res.json().catch(() => ({})) as { ok?: boolean; error?: string; loginLink?: string };
-        if (!res.ok || body.error) {
-          setErrorMsg(body.error ?? "Hiba történt.");
+        if (resetErr) {
+          setErrorMsg(resetErr.message);
         } else {
-          setSuccessMsg("Új jelszó kiküldve! Ellenőrizd az email fiókod (esetleg spam mappát is).");
-          // Ha az email küldés nem sikerült de a link megvan, megjeleníthetjük
-          if (body.loginLink) {
-            setSuccessMsg("Az email küldés sikertelen volt. Kattints ide: " + body.loginLink);
-          }
+          setSuccessMsg("Jelszó-visszaállítási link elküldve! Ellenőrizd az email fiókod.");
         }
       } catch {
         setErrorMsg("Hálózati hiba. Próbáld újra.");
@@ -412,50 +405,36 @@ export function AuthScreen() {
 // Jelszócsere képernyő — PASSWORD_RECOVERY event után jelenik meg
 // ============================================================
 export function PasswordResetScreen() {
-  // URL-ből olvassuk: ?newpw=base64jelszó&em=base64email
-  const params = new URLSearchParams(window.location.search);
-  const encodedPw    = params.get("newpw");
-  const encodedEmail = params.get("em");
-
-  const prefilledPw    = encodedPw    ? atob(encodedPw)    : "";
-  const prefilledEmail = encodedEmail ? atob(encodedEmail) : "";
-
-  // Mód: "prefilled" = generált jelszóval jött, "manual" = saját jelszót ad meg
-  const mode = prefilledPw ? "prefilled" : "manual";
-
-  const [showPw,  setShowPw]  = useState(mode === "prefilled"); // prefilled módban látható alapból
+  const [pw, setPw]   = useState("");
+  const [pw2, setPw2] = useState("");
+  const [showPw, setShowPw]   = useState(false);
   const [loading, setLoading] = useState(false);
-  const [copied,  setCopied]  = useState(false);
+  const [userEmail, setUserEmail] = useState("");
   const [msg, setMsg] = useState<{ type: "ok" | "error"; text: string } | null>(null);
 
-  // Manual mód state-ek
-  const [pw,  setPw]  = useState("");
-  const [pw2, setPw2] = useState("");
-
-  // Generált jelszóval belépés
-  async function handleSignIn() {
-    if (!prefilledEmail || !prefilledPw) return;
-    setLoading(true);
-    setMsg(null);
-    const { supabase } = await import("./supabaseClient");
-    const { error } = await supabase.auth.signInWithPassword({
-      email: prefilledEmail,
-      password: prefilledPw,
+  // Email betöltése a session-ből
+  React.useEffect(() => {
+    import("./supabaseClient").then(({ supabase }) => {
+      supabase.auth.getSession().then(({ data }) => {
+        const email = data.session?.user?.email ?? "";
+        setUserEmail(email);
+      });
     });
-    setLoading(false);
-    if (error) {
-      setMsg({ type: "error", text: "Nem sikerült belépni: " + error.message });
-    } else {
-      // URL-ből töröljük a params-okat, majd reload
-      window.history.replaceState({}, "", "/");
-      window.location.href = "/";
-    }
+  }, []);
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter" && !loading) handleSave();
   }
 
-  // Saját jelszó beállítása (recovery token esetén)
-  async function handleSetPassword() {
-    if (pw.length < 8) { setMsg({ type: "error", text: "Minimum 8 karakter kell." }); return; }
-    if (pw !== pw2)     { setMsg({ type: "error", text: "A két jelszó nem egyezik." }); return; }
+  async function handleSave() {
+    if (pw.length < 8) {
+      setMsg({ type: "error", text: "A jelszónak legalább 8 karakter kell." });
+      return;
+    }
+    if (pw !== pw2) {
+      setMsg({ type: "error", text: "A két jelszó nem egyezik." });
+      return;
+    }
     setLoading(true);
     setMsg(null);
     const { supabase } = await import("./supabaseClient");
@@ -465,22 +444,12 @@ export function PasswordResetScreen() {
       setMsg({ type: "error", text: error.message });
     } else {
       setMsg({ type: "ok", text: "Jelszó sikeresen megváltoztatva! Átirányítás..." });
-      setTimeout(() => { window.history.replaceState({}, "", "/"); window.location.href = "/"; }, 1500);
+      // URL paraméter eltávolítása majd redirect
+      setTimeout(() => {
+        window.history.replaceState({}, "", "/");
+        window.location.href = "/";
+      }, 1200);
     }
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && !loading) {
-      if (mode === "prefilled") handleSignIn();
-      else handleSetPassword();
-    }
-  }
-
-  function copyPassword() {
-    navigator.clipboard.writeText(prefilledPw).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
   }
 
   return (
@@ -504,127 +473,83 @@ export function PasswordResetScreen() {
             style={{ background: "var(--color-primary)20", boxShadow: "0 0 24px var(--color-primary)30" }}>
             <Lock className="w-6 h-6" style={{ color: "var(--color-primary)" }} />
           </div>
-          <h1 className="text-2xl font-extrabold text-text-1">
-            {mode === "prefilled" ? "Ideiglenes jelszó" : "Új jelszó beállítása"}
-          </h1>
-          <p className="text-xs text-text-muted mt-1 text-center">
-            {mode === "prefilled"
-              ? "Az ideiglenes jelszavad előre be van töltve. Lépj be, majd változtasd meg a Beállításokban."
-              : "Add meg az új jelszavadat"}
-          </p>
+          <h1 className="text-2xl font-extrabold text-text-1">Új jelszó beállítása</h1>
+          <p className="text-xs text-text-muted mt-1 text-center">Adj meg egy új jelszót a fiókodhoz</p>
         </div>
 
         <div className="h-px mx-6" style={{ background: "var(--color-border)" }} />
 
         <div className="px-8 py-6 space-y-4">
 
-          {mode === "prefilled" ? (
-            <>
-              {/* Email mező (olvasható) */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-text-2 tracking-wide">Email</label>
-                <div className="w-full h-12 rounded-xl border border-border px-4 flex items-center text-sm text-text-muted"
-                  style={{ background: "var(--color-surface-2)" }}>
-                  {prefilledEmail}
-                </div>
-              </div>
+          {/* Email — csak olvasható */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-text-2 tracking-wide">Email cím</label>
+            <div className="relative">
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+              <input
+                type="email"
+                value={userEmail}
+                readOnly
+                className="w-full h-12 rounded-xl border border-border pl-10 pr-4 text-sm outline-none"
+                style={{ background: "var(--color-surface-2)", color: "var(--color-text-muted)", cursor: "default" }}
+              />
+            </div>
+          </div>
 
-              {/* Generált jelszó mező */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-text-2 tracking-wide">Ideiglenes jelszó</label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
-                  <input
-                    type={showPw ? "text" : "password"}
-                    value={prefilledPw}
-                    readOnly
-                    onKeyDown={handleKeyDown}
-                    className="w-full h-12 rounded-xl border border-border pl-10 pr-20 text-sm tabular-nums font-mono outline-none"
-                    style={{ background: "var(--color-surface-2)", color: "var(--color-text-1)" }}
-                  />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                    <button type="button" onClick={copyPassword}
-                      className="text-xs px-2 py-1 rounded-lg transition-colors font-medium"
-                      style={{ color: copied ? "var(--color-positive)" : "var(--color-primary)",
-                               background: copied ? "var(--color-positive)15" : "var(--color-primary)15" }}>
-                      {copied ? "✓" : "Másolás"}
-                    </button>
-                    <button type="button" onClick={() => setShowPw(v => !v)}
-                      className="text-text-muted hover:text-text-2 transition-colors" tabIndex={-1}>
-                      {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {msg && (
-                <div className="flex items-start gap-2 text-xs rounded-xl px-3 py-2.5 border"
-                  style={{
-                    color: msg.type === "ok" ? "var(--color-positive)" : "var(--color-negative)",
-                    background: msg.type === "ok" ? "color-mix(in srgb, var(--color-positive) 10%, transparent)" : "color-mix(in srgb, var(--color-negative) 10%, transparent)",
-                    borderColor: msg.type === "ok" ? "color-mix(in srgb, var(--color-positive) 30%, transparent)" : "color-mix(in srgb, var(--color-negative) 30%, transparent)",
-                  }}>
-                  {msg.type === "ok" ? "✓" : "⚠"} {msg.text}
-                </div>
-              )}
-
-              <button type="button" onClick={handleSignIn} disabled={loading}
-                className="w-full h-12 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60"
-                style={{
-                  background: loading ? "var(--color-primary)88" : "var(--color-primary)",
-                  color: "#fff",
-                  boxShadow: loading ? "none" : "0 4px 16px var(--color-primary)44",
-                }}>
-                {loading
-                  ? <><RotateCcw className="w-4 h-4 animate-spin" /> Belépés...</>
-                  : <><ArrowRight className="w-4 h-4" /> Belépés ezzel a jelszóval</>}
+          {/* Új jelszó */}
+          <AuthInput
+            label="Új jelszó"
+            icon={Lock}
+            type={showPw ? "text" : "password"}
+            value={pw}
+            onChange={setPw}
+            onKeyDown={handleKeyDown}
+            placeholder="minimum 8 karakter"
+            autoFocus
+            rightEl={
+              <button type="button" onClick={() => setShowPw(v => !v)}
+                className="text-text-muted hover:text-text-2 transition-colors" tabIndex={-1}>
+                {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
-              <p className="text-[11px] text-text-muted text-center">
-                Belépés után változtasd meg a jelszót a Beállítások → Fiók menüben.
-              </p>
-            </>
-          ) : (
-            <>
-              {/* Manual mód: saját jelszó megadása */}
-              <AuthInput label="Új jelszó" icon={Lock}
-                type={showPw ? "text" : "password"}
-                value={pw} onChange={setPw} onKeyDown={handleKeyDown}
-                placeholder="minimum 8 karakter" autoFocus
-                rightEl={
-                  <button type="button" onClick={() => setShowPw(v => !v)}
-                    className="text-text-muted hover:text-text-2 transition-colors" tabIndex={-1}>
-                    {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                } />
-              <AuthInput label="Jelszó megerősítése" icon={Lock}
-                type={showPw ? "text" : "password"}
-                value={pw2} onChange={setPw2} onKeyDown={handleKeyDown}
-                placeholder="ugyanaz még egyszer" />
+            }
+          />
 
-              {msg && (
-                <div className="flex items-start gap-2 text-xs rounded-xl px-3 py-2.5 border"
-                  style={{
-                    color: msg.type === "ok" ? "var(--color-positive)" : "var(--color-negative)",
-                    background: msg.type === "ok" ? "color-mix(in srgb, var(--color-positive) 10%, transparent)" : "color-mix(in srgb, var(--color-negative) 10%, transparent)",
-                    borderColor: msg.type === "ok" ? "color-mix(in srgb, var(--color-positive) 30%, transparent)" : "color-mix(in srgb, var(--color-negative) 30%, transparent)",
-                  }}>
-                  {msg.type === "ok" ? "✓" : "⚠"} {msg.text}
-                </div>
-              )}
+          {/* Jelszó megerősítése */}
+          <AuthInput
+            label="Jelszó megerősítése"
+            icon={Lock}
+            type={showPw ? "text" : "password"}
+            value={pw2}
+            onChange={setPw2}
+            onKeyDown={handleKeyDown}
+            placeholder="ugyanaz még egyszer"
+          />
 
-              <button type="button" onClick={handleSetPassword} disabled={loading}
-                className="w-full h-12 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60"
-                style={{
-                  background: loading ? "var(--color-primary)88" : "var(--color-primary)",
-                  color: "#fff",
-                  boxShadow: loading ? "none" : "0 4px 16px var(--color-primary)44",
-                }}>
-                {loading
-                  ? <><RotateCcw className="w-4 h-4 animate-spin" /> Mentés...</>
-                  : <><ArrowRight className="w-4 h-4" /> Jelszó mentése</>}
-              </button>
-            </>
+          {/* Üzenetek */}
+          {msg && (
+            <div className="flex items-start gap-2 text-xs rounded-xl px-3 py-2.5 border"
+              style={{
+                color: msg.type === "ok" ? "var(--color-positive)" : "var(--color-negative)",
+                background: msg.type === "ok" ? "color-mix(in srgb, var(--color-positive) 10%, transparent)" : "color-mix(in srgb, var(--color-negative) 10%, transparent)",
+                borderColor: msg.type === "ok" ? "color-mix(in srgb, var(--color-positive) 30%, transparent)" : "color-mix(in srgb, var(--color-negative) 30%, transparent)",
+              }}>
+              <span className="mt-0.5 shrink-0">{msg.type === "ok" ? "✓" : "⚠"}</span>
+              <span>{msg.text}</span>
+            </div>
           )}
+
+          {/* Mentés gomb */}
+          <button type="button" onClick={handleSave} disabled={loading}
+            className="w-full h-12 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60"
+            style={{
+              background: loading ? "var(--color-primary)88" : "var(--color-primary)",
+              color: "#fff",
+              boxShadow: loading ? "none" : "0 4px 16px var(--color-primary)44",
+            }}>
+            {loading
+              ? <><RotateCcw className="w-4 h-4 animate-spin" /> Mentés...</>
+              : <><ArrowRight className="w-4 h-4" /> Jelszó mentése</>}
+          </button>
         </div>
       </div>
     </div>

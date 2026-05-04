@@ -1051,9 +1051,16 @@ export default function App() {
   }
 
   // ?newpw= paraméter = generált jelszóval jött (nem kell bejelentkezve lenni)
-  const hasNewPw = new URLSearchParams(window.location.search).has("newpw");
-  if (!user && !hasNewPw) return <AuthScreen />;
-  if (passwordRecovery || hasNewPw) return <PasswordResetScreen />;
+  const params = new URLSearchParams(window.location.search);
+  const hasNewPw    = params.has("newpw");           // Edge Function generált jelszó
+  const isResetMode = params.get("mode") === "reset"; // Standard Supabase recovery
+
+  // Jelszócsere oldal mutatása ha:
+  // 1. Standard recovery: ?mode=reset + user be van lépve (Supabase feldolgozta a hash-t)
+  // 2. Generált jelszó: ?newpw= param
+  // 3. PASSWORD_RECOVERY event (fallback)
+  if (!user && !hasNewPw && !isResetMode) return <AuthScreen />;
+  if (isResetMode || hasNewPw || passwordRecovery) return <PasswordResetScreen />;
 
   // -------------------- layout --------------------
 
