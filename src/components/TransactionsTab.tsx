@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, ChevronDown, Search, TrendingUp, TrendingDown, Calendar, ArrowUpDown } from "lucide-react";
+import { Plus, ChevronDown, Search, TrendingUp, TrendingDown, ArrowUpDown, Trash2, AlertTriangle } from "lucide-react";
 import { formatHuf } from "../lib/format";
 import type { State, MoneyType, Transaction, Category } from "../types";
 import { Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect, ModalOverlay, ModalPanel } from "./ui";
@@ -11,17 +11,6 @@ import { RevolutImportButton } from "./RevolutImport";
 
 function monthOf(d: string) { return (d || "").slice(0, 7); }
 
-function formatDayHeader(isoDate: string): string {
-  if (!isoDate) return "Ismeretlen dátum";
-  const d = new Date(isoDate + "T00:00:00");
-  if (isNaN(d.getTime())) return isoDate;
-  const months = ["január","február","március","április","május","június","július","augusztus","szeptember","október","november","december"];
-  const days = ["vasárnap","hétfő","kedd","szerda","csütörtök","péntek","szombat"];
-  const today = new Date(); today.setHours(0,0,0,0);
-  const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
-  const dayName = diff === 0 ? "Ma" : diff === -1 ? "Tegnap" : days[d.getDay()];
-  return `${d.getDate()} ${months[d.getMonth()]} · ${dayName}`;
-}
 
 const CAT_COLORS = [
   "var(--color-chart-1)","var(--color-chart-2)","var(--color-chart-3)","var(--color-chart-4)",
@@ -64,6 +53,7 @@ export function TransactionsTab({
   const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
   const [catFilter, setCatFilter] = useState<string>("");
   const [filterMonth, setFilterMonth] = useState<string>("");
+  const [showReset, setShowReset] = useState(false);
   const [sortDesc, setSortDesc] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [draftModal, setDraftModal] = useState<{
@@ -171,6 +161,9 @@ export function TransactionsTab({
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <RevolutImportButton state={state} addTransactionFull={addTransactionFull} />
+            <SmallButton variant="danger" onClick={() => setShowReset(true)}>
+              <Trash2 className="w-3.5 h-3.5" /> Törlés
+            </SmallButton>
             <SmallButton variant="primary" onClick={() => openDraft("expense")}>
               <TrendingDown className="w-3.5 h-3.5" /> Kiadás rögzítése
             </SmallButton>
@@ -261,6 +254,20 @@ export function TransactionsTab({
         </div>
 
         {/* Lista */}
+        {/* Fix oszlopfejléc — csak desktopön, egyszer */}
+        {filtered.length > 0 && (
+          <div className="hidden sm:grid px-5 py-2.5 text-[10px] text-text-muted uppercase tracking-wider font-bold border-b border-border gap-3"
+            style={{ gridTemplateColumns: "40px 2fr 1fr 120px 110px 140px 32px", background: "var(--color-surface-2)50" }}>
+            <div />
+            <div>Leírás</div>
+            <div>Kategória</div>
+            <div>Személy</div>
+            <div>Dátum</div>
+            <div className="text-right">Összeg</div>
+            <div />
+          </div>
+        )}
+
         {filtered.length === 0 ? (
           <div className="py-12 text-center space-y-2">
             <div className="text-base font-semibold text-text-2">
@@ -275,34 +282,8 @@ export function TransactionsTab({
         ) : (
           <div>
             {grouped.map(([date, items]) => {
-              const dayIncome  = items.filter(t => t.type === "income").reduce((s,t) => s + (t.amount??0), 0);
-              const dayExpense = items.filter(t => t.type === "expense").reduce((s,t) => s + (t.amount??0), 0);
               return (
                 <div key={date}>
-                  {/* Nap fejléc */}
-                  <div className="px-5 pt-3 pb-2.5 flex items-center justify-between border-b border-border/40"
-                    style={{ background: "var(--color-surface-2)30" }}>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-3 h-3 text-text-muted shrink-0" />
-                      <span className="text-xs font-semibold text-text-2">{formatDayHeader(date)}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-[11px] tabular-nums">
-                      {dayIncome > 0 && <span style={{ color: "var(--color-positive)" }}>+{formatHuf(dayIncome)}</span>}
-                      {dayExpense > 0 && <span style={{ color: "var(--color-negative)" }}>−{formatHuf(dayExpense)}</span>}
-                    </div>
-                  </div>
-
-                  {/* Desktop column headers (hidden on mobile) */}
-                  <div className="hidden sm:grid px-5 py-2 text-[10px] text-text-muted uppercase tracking-wider font-semibold border-b border-border/20 gap-3"
-                    style={{ gridTemplateColumns: "40px 2fr 1fr 120px 100px 140px 32px" }}>
-                    <div></div>
-                    <div>Leírás</div>
-                    <div>Kategória</div>
-                    <div>Ki</div>
-                    <div>Dátum</div>
-                    <div className="text-right">Összeg</div>
-                    <div></div>
-                  </div>
 
                   {/* Tételek */}
                   <div className="divide-y divide-border/40">
@@ -532,6 +513,228 @@ export function TransactionsTab({
           </ModalPanel>
         </ModalOverlay>
       )}
+
+      {/* ---- Tömeges törlés modal ---- */}
+      {showReset && (
+        <TransactionResetModal
+          state={state}
+          removeTransaction={removeTransaction}
+          onClose={() => setShowReset(false)}
+        />
+      )}
     </div>
+  );
+}
+
+// ============================================================
+// Tömeges törlés modal
+// ============================================================
+function TransactionResetModal({
+  state,
+  removeTransaction,
+  onClose,
+}: {
+  state: State;
+  removeTransaction: (id: string) => void;
+  onClose: () => void;
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const currentMonth = today.slice(0, 7);
+
+  const [period,    setPeriod]    = useState<"day"|"week"|"month"|"custom">("month");
+  const [fromDate,  setFromDate]  = useState(currentMonth + "-01");
+  const [toDate,    setToDate]    = useState(today);
+  const [personId,  setPersonId]  = useState<string>("all");
+  const [moneyType, setMoneyType] = useState<"all"|"income"|"expense">("all");
+  const [confirmed, setConfirmed] = useState(false);
+  const [done,      setDone]      = useState(false);
+
+  // Dátum határok az időszak alapján
+  const { from, to } = useMemo(() => {
+    const t = new Date(); t.setHours(0,0,0,0);
+    if (period === "day") {
+      const d = t.toISOString().slice(0,10);
+      return { from: d, to: d };
+    }
+    if (period === "week") {
+      const w = new Date(t); w.setDate(w.getDate() - 6);
+      return { from: w.toISOString().slice(0,10), to: t.toISOString().slice(0,10) };
+    }
+    if (period === "month") {
+      const [y, m] = currentMonth.split("-").map(Number);
+      const last = new Date(y, m, 0).toISOString().slice(0,10);
+      return { from: currentMonth + "-01", to: last };
+    }
+    return { from: fromDate, to: toDate };
+  }, [period, fromDate, toDate, currentMonth]);
+
+  // Érintett tranzakciók
+  const affected = useMemo(() => state.transactions.filter(t => {
+    const d = t.date || "";
+    if (d < from || d > to) return false;
+    if (personId !== "all" && t.personId !== personId) return false;
+    if (moneyType !== "all" && t.type !== moneyType) return false;
+    return true;
+  }), [state.transactions, from, to, personId, moneyType]);
+
+  const incomeSum  = affected.filter(t => t.type === "income").reduce((s,t) => s+(t.amount??0), 0);
+  const expenseSum = affected.filter(t => t.type === "expense").reduce((s,t) => s+(t.amount??0), 0);
+
+  function handleDelete() {
+    affected.forEach(t => removeTransaction(t.id));
+    setDone(true);
+    setTimeout(onClose, 1200);
+  }
+
+  return (
+    <ModalOverlay onClose={onClose}>
+      <ModalPanel className="max-w-md">
+        {/* Fejléc */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex items-center gap-2">
+            <Trash2 className="w-4 h-4" style={{ color: "var(--color-negative)" }} />
+            <div className="text-base font-bold text-text-1">Tranzakciók törlése</div>
+          </div>
+          <button type="button" onClick={onClose}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-text-muted hover:text-text-1 hover:bg-surface-2 transition-colors text-lg">×</button>
+        </div>
+
+        <div className="px-5 py-4 space-y-4">
+
+          {/* Időszak */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Időszak</label>
+            <div className="flex gap-1.5 flex-wrap">
+              {(["day","week","month","custom"] as const).map(p => (
+                <button key={p} type="button" onClick={() => setPeriod(p)}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all"
+                  style={period === p
+                    ? { background: "var(--color-negative)", color: "#fff", borderColor: "var(--color-negative)" }
+                    : { borderColor: "var(--color-border)", color: "var(--color-text-2)", background: "transparent" }}>
+                  {p === "day" ? "Ma" : p === "week" ? "Hét" : p === "month" ? "Hónap" : "Egyéni"}
+                </button>
+              ))}
+            </div>
+            {period === "custom" ? (
+              <div className="grid grid-cols-2 gap-2 mt-1">
+                <div>
+                  <div className="text-[11px] text-text-muted mb-1">Kezdő dátum</div>
+                  <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} className="w-full text-sm" />
+                </div>
+                <div>
+                  <div className="text-[11px] text-text-muted mb-1">Záró dátum</div>
+                  <Input type="date" value={toDate} onChange={e => setToDate(e.target.value)} className="w-full text-sm" />
+                </div>
+              </div>
+            ) : (
+              <div className="text-[11px] text-text-muted">
+                {from === to ? from : `${from} → ${to}`}
+              </div>
+            )}
+          </div>
+
+          {/* Személy */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Személy</label>
+            <div className="flex flex-wrap gap-1.5">
+              {[{ id: "all", name: "Mindenki" }, ...state.people, { id: "__household", name: "Háztartás" }].map(p => (
+                <button key={p.id} type="button" onClick={() => setPersonId(p.id)}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all"
+                  style={personId === p.id
+                    ? { background: "var(--color-negative)", color: "#fff", borderColor: "var(--color-negative)" }
+                    : { borderColor: "var(--color-border)", color: "var(--color-text-2)", background: "transparent" }}>
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Típus */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Típus</label>
+            <div className="flex gap-1.5">
+              {(["all","income","expense"] as const).map(t => (
+                <button key={t} type="button" onClick={() => setMoneyType(t)}
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold border transition-all"
+                  style={moneyType === t
+                    ? { background: "var(--color-negative)", color: "#fff", borderColor: "var(--color-negative)" }
+                    : { borderColor: "var(--color-border)", color: "var(--color-text-2)", background: "transparent" }}>
+                  {t === "all" ? "Mindkettő" : t === "income" ? "Bevétel" : "Kiadás"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Előnézet — warning box scope szöveggel */}
+          <div className="rounded-xl border p-3 space-y-1.5"
+            style={{
+              borderColor: affected.length > 0 ? "var(--color-negative)50" : "var(--color-border)",
+              background: affected.length > 0 ? "var(--color-negative)10" : "var(--color-surface-2)40",
+            }}>
+            <div className="flex items-center gap-2 text-sm font-semibold"
+              style={{ color: affected.length > 0 ? "var(--color-negative)" : "var(--color-text-muted)" }}>
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              {affected.length === 0
+                ? "Nincs törlendő tétel a megadott szűrőkkel"
+                : `${affected.length} tétel kerül véglegesen törlésre`}
+            </div>
+            {affected.length > 0 && (
+              <>
+                {/* Scope szöveg */}
+                <div className="text-[11px] text-text-muted pl-6">
+                  {from === to ? from : `${from} – ${to}`}
+                  {" · "}
+                  {personId === "all" ? "Mindenki"
+                    : personId === "__household" ? "Háztartás"
+                    : state.people.find(p => p.id === personId)?.name ?? personId}
+                  {" · "}
+                  {moneyType === "all" ? "Mindkettő" : moneyType === "income" ? "Bevétel" : "Kiadás"}
+                </div>
+                <div className="text-xs pl-6 space-y-0.5">
+                  {incomeSum > 0 && <div>Bevétel: <span style={{ color: "var(--color-positive)" }}>+{formatHuf(incomeSum)}</span></div>}
+                  {expenseSum > 0 && <div>Kiadás: <span style={{ color: "var(--color-negative)" }}>−{formatHuf(expenseSum)}</span></div>}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Megerősítés checkbox */}
+          {affected.length > 0 && !done && (
+            <label className="flex items-start gap-2.5 cursor-pointer">
+              <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)}
+                className="mt-0.5 shrink-0 w-4 h-4" style={{ accentColor: "var(--color-negative)" }} />
+              <span className="text-xs text-text-2 leading-relaxed">
+                Megértettem, hogy ez a művelet <strong className="text-text-1">visszafordíthatatlan</strong> —{" "}
+                a törölt tételeket nem lehet visszaállítani.
+              </span>
+            </label>
+          )}
+
+          {done && (
+            <div className="text-sm font-semibold text-center py-2" style={{ color: "var(--color-positive)" }}>
+              ✓ Sikeresen törölve!
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border"
+          style={{ background: "var(--color-surface-2)20" }}>
+          <SmallButton variant="ghost" onClick={onClose}>Mégsem</SmallButton>
+          <button type="button"
+            onClick={handleDelete}
+            disabled={!confirmed || affected.length === 0 || done}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-40"
+            style={{
+              background: "var(--color-negative)",
+              color: "#fff",
+              boxShadow: confirmed && affected.length > 0 ? "0 2px 8px var(--color-negative)44" : "none",
+            }}>
+            <Trash2 className="w-3.5 h-3.5" />
+            {affected.length > 0 ? `${affected.length} tétel törlése` : "Törlés"}
+          </button>
+        </div>
+      </ModalPanel>
+    </ModalOverlay>
   );
 }
