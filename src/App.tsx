@@ -547,8 +547,11 @@ export default function App() {
 
   const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "error">("idle");
   const [, setSaveError] = useState<string | null>(null);
+  const [syncLoadError, setSyncLoadError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
+  const stateAtRemoteLoadRef = useRef<State | null>(null);
+  const skipNextAutosaveRef = useRef(false);
 
   const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? "")
     .split(",").map((s: string) => s.trim().toLowerCase()).filter(Boolean);
@@ -557,6 +560,7 @@ export default function App() {
   const [remoteLoadSuccess, setRemoteLoadSuccess] = useState(false);
   const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
   const [membersLoadError, setMembersLoadError] = useState<string | null>(null);
+  const [membersLoading, setMembersLoading] = useState(false);
 
   // Invite token kiolvasása URL-ből mountkor
   useEffect(() => {
@@ -635,8 +639,6 @@ export default function App() {
       try {
         const remote = await loadFullStateForUser(activeHouseholdId);
         if (!cancelled && remote) {
-          // Ha Supabase üres (nincs people/recurring/transactions/savings) de localStorage-ban
-          // van adat, tartsuk meg a localst – az autosave majd visszaszinkronizál Supabase-be.
           const remoteIsEmpty =
             remote.people.length === 0 &&
             remote.recurring.length === 0 &&
@@ -644,24 +646,31 @@ export default function App() {
             remote.savings.length === 0;
           if (!remoteIsEmpty) {
             setState(remote);
+            stateAtRemoteLoadRef.current = remote;
+          } else {
+            stateAtRemoteLoadRef.current = null;
           }
-          // Ha remoteIsEmpty, a setState nem fut le → a localStorage-ból betöltött state marad,
-          // és az autosave (remoteLoadSuccess=true után) visszatölti azt Supabase-be.
         }
+        skipNextAutosaveRef.current = true;
         if (!cancelled) { setRemoteLoadSuccess(true); setRemoteReady(true); }
 
         // Tagok betöltése
+        if (!cancelled) setMembersLoading(true);
         try {
           const members = await getHouseholdMembers(activeHouseholdId);
           if (!cancelled) { setHouseholdMembers(members); setMembersLoadError(null); }
         } catch (err) {
           console.error("Tagok betöltése sikertelen:", err);
           if (!cancelled) setMembersLoadError(err instanceof Error ? err.message : String(err));
+        } finally {
+          if (!cancelled) setMembersLoading(false);
         }
       } catch (err) {
         console.error("Nem sikerült betölteni az állapotot Supabase-ből:", err);
-        // remoteLoadSuccess=false marad → autosave nem fut; remoteReady=true → skeleton eltűnik
-        if (!cancelled) setRemoteReady(true);
+        if (!cancelled) {
+          setRemoteReady(true);
+          setSyncLoadError("Hiba");
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -670,11 +679,17 @@ export default function App() {
   // 3) Supabase autosave
   useEffect(() => {
     if (!activeHouseholdId || !remoteReady || !remoteLoadSuccess) return;
+    if (skipNextAutosaveRef.current) {
+      skipNextAutosaveRef.current = false;
+      return;
+    }
+    if (stateAtRemoteLoadRef.current === state) return;
     if (saveTimerRef.current != null) window.clearTimeout(saveTimerRef.current);
     saveTimerRef.current = window.setTimeout(async () => {
       try {
         setSavingStatus("saving"); setSaveError(null);
         await saveStatePatch(activeHouseholdId, state);
+        stateAtRemoteLoadRef.current = state;
         setSavingStatus("idle");
       } catch (err) {
         console.error("Nem sikerült menteni Supabase-be:", err);
@@ -1158,6 +1173,18 @@ export default function App() {
 
         {/* Page content */}
         <div className="flex-1 px-4 lg:px-6 py-6 pb-20 lg:pb-6">
+          {syncLoadError && (
+            <div className="mb-4 rounded-xl border px-3 py-2 text-xs flex items-start gap-2"
+              style={{ borderColor: "var(--color-warning)", background: "color-mix(in srgb, var(--color-warning) 12%, transparent)", color: "var(--color-text-1)" }}>
+              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: "var(--color-warning)" }} />
+              <div className="flex-1">
+                <span className="font-semibold" style={{ color: "var(--color-warning)" }}>Szinkronizációs hiba – </span>
+                {syncLoadError}
+                <button type="button" onClick={() => setSyncLoadError(null)}>Bezar</button>
+              </div>
+            </div>
+          )}
+
           {importError && (
             <div className="mb-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-100 flex items-start gap-2">
               <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
@@ -1281,6 +1308,7 @@ export default function App() {
                   isAdmin={isAdmin}
                   householdMembers={householdMembers}
                   membersLoadError={membersLoadError}
+                  membersLoading={membersLoading}
                   isOwner={isOwner}
                   currentUserId={user?.id ?? null}
                   myPermissions={myPermissions}
@@ -1323,9 +1351,4 @@ export default function App() {
         </div>
       </div>
 
-      <input ref={fileInputRef} type="file" accept="application/json" className="hidden"
-        onChange={(e) => { const f = e.target.files?.[0]; if (f) importJson(f); e.target.value = ""; }} />
-      <ChangelogModal open={isChangelogOpen} onClose={() => setIsChangelogOpen(false)} />
-    </div>
-  );
-}
+      <input ref={fileInputRef} type="file" accept="application/json" 

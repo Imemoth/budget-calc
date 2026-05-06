@@ -3,9 +3,17 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.42";
+export const APP_VERSION = "0.5.43";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.43": {
+    date: "2026-05-06",
+    changes: [
+      "Fix: autosave race condition — remoteIsEmpty=true esetén nem írja felül Supabase-t a local defaultState-tel (skipNextAutosaveRef + stateAtRemoteLoadRef védelem).",
+      "Fix: ensureDefaultHousehold — household_members insert hiba esetén nem dobja el a sessiont, az owner RLS-arm enélkül is működik.",
+      "UI: szinkronizációs hiba banner — ha a Supabase load sikertelen, látható figyelmeztetés jelenik meg.",
+    ],
+  },
   "0.5.42": {
     date: "2026-04-23",
     changes: [
