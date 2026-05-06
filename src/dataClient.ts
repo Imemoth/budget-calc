@@ -204,39 +204,33 @@ function mapSavingsToRow(s: SavingsBucket, householdId: string) {
 // =========================
 
 async function getHouseholdForKey(householdIdOrUserId: string): Promise<HouseholdRow> {
-  // 1) Try as household id
-  const byId = await supabase
-    .from("households")
-    .select("*")
-    .eq("id", householdIdOrUserId)
-    .maybeSingle();
+  // SECURITY DEFINER RPC — működik owner-nek és member-nek egyaránt,
+  // megkerüli az RLS körkörös referencia problémát (household_members ↔ households).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)("get_household_for_member", {
+    p_household_id: householdIdOrUserId,
+  });
 
-  if (byId.error) {
-    console.error("[dataClient] getHouseholdForKey (by id) error:", byId.error);
-    throw new Error(`Failed to load household (by id): ${byId.error.message}`);
+  if (error) {
+    console.error("[dataClient] getHouseholdForKey (rpc) error:", error);
+    throw new Error(`Failed to load household: ${error.message}`);
   }
-  if (byId.data) return byId.data as HouseholdRow;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  if (data && (data as any[]).length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const row = (data as any[])[0];
+    return {
+      id: row.id,
+      name: row.name,
+      currency: row.currency ?? "HUF",
+      horizon_months: row.horizon_months ?? 18,
+      start_month: row.start_month ?? "",
+      theme: row.theme ?? null,
+      monthly_budget: row.monthly_budget ?? null,
+    } as HouseholdRow;
+  }
 
-  // 2) Fallback: try as owner_user_id
-  const byOwner = await supabase
-    .from("households")
-    .select("*")
-    .eq("owner_user_id", householdIdOrUserId)
-    .maybeSingle();
-
-  if (byOwner.error) {
-    console.error(
-      "[dataClient] getHouseholdForKey (by owner_user_id) error:",
-      byOwner.error
-    );
-    throw new Error(
-      `Failed to load household (by owner_user_id): ${byOwner.error.message}`
-    );
-  }
-  if (!byOwner.data) {
-    throw new Error("No household found for this key.");
-  }
-  return byOwner.data as HouseholdRow;
+  throw new Error("No household found for this key.");
 }
 
 // =========================
