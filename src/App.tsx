@@ -560,7 +560,6 @@ export default function App() {
   const [remoteLoadSuccess, setRemoteLoadSuccess] = useState(false);
   const [householdMembers, setHouseholdMembers] = useState<HouseholdMember[]>([]);
   const [membersLoadError, setMembersLoadError] = useState<string | null>(null);
-  const [membersLoading, setMembersLoading] = useState(false);
 
   // Invite token kiolvasása URL-ből mountkor
   useEffect(() => {
@@ -655,15 +654,13 @@ export default function App() {
         if (!cancelled) { setRemoteLoadSuccess(true); setRemoteReady(true); }
 
         // Tagok betöltése
-        if (!cancelled) setMembersLoading(true);
+        if (!cancelled)
         try {
           const members = await getHouseholdMembers(activeHouseholdId);
           if (!cancelled) { setHouseholdMembers(members); setMembersLoadError(null); }
         } catch (err) {
           console.error("Tagok betöltése sikertelen:", err);
           if (!cancelled) setMembersLoadError(err instanceof Error ? err.message : String(err));
-        } finally {
-          if (!cancelled) setMembersLoading(false);
         }
       } catch (err) {
         console.error("Nem sikerült betölteni az állapotot Supabase-ből:", err);
@@ -1308,7 +1305,6 @@ export default function App() {
                   isAdmin={isAdmin}
                   householdMembers={householdMembers}
                   membersLoadError={membersLoadError}
-                  membersLoading={membersLoading}
                   isOwner={isOwner}
                   currentUserId={user?.id ?? null}
                   myPermissions={myPermissions}
@@ -1351,4 +1347,9 @@ export default function App() {
         </div>
       </div>
 
-      <input ref={fileInputRef} type="file" accept="application/json" 
+      <input ref={fileInputRef} type="file" accept="application/json" className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) importJson(f); e.target.value = ""; }} />
+      <ChangelogModal open={isChangelogOpen} onClose={() => setIsChangelogOpen(false)} />
+    </div>
+  );
+}
