@@ -363,6 +363,7 @@ function NavItem({
 function SidebarUserButton({
   displayName,
   email,
+  avatarUrl,
   savingStatus,
   isProvisioning,
   remoteReady,
@@ -371,6 +372,7 @@ function SidebarUserButton({
 }: {
   displayName: string | null;
   email: string;
+  avatarUrl?: string | null;
   savingStatus: "idle" | "saving" | "error";
   isProvisioning: boolean;
   remoteReady: boolean;
@@ -433,17 +435,17 @@ function SidebarUserButton({
         className="w-full flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-surface-2"
         style={{ background: open ? "var(--color-surface-2)" : "transparent" }}
       >
-        {/* Avatar kör */}
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 border"
-          style={{
-            background: "var(--color-primary)22",
-            color: "var(--color-primary)",
-            borderColor: "var(--color-primary)40",
-          }}
-        >
-          {initial}
-        </div>
+        {/* Avatar kör — kép vagy kezdőbetű */}
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="avatar"
+            className="w-8 h-8 rounded-full object-cover shrink-0 border"
+            style={{ borderColor: "var(--color-primary)40" }} />
+        ) : (
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 border"
+            style={{ background: "var(--color-primary)22", color: "var(--color-primary)", borderColor: "var(--color-primary)40" }}>
+            {initial}
+          </div>
+        )}
         {/* Név + státusz */}
         <div className="flex-1 min-w-0 text-left">
           <div className="text-xs font-semibold text-text-1 truncate">{displayName ?? email}</div>
@@ -509,7 +511,7 @@ function UserMenu({ email, displayName, onLogout, dropUp = false }: { email: str
 // -------------------- main app --------------------
 
 export default function App() {
-  const { user, loading, changePassword, updateProfile, displayName, firstName, lastName, passwordRecovery } = useAuth();
+  const { user, loading, changePassword, updateProfile, uploadAvatar, avatarUrl, displayName, firstName, lastName, passwordRecovery } = useAuth();
 
   const handleLogout = async () => {
     if (saveTimerRef.current != null) {
@@ -646,11 +648,14 @@ export default function App() {
           if (!remoteIsEmpty) {
             setState(remote);
             stateAtRemoteLoadRef.current = remote;
+            // Csak ha remote adat volt: ne mentse vissza azonnal (felesleges round-trip)
+            skipNextAutosaveRef.current = true;
           } else {
+            // Remote üres → localStorage adat marad → autosave bootstrap-eli Supabase-be
             stateAtRemoteLoadRef.current = null;
+            // skipNextAutosave NEM állítódik true-ra, hogy az autosave lefusson
           }
         }
-        skipNextAutosaveRef.current = true;
         if (!cancelled) { setRemoteLoadSuccess(true); setRemoteReady(true); }
 
         // Tagok betöltése
@@ -1144,6 +1149,7 @@ export default function App() {
           <SidebarUserButton
             displayName={displayName}
             email={user.email ?? ""}
+            avatarUrl={avatarUrl}
             savingStatus={savingStatus}
             isProvisioning={isProvisioning}
             remoteReady={remoteReady}
@@ -1290,9 +1296,11 @@ export default function App() {
                   series={dashboardSeries}
                   changePassword={changePassword}
                   updateProfile={updateProfile}
+                  uploadAvatar={uploadAvatar}
                   currentUserEmail={user?.email}
                   currentUserFirstName={firstName}
                   currentUserLastName={lastName}
+                  currentUserAvatarUrl={avatarUrl}
                   onExportJson={exportJson}
                   onImportClick={() => fileInputRef.current?.click()}
                   onReset={isAdmin ? () => {
