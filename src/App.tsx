@@ -363,6 +363,7 @@ function NavItem({
 function SidebarUserButton({
   displayName,
   email,
+  avatarUrl,
   savingStatus,
   isProvisioning,
   remoteReady,
@@ -371,6 +372,7 @@ function SidebarUserButton({
 }: {
   displayName: string | null;
   email: string;
+  avatarUrl?: string | null;
   savingStatus: "idle" | "saving" | "error";
   isProvisioning: boolean;
   remoteReady: boolean;
@@ -433,17 +435,17 @@ function SidebarUserButton({
         className="w-full flex items-center gap-2.5 rounded-xl px-2 py-2 transition-colors hover:bg-surface-2"
         style={{ background: open ? "var(--color-surface-2)" : "transparent" }}
       >
-        {/* Avatar kör */}
-        <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 border"
-          style={{
-            background: "var(--color-primary)22",
-            color: "var(--color-primary)",
-            borderColor: "var(--color-primary)40",
-          }}
-        >
-          {initial}
-        </div>
+        {/* Avatar kör — kép vagy kezdőbetű */}
+        {avatarUrl ? (
+          <img src={avatarUrl} alt="avatar"
+            className="w-8 h-8 rounded-full object-cover shrink-0 border"
+            style={{ borderColor: "var(--color-primary)40" }} />
+        ) : (
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 border"
+            style={{ background: "var(--color-primary)22", color: "var(--color-primary)", borderColor: "var(--color-primary)40" }}>
+            {initial}
+          </div>
+        )}
         {/* Név + státusz */}
         <div className="flex-1 min-w-0 text-left">
           <div className="text-xs font-semibold text-text-1 truncate">{displayName ?? email}</div>
@@ -509,7 +511,7 @@ function UserMenu({ email, displayName, onLogout, dropUp = false }: { email: str
 // -------------------- main app --------------------
 
 export default function App() {
-  const { user, loading, changePassword, updateProfile, displayName, firstName, lastName, passwordRecovery } = useAuth();
+  const { user, loading, changePassword, updateProfile, uploadAvatar, avatarUrl, displayName, firstName, lastName, passwordRecovery } = useAuth();
 
   const handleLogout = async () => {
     if (saveTimerRef.current != null) {
@@ -547,8 +549,11 @@ export default function App() {
 
   const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "error">("idle");
   const [, setSaveError] = useState<string | null>(null);
+  const [syncLoadError, setSyncLoadError] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
+  const stateAtRemoteLoadRef = useRef<State | null>(null);
+  const skipNextAutosaveRef = useRef(false);
 
   const ADMIN_EMAILS = (import.meta.env.VITE_ADMIN_EMAILS ?? "")
     .split(",").map((s: string) => s.trim().toLowerCase()).filter(Boolean);
@@ -635,8 +640,6 @@ export default function App() {
       try {
         const remote = await loadFullStateForUser(activeHouseholdId);
         if (!cancelled && remote) {
-          // Ha Supabase üres (nincs people/recurring/transactions/savings) de localStorage-ban
-          // van adat, tartsuk meg a localst – az autosave majd visszaszinkronizál Supabase-be.
           const remoteIsEmpty =
             remote.people.length === 0 &&
             remote.recurring.length === 0 &&
@@ -644,13 +647,16 @@ export default function App() {
             remote.savings.length === 0;
           if (!remoteIsEmpty) {
             setState(remote);
+            stateAtRemoteLoadRef.current = remote;
+          } else {
+            stateAtRemoteLoadRef.current = null;
           }
-          // Ha remoteIsEmpty, a setState nem fut le → a localStorage-ból betöltött state marad,
-          // és az autosave (remoteLoadSuccess=true után) visszatölti azt Supabase-be.
         }
+        skipNextAutosaveRef.current = true;
         if (!cancelled) { setRemoteLoadSuccess(true); setRemoteReady(true); }
 
         // Tagok betöltése
+        if (!cancelled)
         try {
           const members = await getHouseholdMembers(activeHouseholdId);
           if (!cancelled) { setHouseholdMembers(members); setMembersLoadError(null); }
@@ -660,8 +666,10 @@ export default function App() {
         }
       } catch (err) {
         console.error("Nem sikerült betölteni az állapotot Supabase-ből:", err);
-        // remoteLoadSuccess=false marad → autosave nem fut; remoteReady=true → skeleton eltűnik
-        if (!cancelled) setRemoteReady(true);
+        if (!cancelled) {
+          setRemoteReady(true);
+          setSyncLoadError("Hiba");
+        }
       }
     })();
     return () => { cancelled = true; };
@@ -670,11 +678,17 @@ export default function App() {
   // 3) Supabase autosave
   useEffect(() => {
     if (!activeHouseholdId || !remoteReady || !remoteLoadSuccess) return;
+    if (skipNextAutosaveRef.current) {
+      skipNextAutosaveRef.current = false;
+      return;
+    }
+    if (stateAtRemoteLoadRef.current === state) return;
     if (saveTimerRef.current != null) window.clearTimeout(saveTimerRef.current);
     saveTimerRef.current = window.setTimeout(async () => {
       try {
         setSavingStatus("saving"); setSaveError(null);
         await saveStatePatch(activeHouseholdId, state);
+        stateAtRemoteLoadRef.current = state;
         setSavingStatus("idle");
       } catch (err) {
         console.error("Nem sikerült menteni Supabase-be:", err);
@@ -1051,9 +1065,16 @@ export default function App() {
   }
 
   // ?newpw= paraméter = generált jelszóval jött (nem kell bejelentkezve lenni)
-  const hasNewPw = new URLSearchParams(window.location.search).has("newpw");
-  if (!user && !hasNewPw) return <AuthScreen />;
-  if (passwordRecovery || hasNewPw) return <PasswordResetScreen />;
+  const params = new URLSearchParams(window.location.search);
+  const hasNewPw    = params.has("newpw");           // Edge Function generált jelszó
+  const isResetMode = params.get("mode") === "reset"; // Standard Supabase recovery
+
+  // Jelszócsere oldal mutatása ha:
+  // 1. Standard recovery: ?mode=reset + user be van lépve (Supabase feldolgozta a hash-t)
+  // 2. Generált jelszó: ?newpw= param
+  // 3. PASSWORD_RECOVERY event (fallback)
+  if (!user && !hasNewPw && !isResetMode) return <AuthScreen />;
+  if (isResetMode || hasNewPw || passwordRecovery) return <PasswordResetScreen />;
 
   // -------------------- layout --------------------
 
@@ -1125,6 +1146,7 @@ export default function App() {
           <SidebarUserButton
             displayName={displayName}
             email={user.email ?? ""}
+            avatarUrl={avatarUrl}
             savingStatus={savingStatus}
             isProvisioning={isProvisioning}
             remoteReady={remoteReady}
@@ -1151,6 +1173,18 @@ export default function App() {
 
         {/* Page content */}
         <div className="flex-1 px-4 lg:px-6 py-6 pb-20 lg:pb-6">
+          {syncLoadError && (
+            <div className="mb-4 rounded-xl border px-3 py-2 text-xs flex items-start gap-2"
+              style={{ borderColor: "var(--color-warning)", background: "color-mix(in srgb, var(--color-warning) 12%, transparent)", color: "var(--color-text-1)" }}>
+              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" style={{ color: "var(--color-warning)" }} />
+              <div className="flex-1">
+                <span className="font-semibold" style={{ color: "var(--color-warning)" }}>Szinkronizációs hiba – </span>
+                {syncLoadError}
+                <button type="button" onClick={() => setSyncLoadError(null)}>Bezar</button>
+              </div>
+            </div>
+          )}
+
           {importError && (
             <div className="mb-4 rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs text-rose-100 flex items-start gap-2">
               <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
@@ -1259,9 +1293,11 @@ export default function App() {
                   series={dashboardSeries}
                   changePassword={changePassword}
                   updateProfile={updateProfile}
+                  uploadAvatar={uploadAvatar}
                   currentUserEmail={user?.email}
                   currentUserFirstName={firstName}
                   currentUserLastName={lastName}
+                  currentUserAvatarUrl={avatarUrl}
                   onExportJson={exportJson}
                   onImportClick={() => fileInputRef.current?.click()}
                   onReset={isAdmin ? () => {
