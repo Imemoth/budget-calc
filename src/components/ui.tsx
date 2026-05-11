@@ -61,7 +61,7 @@ export const ModalOverlay = ({
   onClose: () => void;
   children: React.ReactNode;
 }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-20 lg:pb-4">
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-20 landscape:pb-4 lg:pb-4">
     <div
       className="absolute inset-0"
       style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)" }}
@@ -80,7 +80,7 @@ export const ModalPanel = ({
   className?: string;
 }) => (
   <div
-    className={`relative w-full max-w-md rounded-2xl border border-border overflow-hidden z-10 ${className}`}
+    className={`relative w-full max-w-md rounded-2xl border border-border overflow-hidden z-10 max-h-[85dvh] flex flex-col ${className}`}
     style={{
       background: "linear-gradient(160deg, var(--color-surface) 0%, var(--color-surface-2) 100%)",
       boxShadow: "0 24px 64px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.07)",
@@ -104,7 +104,7 @@ export const Field = ({
   children: React.ReactNode;
   hint?: string;
 }) => (
-  <label className="block">
+  <label className="block min-w-0">
     <div className="text-xs text-text-2 mb-1 flex items-center gap-2">
       <span>{label}</span>
       {hint ? (

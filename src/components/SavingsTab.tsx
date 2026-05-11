@@ -229,12 +229,10 @@ export function SavingsView({
                 {isExpanded && (
                   <div className="px-4 pb-4 pt-3 border-t border-border space-y-3"
                     style={{ background: "var(--color-bg)30" }}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="col-span-2">
-                        <Field label="Név">
-                          <Input value={s.name || ""} onChange={e => updateSavings(s.id, { name: e.target.value })} className="w-full" autoFocus />
-                        </Field>
-                      </div>
+                    <Field label="Név">
+                      <Input value={s.name || ""} onChange={e => updateSavings(s.id, { name: e.target.value })} className="w-full" autoFocus />
+                    </Field>
+                    <div className="grid grid-cols-2 gap-3">
                       <Field label="Célösszeg (Ft)">
                         <Input type="number" value={s.targetAmount ?? 0}
                           onChange={e => updateSavings(s.id, { targetAmount: parseNonNegativeInput(e.target.value) })} className="w-full" />
@@ -243,6 +241,8 @@ export function SavingsView({
                         <Input type="number" value={s.monthlyPlanned ?? 0}
                           onChange={e => updateSavings(s.id, { monthlyPlanned: parseNonNegativeInput(e.target.value) })} className="w-full" />
                       </Field>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
                       <Field label="Kezdő hónap">
                         <Input type="month" value={s.startMonth || ""}
                           onChange={e => updateSavings(s.id, { startMonth: normalizeMonthInput(e.target.value) })} className="w-full" />
@@ -251,12 +251,10 @@ export function SavingsView({
                         <Input type="month" value={s.endMonth || ""}
                           onChange={e => updateSavings(s.id, { endMonth: normalizeMonthInput(e.target.value) })} className="w-full" />
                       </Field>
-                      <div className="col-span-2">
-                        <Field label="Megjegyzés">
-                          <Input value={s.notes || ""} onChange={e => updateSavings(s.id, { notes: e.target.value })} className="w-full" />
-                        </Field>
-                      </div>
                     </div>
+                    <Field label="Megjegyzés">
+                      <Input value={s.notes || ""} onChange={e => updateSavings(s.id, { notes: e.target.value })} className="w-full" />
+                    </Field>
                     <div className="flex justify-between items-center pt-1">
                       <ConfirmDelete onConfirm={() => { removeSavings(s.id); setExpandedId(null); }} />
                       <SmallButton variant="ghost" onClick={() => setExpandedId(null)}>Bezár</SmallButton>
