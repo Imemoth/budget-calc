@@ -229,7 +229,7 @@ export function SavingsView({
                 {isExpanded && (
                   <div className="px-4 pb-4 pt-3 border-t border-border space-y-3"
                     style={{ background: "var(--color-bg)30" }}>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="col-span-2">
                         <Field label="Név">
                           <Input value={s.name || ""} onChange={e => updateSavings(s.id, { name: e.target.value })} className="w-full" autoFocus />

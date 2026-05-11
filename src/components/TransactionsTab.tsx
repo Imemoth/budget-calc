@@ -486,7 +486,7 @@ export function TransactionsTab({
                     className="w-full text-right" />
                 </Field>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Dátum">
                   <Input type="date" value={draftModal.date}
                     onChange={(e) => setDraftModal(d => d && { ...d, date: normalizeDateInput(e.target.value) })}
