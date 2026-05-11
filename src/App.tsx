@@ -384,7 +384,7 @@ function SidebarUserButton({
 
 // -------------------- user menu --------------------
 
-function UserMenu({ email, displayName, onLogout, dropUp = false }: { email: string; displayName?: string | null; onLogout: () => void; dropUp?: boolean }) {
+function UserMenu({ email, displayName, avatarUrl, onLogout, dropUp = false }: { email: string; displayName?: string | null; avatarUrl?: string | null; onLogout: () => void; dropUp?: boolean }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -399,10 +399,12 @@ function UserMenu({ email, displayName, onLogout, dropUp = false }: { email: str
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-sm font-semibold text-primary hover:bg-primary/30 transition-colors"
+        className="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-sm font-semibold text-primary hover:bg-primary/30 transition-colors overflow-hidden"
         title={email}
       >
-        {initial}
+        {avatarUrl
+          ? <img src={avatarUrl} alt="avatar" className="w-full h-full rounded-full object-cover" />
+          : initial}
       </button>
       {open && (
         <div
@@ -470,6 +472,7 @@ export default function App() {
     return "dashboard";
   });
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
+  const [quickAddType, setQuickAddType] = useState<MoneyType | null>(null);
 
   const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "error">("idle");
   const [, setSaveError] = useState<string | null>(null);
@@ -1094,7 +1097,7 @@ export default function App() {
             <h1 className="text-lg font-bold text-text-1">{TAB_META[tab].title}</h1>
           </div>
           <div className="flex items-center gap-2">
-            {user && <div className="lg:hidden"><UserMenu email={user.email ?? ""} displayName={displayName} onLogout={handleLogout} /></div>}
+            {user && <div className="lg:hidden"><UserMenu email={user.email ?? ""} displayName={displayName} avatarUrl={avatarUrl} onLogout={handleLogout} /></div>}
           </div>
         </header>
 
@@ -1164,7 +1167,9 @@ export default function App() {
                 <TransactionsTab state={state}
                   addTransactionFull={addTransactionFull}
                   updateTransaction={updateTransaction}
-                  removeTransaction={removeTransaction} />
+                  removeTransaction={removeTransaction}
+                  autoOpenType={quickAddType}
+                  onAutoOpenConsumed={() => setQuickAddType(null)} />
               </motion.div>
             )}
             {tab === "recurring" && (
@@ -1262,19 +1267,19 @@ export default function App() {
           style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent)" }} />
         <div className="flex justify-around px-1 py-1">
           <MobileNavBtn active={tab === "dashboard"} icon={Home} label="Áttekintés" onClick={() => handleNavigate("dashboard")} />
-          <MobileNavBtn active={tab === "transactions"} icon={Receipt} label="Tételek" onClick={() => handleNavigate("transactions")} />
+          <MobileNavBtn active={tab === "transactions"} icon={Receipt} label="Tranzakciók" onClick={() => handleNavigate("transactions")} />
           {/* Középső + FAB gomb */}
           <div className="flex flex-col items-center justify-center px-1 py-2">
             <button
               type="button"
-              onClick={() => handleNavigate("transactions")}
+              onClick={() => { handleNavigate("transactions"); setQuickAddType("expense"); }}
               className="w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-transform active:scale-95"
               style={{ background: "var(--color-primary)", boxShadow: "0 4px 16px var(--color-primary)66" }}
             >
               <span className="text-2xl leading-none font-light">+</span>
             </button>
           </div>
-          <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Célok" onClick={() => handleNavigate("savings")} />
+          <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Megtakarítás" onClick={() => handleNavigate("savings")} />
           <MobileNavBtn active={tab === "settings" || tab === "people" || tab === "recurring"} icon={Settings2} label="Több" onClick={() => handleNavigate("settings")} />
         </div>
       </div>
