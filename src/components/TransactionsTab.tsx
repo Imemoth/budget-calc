@@ -447,7 +447,7 @@ export function TransactionsTab({
       {draftModal && (
         <ModalOverlay onClose={() => setDraftModal(null)}>
           <ModalPanel>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border shrink-0">
               <div>
                 <div className="text-xs text-text-muted uppercase tracking-wider mb-0.5">
                   {draftModal.type === "income" ? "Bevétel rögzítése" : "Kiadás rögzítése"}
@@ -472,8 +472,8 @@ export function TransactionsTab({
               </div>
             </div>
 
-            <div className="px-5 py-4 space-y-3">
-              <div className="grid grid-cols-[1fr_120px] gap-3">
+            <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">
+              <div className="grid grid-cols-2 gap-3">
                 <Field label="Megnevezés">
                   <Input value={draftModal.name}
                     onChange={(e) => setDraftModal(d => d && { ...d, name: e.target.value })}
@@ -514,7 +514,7 @@ export function TransactionsTab({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border bg-surface-2/20">
+            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border bg-surface-2/20 shrink-0">
               <SmallButton variant="ghost" onClick={() => setDraftModal(null)}>Mégsem</SmallButton>
               <SmallButton variant="primary" onClick={() => {
                 addTransactionFull({ ...draftModal });
