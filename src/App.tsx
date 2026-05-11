@@ -8,7 +8,7 @@ import { Wallet, PiggyBank, Users, Settings2, Info, LogOut, Receipt, Home, LineC
 import { supabase } from "./supabaseClient";
 import { useAuth } from "./auth";
 import { AuthScreen, PasswordResetScreen } from "./authscreen";
-import { loadFullStateForUser, saveStatePatch, seedDefaultCategories, deletePerson, deleteCategory, deleteAllCategories, deleteRecurring, deleteTransaction, deleteSavings, getHouseholdMembers, acceptInvite, updateMemberPermissions, removeMember, sendInvite } from "./dataClient";
+import { loadFullStateForUser, saveStatePatch, seedDefaultCategories, deletePerson, deleteCategory, deleteAllCategories, deleteRecurring, deleteTransaction, deleteSavings, getHouseholdMembers, acceptInvite, updateMemberPermissions, removeMember, sendInvite, ensureDefaultHousehold } from "./dataClient";
 
 // Types
 export type { Settings, Person, Category, RecurringItem, Transaction, SavingsBucket, State, MoneyType, TabKey, SeriesRow, HouseholdMember, MemberPermissions } from "./types";
@@ -228,82 +228,6 @@ function useUserLocalState(
   }, [storageKey, state]);
 
   return [state, setState];
-}
-
-// -------------------- Supabase helpers --------------------
-
-async function ensureDefaultHousehold(userId: string, userEmail?: string | null): Promise<string> {
-  // Step 1: existing membership – order by created_at for a consistent result across devices
-  const memberRes = await supabase
-    .from("household_members")
-    .select("household_id")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (memberRes.error) throw memberRes.error;
-  if (memberRes.data?.household_id) {
-    const hid = memberRes.data.household_id as string;
-    // Email frissítése ha még nincs mentve (meglévő tagok migrálása)
-    if (userEmail) {
-      await supabase
-        .from("household_members")
-        .update({ email: userEmail })
-        .eq("household_id", hid)
-        .eq("user_id", userId)
-        .is("email", null);
-    }
-    return hid;
-  }
-
-  // Step 2: household owned by user
-  const ownedRes = await supabase
-    .from("households")
-    .select("id")
-    .eq("owner_user_id", userId)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  if (ownedRes.error) throw ownedRes.error;
-
-  let householdId = ownedRes.data?.id as string | undefined;
-
-  // Step 3: create household if none exists
-  if (!householdId) {
-    const createRes = await supabase
-      .from("households")
-      .insert({ owner_user_id: userId, name: "Saját háztartás", currency: "HUF", start_month: new Date().toISOString().slice(0, 7) })
-      .select("id")
-      .single();
-    if (createRes.error) throw createRes.error;
-    householdId = createRes.data.id as string;
-  }
-
-  // Step 4: upsert membership – idempotent, safe to call repeatedly
-  const insertRes = await supabase
-    .from("household_members")
-    .upsert(
-      { household_id: householdId!, user_id: userId, role: "OWNER" },
-      { onConflict: "household_id,user_id", ignoreDuplicates: true }
-    );
-  // Step 4b: update owner email if provided (column added in 20260310140000 migration)
-  if (userEmail) {
-    await supabase
-      .from("household_members")
-      .update({ email: userEmail })
-      .eq("household_id", householdId!)
-      .eq("user_id", userId)
-      .is("email", null);
-  }
-  if (insertRes.error) {
-    const msg = (insertRes.error.message || "").toLowerCase();
-    // Swallow duplicate/conflict errors – the row already exists which is fine
-    if (!msg.includes("duplicate") && !msg.includes("unique") && !msg.includes("conflict")) {
-      throw insertRes.error;
-    }
-  }
-
-  return householdId!;
 }
 
 // -------------------- sidebar nav item --------------------

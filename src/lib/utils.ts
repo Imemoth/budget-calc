@@ -23,6 +23,14 @@ export const roundTo = (n: number, digits: number) => {
   return Math.round(n * factor) / factor;
 };
 
+// -------------------- compact number (chart labels) --------------------
+
+export function compactNum(v: number, upperK = true): string {
+  if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(v) >= 1_000) return `${Math.round(v / 1_000)}${upperK ? "K" : "k"}`;
+  return String(v);
+}
+
 // -------------------- money --------------------
 
 /**

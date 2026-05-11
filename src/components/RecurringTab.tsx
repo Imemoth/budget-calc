@@ -54,7 +54,7 @@ export function RecurringTab({
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const allCategories = state.categories;
-  const currentMonth = state.settings.startMonth || monthKey(new Date());
+  const currentMonth = monthKey(new Date());
 
   const catColorMap = useMemo(() => {
     const map = new Map<string, string>();

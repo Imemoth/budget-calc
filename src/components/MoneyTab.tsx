@@ -118,7 +118,7 @@ function PlannedSection({
   const [recurringFilter, setRecurringFilter] = useState<"all" | "active" | "draft">("all");
   const [modalItem, setModalItem] = useState<RecurringItem | null>(null);
   const [isNew, setIsNew] = useState(false);
-  const currentMonth = state.settings.startMonth || monthKey(new Date());
+  const currentMonth = monthKey(new Date());
 
   const cats = state.categories.filter((c) => c.type === type);
   const activeTotal = useMemo(
