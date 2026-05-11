@@ -61,7 +61,7 @@ export const ModalOverlay = ({
   onClose: () => void;
   children: React.ReactNode;
 }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pb-20 lg:pb-4">
     <div
       className="absolute inset-0"
       style={{ background: "rgba(0,0,0,0.65)", backdropFilter: "blur(8px)" }}

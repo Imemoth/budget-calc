@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, ChevronDown, Search, TrendingUp, TrendingDown, ArrowUpDown, Trash2, AlertTriangle } from "lucide-react";
 import { formatHuf } from "../lib/money";
 import type { State, MoneyType, Transaction, Category } from "../types";
@@ -43,11 +43,15 @@ export function TransactionsTab({
   addTransactionFull,
   updateTransaction,
   removeTransaction,
+  autoOpenType,
+  onAutoOpenConsumed,
 }: {
   state: State;
   addTransactionFull: (patch: Partial<Transaction> & { type: MoneyType }) => string;
   updateTransaction: (id: string, patch: Partial<Transaction>) => void;
   removeTransaction: (id: string) => void;
+  autoOpenType?: MoneyType | null;
+  onAutoOpenConsumed?: () => void;
 }) {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "income" | "expense">("all");
@@ -129,6 +133,15 @@ export function TransactionsTab({
     date: new Date().toISOString().slice(0, 10),
     categoryId: null, personId: null, notes: "",
   });
+
+  useEffect(() => {
+    if (autoOpenType) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      openDraft(autoOpenType);
+      onAutoOpenConsumed?.();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenType]);
 
   return (
     <div className="space-y-4">
