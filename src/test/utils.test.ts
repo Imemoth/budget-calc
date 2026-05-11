@@ -4,8 +4,6 @@ import {
   clamp,
   percent,
   roundTo,
-  formatHUF,
-  fmtMoney,
   isValidDate,
   firstDayOfMonth,
   lastDayOfMonth,
@@ -19,6 +17,7 @@ import {
   uniqueBy,
   mergeDeep,
 } from "../lib/utils";
+import { formatHUF, fmtMoney } from "../lib/money";
 
 // ---- uid ----
 describe("uid", () => {

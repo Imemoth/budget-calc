@@ -4,7 +4,7 @@ import type { State, SavingsBucket } from "../types";
 import { Field, Input, ConfirmDelete, RingProgress, SmallButton } from "./ui";
 import { normalizeMonthInput, parseNonNegativeInput } from "../lib/domainHelpers";
 import { monthKey } from "../lib/utils";
-import { formatHuf } from "../lib/format";
+import { formatHuf } from "../lib/money";
 
 function ymToInt(ym: string): number {
   const [y, m] = ym.split("-").map(Number);

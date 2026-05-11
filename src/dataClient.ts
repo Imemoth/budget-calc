@@ -724,3 +724,74 @@ export async function sendInvite(
   });
   return { error: error ? error.message : null };
 }
+
+export async function ensureDefaultHousehold(userId: string, userEmail?: string | null): Promise<string> {
+  // Step 1: existing membership – order by created_at for a consistent result across devices
+  const memberRes = await supabase
+    .from("household_members")
+    .select("household_id")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (memberRes.error) throw memberRes.error;
+  if (memberRes.data?.household_id) {
+    const hid = memberRes.data.household_id as string;
+    if (userEmail) {
+      await supabase
+        .from("household_members")
+        .update({ email: userEmail })
+        .eq("household_id", hid)
+        .eq("user_id", userId)
+        .is("email", null);
+    }
+    return hid;
+  }
+
+  // Step 2: household owned by user
+  const ownedRes = await supabase
+    .from("households")
+    .select("id")
+    .eq("owner_user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (ownedRes.error) throw ownedRes.error;
+
+  let householdId = ownedRes.data?.id as string | undefined;
+
+  // Step 3: create household if none exists
+  if (!householdId) {
+    const createRes = await supabase
+      .from("households")
+      .insert({ owner_user_id: userId, name: "Saját háztartás", currency: "HUF", start_month: new Date().toISOString().slice(0, 7) })
+      .select("id")
+      .single();
+    if (createRes.error) throw createRes.error;
+    householdId = createRes.data.id as string;
+  }
+
+  // Step 4: upsert membership – idempotent, safe to call repeatedly
+  const insertRes = await supabase
+    .from("household_members")
+    .upsert(
+      { household_id: householdId!, user_id: userId, role: "OWNER" },
+      { onConflict: "household_id,user_id", ignoreDuplicates: true }
+    );
+  if (userEmail) {
+    await supabase
+      .from("household_members")
+      .update({ email: userEmail })
+      .eq("household_id", householdId!)
+      .eq("user_id", userId)
+      .is("email", null);
+  }
+  if (insertRes.error) {
+    const msg = (insertRes.error.message || "").toLowerCase();
+    if (!msg.includes("duplicate") && !msg.includes("unique") && !msg.includes("conflict")) {
+      throw insertRes.error;
+    }
+  }
+
+  return householdId!;
+}

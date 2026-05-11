@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Plus, ChevronDown, ArrowDownToLine, TrendingUp, TrendingDown } from "lucide-react";
 import { monthKey, uid } from "../lib/utils";
-import { formatHuf } from "../lib/format";
+import { formatHuf } from "../lib/money";
 import type { State, MoneyType, RecurringItem, Transaction, Category } from "../types";
 import { Card, Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect, ModalOverlay, ModalPanel } from "./ui";
 import {
@@ -118,7 +118,7 @@ function PlannedSection({
   const [recurringFilter, setRecurringFilter] = useState<"all" | "active" | "draft">("all");
   const [modalItem, setModalItem] = useState<RecurringItem | null>(null);
   const [isNew, setIsNew] = useState(false);
-  const currentMonth = state.settings.startMonth || monthKey(new Date());
+  const currentMonth = monthKey(new Date());
 
   const cats = state.categories.filter((c) => c.type === type);
   const activeTotal = useMemo(

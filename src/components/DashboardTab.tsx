@@ -4,8 +4,8 @@ import {
   PieChart, Pie, Cell, Area, AreaChart,
   ResponsiveContainer,
 } from "recharts";
-import { formatHuf } from "../lib/format";
-import { monthKey } from "../lib/utils";
+import { formatHuf } from "../lib/money";
+import { monthKey, compactNum } from "../lib/utils";
 import type { SeriesRow, State } from "../types";
 import { useTheme } from "../context/ThemeContext";
 import { Target, ArrowRight, ArrowUpRight } from "lucide-react";
@@ -17,17 +17,6 @@ function readVar(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-function yFmt(v: number): string {
-  if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(v) >= 1_000) return `${Math.round(v / 1_000)}K`;
-  return String(v);
-}
-
-function cmpct(v: number): string {
-  if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
-  if (Math.abs(v) >= 1_000) return `${Math.round(v / 1_000)}k`;
-  return String(v);
-}
 
 const PERSON_PALETTE = [
   "var(--color-positive)",
@@ -503,7 +492,7 @@ export function DashboardView({
                     tickLine={false} axisLine={false}
                     tickFormatter={v => v % 5 === 1 || v === 1 ? String(v) : ""} />
                   <YAxis tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
-                    tickLine={false} axisLine={false} tickFormatter={yFmt} width={40} />
+                    tickLine={false} axisLine={false} tickFormatter={(v) => compactNum(v)} width={40} />
                   <RechartTooltip content={<ChartTooltip />}
                     cursor={{ fill: "var(--color-surface-2)", opacity: 0.5 }} />
                   {state?.people.map((p, i) => (
@@ -546,7 +535,7 @@ export function DashboardView({
                 {/* Közép szöveg */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <div className="text-xl font-extrabold tabular-nums text-text-1">
-                    {cmpct(catTotal)}k
+                    {compactNum(catTotal, false)}
                   </div>
                   <div className="text-[10px] text-text-muted">Ft összesen</div>
                 </div>
@@ -558,7 +547,7 @@ export function DashboardView({
                     <span className="w-2 h-2 rounded-full shrink-0"
                       style={{ background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
                     <span className="truncate">{c.name.replace(/ 🛒|🏠|⚡|🍽️|🚗|🩺|🛡️|🧾|🧩|🎮|👕|👶|🎁|✈️|🧯/g, "").trim()}</span>
-                    <span className="ml-auto shrink-0 tabular-nums font-medium">{cmpct(c.value)}k</span>
+                    <span className="ml-auto shrink-0 tabular-nums font-medium">{compactNum(c.value, false)}</span>
                   </div>
                 ))}
               </div>

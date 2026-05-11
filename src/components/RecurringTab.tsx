@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, ArrowDownToLine, TrendingUp, TrendingDown } from "lucide-react";
 import { uid, monthKey } from "../lib/utils";
-import { formatHuf } from "../lib/format";
+import { formatHuf } from "../lib/money";
 import type { State, MoneyType, RecurringItem, Category } from "../types";
 import { Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect } from "./ui";
 import {
@@ -54,7 +54,7 @@ export function RecurringTab({
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const allCategories = state.categories;
-  const currentMonth = state.settings.startMonth || monthKey(new Date());
+  const currentMonth = monthKey(new Date());
 
   const catColorMap = useMemo(() => {
     const map = new Map<string, string>();
