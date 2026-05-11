@@ -4,7 +4,7 @@ import {
   PieChart, Pie, Cell, Area, AreaChart,
   ResponsiveContainer,
 } from "recharts";
-import { formatHuf } from "../lib/format";
+import { formatHuf } from "../lib/money";
 import { monthKey, compactNum } from "../lib/utils";
 import type { SeriesRow, State } from "../types";
 import { useTheme } from "../context/ThemeContext";

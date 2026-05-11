@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Plus, TrendingUp, TrendingDown, Info, X } from "lucide-react";
 import type { State, MoneyType, Person, Category, TabKey, RecurringItem, Transaction } from "../types";
 import { Card, Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect } from "./ui";
-import { formatHuf } from "../lib/format";
+import { formatHuf } from "../lib/money";
 import { normalizeMonthInput, parseNumberInput, parseNonNegativeInput } from "../lib/domainHelpers";
 import { monthKey, uid } from "../lib/utils";
 

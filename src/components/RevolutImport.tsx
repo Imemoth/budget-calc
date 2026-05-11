@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { Upload, X, Check, AlertCircle } from "lucide-react";
 import { parseRevolutCsv, type ParsedRevolutTx } from "../lib/revolutParser";
-import { formatHuf } from "../lib/format";
+import { formatHuf } from "../lib/money";
 import { getCategoryIcon } from "../lib/categoryIcons";
 import { ModalOverlay, SmallButton } from "./ui";
 import type { State, MoneyType, Transaction } from "../types";

@@ -31,43 +31,6 @@ export function compactNum(v: number, upperK = true): string {
   return String(v);
 }
 
-// -------------------- money --------------------
-
-/**
- * Plain thousand separated number (no currency symbol)
- * Good for HUF-like integer amounts.
- */
-export const formatHUF = (n: number) => {
-  if (n == null || Number.isNaN(n)) return "0";
-  try {
-    return new Intl.NumberFormat("hu-HU").format(Math.round(n));
-  } catch {
-    return String(Math.round(n));
-  }
-};
-
-/**
- * Currency formatting (Ft / EUR etc.)
- */
-export const fmtMoney = (n: number, currency: string) => {
-  const safe = Number.isFinite(n) ? n : 0;
-  const cur = currency || "HUF";
-
-  try {
-    return new Intl.NumberFormat("hu-HU", {
-      style: "currency",
-      currency: cur,
-      maximumFractionDigits: cur === "HUF" ? 0 : 2,
-    }).format(safe);
-  } catch {
-    return new Intl.NumberFormat("hu-HU", {
-      style: "currency",
-      currency: "HUF",
-      maximumFractionDigits: 0,
-    }).format(safe);
-  }
-};
-
 // -------------------- dates / months --------------------
 
 export const isValidDate = (d: Date) =>

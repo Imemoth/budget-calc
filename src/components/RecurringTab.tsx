@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, ArrowDownToLine, TrendingUp, TrendingDown } from "lucide-react";
 import { uid, monthKey } from "../lib/utils";
-import { formatHuf } from "../lib/format";
+import { formatHuf } from "../lib/money";
 import type { State, MoneyType, RecurringItem, Category } from "../types";
 import { Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect } from "./ui";
 import {

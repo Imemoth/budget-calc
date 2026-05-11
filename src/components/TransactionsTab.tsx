@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Plus, ChevronDown, Search, TrendingUp, TrendingDown, ArrowUpDown, Trash2, AlertTriangle } from "lucide-react";
-import { formatHuf } from "../lib/format";
+import { formatHuf } from "../lib/money";
 import type { State, MoneyType, Transaction, Category } from "../types";
 import { Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect, ModalOverlay, ModalPanel } from "./ui";
 import { normalizeDateInput, parseNumberInput } from "../lib/domainHelpers";
