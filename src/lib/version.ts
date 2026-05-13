@@ -3,9 +3,17 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.42";
+export const APP_VERSION = "0.5.43";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.43": {
+    date: "2026-05-13",
+    changes: [
+      "AI Asszisztens: természetes nyelvű tranzakció rögzítés — 'Tescón vettem 8400 Ft-ért' → automatikus kitöltés (Claude Haiku, Supabase Edge Function).",
+      "TransactionsTab: Sparkles AI gomb a fejlécben → szöveges input modal → előtöltött draft tranzakció modal kategória javaslattal.",
+      "dataClient: parseTransactionText() — parse-transaction edge function hívás kategórialistával.",
+    ],
+  },
   "0.5.42": {
     date: "2026-04-23",
     changes: [

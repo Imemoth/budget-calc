@@ -30,6 +30,10 @@ dist-ssr
 .env.local
 .env.*.local
 
+# API kulcsok
+.claude/platform_api.key
+*.key
+
 # Képek
 *.png
 *.jpg
