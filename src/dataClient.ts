@@ -795,3 +795,32 @@ export async function ensureDefaultHousehold(userId: string, userEmail?: string 
 
   return householdId!;
 }
+
+// =========================
+// AI tranzakció elemzés
+// =========================
+
+export type ParsedTransaction = {
+  name: string;
+  amount: number;
+  type: "income" | "expense";
+  categoryId: string | null;
+  date: string;
+  notes: string;
+};
+
+export async function parseTransactionText(
+  text: string,
+  categories: Category[]
+): Promise<ParsedTransaction> {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase.functions.invoke("parse-transaction", {
+    body: {
+      text,
+      categories: categories.map(c => ({ id: c.id, name: c.name, type: c.type })),
+      today,
+    },
+  });
+  if (error) throw new Error(error.message);
+  return data as ParsedTransaction;
+}

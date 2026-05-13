@@ -3,9 +3,16 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.43";
+export const APP_VERSION = "0.5.44";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.44": {
+    date: "2026-05-13",
+    changes: [
+      "AI Asszisztens: természetes nyelvű tranzakció rögzítés — 'Tescón vettem 8400 Ft-ért' → automatikus kitöltés (Claude Haiku, Supabase Edge Function).",
+      "Diktálás: Web Speech API hu-HU — mic gomb az AI modalban, pulsáló jelzés recording közben.",
+    ],
+  },
   "0.5.43": {
     date: "2026-05-06",
     changes: [
