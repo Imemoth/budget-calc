@@ -119,7 +119,7 @@ export const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input
     {...props}
     className={
-      "w-full min-h-11 rounded-xl bg-surface-2 border border-border px-3 py-2 text-sm text-text-1 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/40 " +
+      "w-full min-w-0 min-h-11 rounded-xl bg-surface-2 border border-border px-3 py-2 text-sm text-text-1 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/40 " +
       (props.className || "")
     }
   />

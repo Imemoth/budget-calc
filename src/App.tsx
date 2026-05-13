@@ -473,6 +473,7 @@ export default function App() {
   });
   const [isChangelogOpen, setIsChangelogOpen] = useState(false);
   const [quickAddType, setQuickAddType] = useState<MoneyType | null>(null);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
 
   const [savingStatus, setSavingStatus] = useState<"idle" | "saving" | "error">("idle");
   const [, setSaveError] = useState<string | null>(null);
@@ -1280,9 +1281,38 @@ export default function App() {
             </button>
           </div>
           <MobileNavBtn active={tab === "savings"} icon={PiggyBank} label="Megtakarítás" onClick={() => handleNavigate("savings")} />
-          <MobileNavBtn active={tab === "settings" || tab === "people" || tab === "recurring"} icon={Settings2} label="Több" onClick={() => handleNavigate("settings")} />
+          <MobileNavBtn active={tab === "settings" || tab === "people" || tab === "recurring"} icon={Settings2} label="Több" onClick={() => setShowMoreMenu(v => !v)} />
         </div>
       </div>
+
+      {/* "Több" bottom sheet */}
+      {showMoreMenu && (
+        <>
+          <div className="fixed inset-0 z-40 lg:hidden" onClick={() => setShowMoreMenu(false)} />
+          <div className="fixed bottom-[60px] left-0 right-0 z-40 lg:hidden px-3 pb-2">
+            <div className="rounded-2xl border border-border overflow-hidden"
+              style={{ background: "var(--color-surface)", boxShadow: "0 -8px 32px rgba(0,0,0,0.3)" }}>
+              {([
+                { key: "people" as TabKey, icon: Users, label: "Személyek" },
+                { key: "recurring" as TabKey, icon: Repeat, label: "Fix tételek" },
+                { key: "settings" as TabKey, icon: Settings2, label: "Beállítások" },
+              ] as { key: TabKey; icon: React.ComponentType<{ className?: string }>; label: string }[]).map(({ key, icon: Icon, label }) => (
+                <button key={key} type="button"
+                  onClick={() => { handleNavigate(key); setShowMoreMenu(false); }}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium border-b border-border last:border-b-0 transition-colors hover:bg-surface-2"
+                  style={{ color: tab === key ? "var(--color-primary)" : "var(--color-text-1)" }}>
+                  <span style={{ color: tab === key ? "var(--color-primary)" : "var(--color-text-muted)" }} className="shrink-0"><Icon className="w-4 h-4" /></span>
+                  <span className="flex-1 text-left">{label}</span>
+                  {tab === key && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                      style={{ background: "var(--color-primary)18", color: "var(--color-primary)" }}>aktív</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       <input ref={fileInputRef} type="file" accept="application/json" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; if (f) importJson(f); e.target.value = ""; }} />
