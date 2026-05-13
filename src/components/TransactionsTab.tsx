@@ -1,5 +1,5 @@
-import { useMemo, useState, useRef } from "react";
-import { Plus, ChevronDown, Search, TrendingUp, TrendingDown, ArrowUpDown, Trash2, AlertTriangle, Sparkles, Loader2 } from "lucide-react";
+import { useMemo, useState, useRef, useEffect, useCallback } from "react";
+import { Plus, ChevronDown, Search, TrendingUp, TrendingDown, ArrowUpDown, Trash2, AlertTriangle, Sparkles, Loader2, Mic, MicOff } from "lucide-react";
 import { formatHuf } from "../lib/format";
 import type { State, MoneyType, Transaction, Category } from "../types";
 import { Field, Input, Select, SmallButton, ConfirmDelete, CategorySelect, ModalOverlay, ModalPanel } from "./ui";
@@ -7,6 +7,27 @@ import { normalizeDateInput, parseNumberInput } from "../lib/domainHelpers";
 import { getCategoryIcon } from "../lib/categoryIcons";
 import { RevolutImportButton } from "./RevolutImport";
 import { parseTransactionText } from "../dataClient";
+
+// SpeechRecognition böngésző API — minimális típusdeklaráció
+interface SRAlternative { transcript: string; confidence: number; }
+interface SRResult { isFinal: boolean; [index: number]: SRAlternative; }
+interface SRResultList { length: number; [index: number]: SRResult; }
+interface SREvent extends Event { resultIndex: number; results: SRResultList; }
+interface SRInstance extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((e: SREvent) => void) | null;
+  onend: (() => void) | null;
+  onerror: (() => void) | null;
+}
+type SRConstructor = new () => SRInstance;
+const getSR = (): SRConstructor | undefined =>
+  ((window as unknown as Record<string, unknown>).SpeechRecognition ||
+   (window as unknown as Record<string, unknown>).webkitSpeechRecognition) as SRConstructor | undefined;
 
 // ---- helpers ----
 
@@ -66,6 +87,44 @@ export function TransactionsTab({
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const aiInputRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<SRInstance | null>(null);
+  const [isListening, setIsListening] = useState(false);
+
+  useEffect(() => {
+    return () => { recognitionRef.current?.abort(); };
+  }, []);
+
+  const toggleListening = useCallback(() => {
+    const SR = getSR();
+    if (!SR) return;
+
+    if (isListening) {
+      recognitionRef.current?.stop();
+      return;
+    }
+
+    const rec = new SR();
+    rec.lang = "hu-HU";
+    rec.continuous = true;
+    rec.interimResults = true;
+    recognitionRef.current = rec;
+
+    let finalSoFar = aiText;
+    rec.onresult = (e: SREvent) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) { finalSoFar += (finalSoFar ? " " : "") + t.trim(); }
+        else { interim = t; }
+      }
+      setAiText(finalSoFar + (interim ? (finalSoFar ? " " : "") + interim : ""));
+    };
+    rec.onend = () => setIsListening(false);
+    rec.onerror = () => setIsListening(false);
+
+    rec.start();
+    setIsListening(true);
+  }, [isListening, aiText]);
 
   const allCategories = state.categories;
   const incomeCategories = allCategories.filter(c => c.type === "income");
@@ -571,15 +630,39 @@ export function TransactionsTab({
                 <div>Pl.: <span className="text-text-2">"Január 10-én kaptam 450 ezer Ft fizetést"</span></div>
                 <div>Pl.: <span className="text-text-2">"Shell benzinkúton 15 ezer, tegnap"</span></div>
               </div>
-              <textarea
-                ref={aiInputRef}
-                value={aiText}
-                onChange={e => setAiText(e.target.value)}
-                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAiParse(); } }}
-                placeholder="Írd le a tranzakciót…"
-                rows={3}
-                className="w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 text-sm text-text-1 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
-              />
+              <div className="relative">
+                <textarea
+                  ref={aiInputRef}
+                  value={aiText}
+                  onChange={e => setAiText(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAiParse(); } }}
+                  placeholder={isListening ? "Hallgat…" : "Írd le vagy diktáld a tranzakciót…"}
+                  rows={3}
+                  className="w-full rounded-xl border border-border bg-surface-2 px-3 py-2.5 pr-10 text-sm text-text-1 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-primary/40 resize-none"
+                />
+                {getSR() && (
+                  <button
+                    type="button"
+                    onClick={toggleListening}
+                    title={isListening ? "Leállítás" : "Diktálás indítása"}
+                    className="absolute right-2.5 bottom-2.5 w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                    style={isListening
+                      ? { background: "var(--color-negative)", color: "#fff" }
+                      : { color: "var(--color-text-muted)" }}
+                  >
+                    {isListening
+                      ? <MicOff className="w-3.5 h-3.5" />
+                      : <Mic className="w-3.5 h-3.5" />
+                    }
+                  </button>
+                )}
+              </div>
+              {isListening && (
+                <div className="flex items-center gap-2 text-xs" style={{ color: "var(--color-negative)" }}>
+                  <span className="w-2 h-2 rounded-full animate-pulse inline-block" style={{ background: "var(--color-negative)" }} />
+                  Hallgatás folyamatban — beszélj magyarul, majd nyomj Leállítás-t
+                </div>
+              )}
               {aiError && (
                 <div className="flex items-center gap-2 text-xs text-negative">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" /> {aiError}
