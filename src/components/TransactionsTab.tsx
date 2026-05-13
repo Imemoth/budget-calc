@@ -472,7 +472,7 @@ export function TransactionsTab({
               </div>
             </div>
 
-            <div className="px-5 py-4 space-y-3 overflow-y-auto flex-1">
+            <div className="px-5 py-4 space-y-3 overflow-y-auto overflow-x-hidden flex-1">
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Megnevezés">
                   <Input value={draftModal.name}
