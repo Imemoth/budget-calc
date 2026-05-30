@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Plus, ChevronDown, ArrowDownToLine, TrendingUp, TrendingDown } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { Plus, ChevronDown, ArrowDownToLine, TrendingUp, TrendingDown, Camera, Loader2 } from "lucide-react";
 import { monthKey, uid } from "../lib/utils";
 import { formatHuf } from "../lib/money";
 import type { State, MoneyType, RecurringItem, Transaction, Category } from "../types";
@@ -9,6 +9,7 @@ import {
   normalizeDateInput,
   parseNumberInput,
 } from "../lib/domainHelpers";
+import { scanReceipt } from "../dataClient";
 
 export function MoneyTab({
   type,
@@ -494,8 +495,35 @@ function ActualSection({
   const [txDraft, setTxDraft] = useState<{ name: string; amount: number; date: string; categoryId: string | null; personId: string | null; notes: string } | null>(null);
   const [filterMonth, setFilterMonth] = useState<string>("");
   const [search, setSearch] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
+  const scanInputRef = useRef<HTMLInputElement>(null);
 
   const cats = state.categories.filter((c) => c.type === type);
+
+  const handleScanFile = async (file: File) => {
+    setScanning(true);
+    setScanError(null);
+    try {
+      const buf = await file.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let bin = "";
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+      const result = await scanReceipt(btoa(bin), file.type, state.categories);
+      setTxDraft({
+        name: result.storeName,
+        amount: result.amount,
+        date: result.date,
+        categoryId: result.categoryId,
+        personId: null,
+        notes: "",
+      });
+    } catch (err) {
+      setScanError(err instanceof Error ? err.message : "Beolvasás sikertelen");
+    } finally {
+      setScanning(false);
+    }
+  };
   const accentClass = type === "income" ? "text-positive" : "text-negative";
   const accentColorVar = type === "income" ? "var(--color-positive)" : "var(--color-negative)";
 
@@ -549,13 +577,40 @@ function ActualSection({
             <span className={accentClass}>{formatHuf(filteredTotal)}</span>
           </div>
         </div>
-        <SmallButton
-          variant="primary"
-          onClick={() => setTxDraft({ name: "", amount: 0, date: new Date().toISOString().slice(0, 10), categoryId: null, personId: null, notes: "" })}
-        >
-          <Plus className="w-3.5 h-3.5" />
-          {type === "income" ? "Új bevétel" : "Új kiadás"}
-        </SmallButton>
+        <div className="flex items-center gap-2">
+          {type === "expense" && (
+            <>
+              <SmallButton
+                variant="solid"
+                disabled={scanning}
+                onClick={() => { setScanError(null); scanInputRef.current?.click(); }}
+                title="Blokk beolvasása"
+              >
+                {scanning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                {scanning ? "Beolvas…" : "Blokk"}
+              </SmallButton>
+              <input
+                ref={scanInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                {...{ capture: "environment" } as React.InputHTMLAttributes<HTMLInputElement>}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleScanFile(f);
+                  e.target.value = "";
+                }}
+              />
+            </>
+          )}
+          <SmallButton
+            variant="primary"
+            onClick={() => setTxDraft({ name: "", amount: 0, date: new Date().toISOString().slice(0, 10), categoryId: null, personId: null, notes: "" })}
+          >
+            <Plus className="w-3.5 h-3.5" />
+            {type === "income" ? "Új bevétel" : "Új kiadás"}
+          </SmallButton>
+        </div>
       </div>
 
       {/* ── Filter bar ── */}
@@ -606,6 +661,14 @@ function ActualSection({
           )}
         </div>
       </div>
+
+      {/* ── Scan error ── */}
+      {scanError && (
+        <div className="px-4 py-2 text-xs text-negative border-b border-border bg-negative/5 flex items-center justify-between gap-2">
+          <span>Beolvasás sikertelen: {scanError}</span>
+          <button type="button" onClick={() => setScanError(null)} className="text-text-muted hover:text-text-1 shrink-0">✕</button>
+        </div>
+      )}
 
       {/* ── Date-grouped list ── */}
       {filtered.length === 0 ? (

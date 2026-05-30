@@ -3,9 +3,15 @@ export type ChangelogEntry = {
   changes: string[];
 };
 
-export const APP_VERSION = "0.5.43";
+export const APP_VERSION = "0.5.44";
 
 export const CHANGELOG: Record<string, { date: string; changes: string[] }> = {
+  "0.5.44": {
+    date: "2026-05-30",
+    changes: [
+      "Blokk beolvasása: kiadások szekcióban 'Blokk' gomb — fénykép a nyugtáról → Claude Vision API (Supabase Edge Function) kinyeri az üzlet nevét, összeget, dátumot és kategóriát → előre kitölti az 'Új kiadás' modalt.",
+    ],
+  },
   "0.5.43": {
     date: "2026-05-06",
     changes: [

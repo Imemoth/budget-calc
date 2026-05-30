@@ -725,6 +725,26 @@ export async function sendInvite(
   return { error: error ? error.message : null };
 }
 
+export interface ReceiptScanResult {
+  storeName: string;
+  date: string;
+  amount: number;
+  categoryId: string | null;
+}
+
+export async function scanReceipt(
+  imageBase64: string,
+  mimeType: string,
+  categories: Array<{ id: string; name: string; type: string }>
+): Promise<ReceiptScanResult> {
+  const { data, error } = await supabase.functions.invoke("receipt-scan", {
+    body: { image: imageBase64, mimeType, categories },
+  });
+  if (error) throw new Error(error.message);
+  if (data?.error) throw new Error(data.error);
+  return data as ReceiptScanResult;
+}
+
 export async function ensureDefaultHousehold(userId: string, userEmail?: string | null): Promise<string> {
   // Step 1: existing membership – order by created_at for a consistent result across devices
   const memberRes = await supabase
